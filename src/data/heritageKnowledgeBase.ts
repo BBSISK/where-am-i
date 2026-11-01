@@ -462,3 +462,4 @@ export function getEnrichedDataForWaypoint(name: string, h3Index: string): Enric
     tokensConsumed: base.tokensConsumed || 490
   };
 }
+

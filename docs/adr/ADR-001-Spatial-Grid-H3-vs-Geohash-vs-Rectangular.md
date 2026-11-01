@@ -40,3 +40,4 @@ We select **Uber H3 at Resolution 8** as the foundational spatial indexing syste
 ## Consequences
 * **Positive**: Microsecond coordinate-to-cell resolution, trivial neighbor corridor expansion, and clean visual representation on maps.
 * **Negative**: Requires loading the `h3-js` library (lightweight WASM/pure-JS build) and converting hexagon vertex GeoJSON for client-side rendering.
+

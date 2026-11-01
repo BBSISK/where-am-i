@@ -38,3 +38,4 @@ We select **LangGraph** to model the spatial enrichment pipeline as a stateful, 
 ## Consequences
 * **Positive**: High factual accuracy, predictable token expenditure, and superior observability for engineering portfolio presentation.
 * **Negative**: Requires formal state schema definitions (Pydantic / TypeScript types) and node transition logic.
+

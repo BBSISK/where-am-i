@@ -78,3 +78,4 @@ export function calculateBearing(start: GeoCoordinate, end: GeoCoordinate): numb
   const brng = (Math.atan2(y, x) * 180) / Math.PI;
   return (brng + 360) % 360;
 }
+

@@ -13,3 +13,4 @@ Rural Ireland (e.g., Connemara, West Cork, the Wicklow Mountains) frequently suf
    - Enriched audio scripts, phonetic placename data, and monument summaries are stored in a local client-side IndexedDB store.
 3. **On-Device Audio Synthesis (Web Speech API / Offline Voice Fallback)**:
    - High-fidelity pre-synthesized audio can be cached, while real-time dynamic alerts fall back smoothly to device-native Web Speech API speech synthesis without requiring an active network connection.
+
