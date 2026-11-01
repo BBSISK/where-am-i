@@ -95,10 +95,52 @@ export interface CensusDemographics {
   };
 }
 
+export interface ArtReference {
+  id: string;
+  artist: string;
+  artistLifespan?: string;
+  artworkTitle: string;
+  yearCreated: string;
+  medium: string;
+  galleryOrCollection: string; // e.g. "National Gallery of Ireland (NGI)", "National Library of Ireland (NLI)", "Carton House / OPW"
+  catalogRef?: string; // e.g. "NGI.4363"
+  description: string;
+  culturalSignificance: string;
+}
+
+export interface CommunityDiasporaLink {
+  id: string;
+  communityName: string; // e.g. "The Italian Diplomatic & Cultural Connection — Parco Italia"
+  connectionEra: string; // e.g. "1954–Present / 18th Century"
+  flagEmoji: string; // e.g. "🇮🇹" or "🇳🇴" or "🇫🇷"
+  summary: string;
+  narrative: string;
+  keyFiguresOrMilestones: string[];
+}
+
+export interface CsoModernMetrics {
+  censusYear: 2022;
+  population2022: number;
+  growthFrom1911Pct: string; // e.g. "+7,169%"
+  households2022: number;
+  broadbandCoveragePct: number;
+  demographicProfile: string;
+  economicDrivers: string[];
+  infrastructureMilestones: string[];
+}
+
+export interface FamousFigure {
+  name: string;
+  lifespan: string;
+  category: 'Arts & Culture' | 'Science & Innovation' | 'Military & Politics' | 'Industry & Enterprise';
+  significance: string;
+  quoteOrLegacy: string;
+}
+
 export interface ThreadOption {
   id: string;
   title: string;
-  category: 'folklore' | 'monument' | 'etymology' | 'geology' | 'history' | 'waterways';
+  category: 'folklore' | 'monument' | 'etymology' | 'geology' | 'history' | 'waterways' | 'art' | 'diaspora' | 'demographics';
   hookSnippet: string;
   spokenNarrative: string;
   detailMarkdown: string;
@@ -110,7 +152,7 @@ export interface SavedTripThread {
   h3Index: string;
   townland: string;
   threadTitle: string;
-  category: 'folklore' | 'monument' | 'etymology' | 'geology' | 'history' | 'waterways';
+  category: 'folklore' | 'monument' | 'etymology' | 'geology' | 'history' | 'waterways' | 'art' | 'diaspora' | 'demographics';
   spokenNarrative: string;
 }
 
@@ -128,6 +170,10 @@ export interface EnrichedH3Cell {
   waterways?: WaterwayInfo;
   councilSource?: CouncilHeritageSource;
   census?: CensusDemographics;
+  artReferences?: ArtReference[];
+  communityLinks?: CommunityDiasporaLink[];
+  csoModern?: CsoModernMetrics;
+  famousFigures?: FamousFigure[];
   teaserScript: string; // 10-second ambient audio teaser breadcrumb
   narrativeScript: string; // Full audio script
   threads: ThreadOption[]; // Interactive threads to pull

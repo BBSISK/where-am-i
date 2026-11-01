@@ -13,6 +13,10 @@ import {
   Waves,
   Users,
   FileText,
+  Palette,
+  Globe,
+  BarChart3,
+  Award,
   Volume2,
   ChevronRight,
   Bookmark,
@@ -111,7 +115,7 @@ export const DriveModeView: React.FC<DriveModeViewProps> = ({
   onOpenScrapbook,
   savedThreadsCount
 }) => {
-  const [activeCardTab, setActiveCardTab] = useState<'etymology' | 'monuments' | 'folklore' | 'geology' | 'history' | 'waterways' | 'council' | 'census'>('etymology');
+  const [activeCardTab, setActiveCardTab] = useState<'etymology' | 'monuments' | 'folklore' | 'geology' | 'history' | 'waterways' | 'council' | 'census' | 'art' | 'diaspora' | 'cso' | 'figures'>('etymology');
   const isGpsLocked = gpsState.status === 'locked';
   const isAcquiring = drivingMode === 'real-gps' && !isGpsLocked && (currentCell.h3Index === 'scanning...' || currentCell.townland === 'Acquiring GPS fix...');
 
@@ -701,6 +705,12 @@ export const DriveModeView: React.FC<DriveModeViewProps> = ({
                               ? 'bg-amber-500/20 text-amber-300 border border-amber-500/30'
                               : thread.category === 'monument'
                               ? 'bg-emerald-500/20 text-emerald-300 border border-emerald-500/30'
+                              : thread.category === 'art'
+                              ? 'bg-rose-500/20 text-rose-300 border border-rose-500/30'
+                              : thread.category === 'diaspora'
+                              ? 'bg-purple-500/20 text-purple-300 border border-purple-500/30'
+                              : thread.category === 'demographics'
+                              ? 'bg-sky-500/20 text-sky-300 border border-sky-500/30'
                               : 'bg-cyan-500/20 text-cyan-300 border border-cyan-500/30'
                           }`}>
                             {thread.category}
@@ -947,6 +957,62 @@ export const DriveModeView: React.FC<DriveModeViewProps> = ({
                 >
                   <Users className="w-4 h-4 text-indigo-400" />
                   <span>1911 Census & Land Records</span>
+                </button>
+              )}
+
+              {currentCell.artReferences && currentCell.artReferences.length > 0 && (
+                <button
+                  onClick={() => setActiveCardTab('art')}
+                  className={`flex items-center gap-2 px-4 py-3 text-xs sm:text-sm font-bold border-b-2 transition-all whitespace-nowrap ${
+                    activeCardTab === 'art'
+                      ? 'border-rose-500 text-rose-400 bg-rose-500/10'
+                      : 'border-transparent text-slate-400 hover:text-white'
+                  }`}
+                >
+                  <Palette className="w-4 h-4 text-rose-400" />
+                  <span>Art & NGI Gallery ({currentCell.artReferences.length})</span>
+                </button>
+              )}
+
+              {currentCell.communityLinks && currentCell.communityLinks.length > 0 && (
+                <button
+                  onClick={() => setActiveCardTab('diaspora')}
+                  className={`flex items-center gap-2 px-4 py-3 text-xs sm:text-sm font-bold border-b-2 transition-all whitespace-nowrap ${
+                    activeCardTab === 'diaspora'
+                      ? 'border-purple-500 text-purple-400 bg-purple-500/10'
+                      : 'border-transparent text-slate-400 hover:text-white'
+                  }`}
+                >
+                  <Globe className="w-4 h-4 text-purple-400" />
+                  <span>Diaspora & Global Ties ({currentCell.communityLinks.length})</span>
+                </button>
+              )}
+
+              {currentCell.csoModern && (
+                <button
+                  onClick={() => setActiveCardTab('cso')}
+                  className={`flex items-center gap-2 px-4 py-3 text-xs sm:text-sm font-bold border-b-2 transition-all whitespace-nowrap ${
+                    activeCardTab === 'cso'
+                      ? 'border-sky-500 text-sky-400 bg-sky-500/10'
+                      : 'border-transparent text-slate-400 hover:text-white'
+                  }`}
+                >
+                  <BarChart3 className="w-4 h-4 text-sky-400" />
+                  <span>CSO 2022 Live Pulse</span>
+                </button>
+              )}
+
+              {currentCell.famousFigures && currentCell.famousFigures.length > 0 && (
+                <button
+                  onClick={() => setActiveCardTab('figures')}
+                  className={`flex items-center gap-2 px-4 py-3 text-xs sm:text-sm font-bold border-b-2 transition-all whitespace-nowrap ${
+                    activeCardTab === 'figures'
+                      ? 'border-amber-500 text-amber-400 bg-amber-500/10'
+                      : 'border-transparent text-slate-400 hover:text-white'
+                  }`}
+                >
+                  <Award className="w-4 h-4 text-amber-400" />
+                  <span>Famous Figures ({currentCell.famousFigures.length})</span>
                 </button>
               )}
             </div>
@@ -1253,6 +1319,233 @@ export const DriveModeView: React.FC<DriveModeViewProps> = ({
                           </p>
                         </div>
                       )}
+                    </div>
+                  )}
+
+                  {/* Art & National Gallery References */}
+                  {activeCardTab === 'art' && currentCell.artReferences && (
+                    <div className="space-y-4">
+                      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 border-b border-slate-800 pb-3">
+                        <div>
+                          <div className="flex items-center gap-2">
+                            <Palette className="w-4 h-4 text-rose-400" />
+                            <span className="text-xs font-mono text-rose-400 uppercase font-bold">Art & National Gallery Collections</span>
+                          </div>
+                          <h4 className="text-xl font-bold text-white mt-1">Visual Heritage of {currentCell.townland}</h4>
+                        </div>
+                        <span className="px-2.5 py-1 rounded-full bg-rose-500/10 text-rose-300 font-mono text-xs font-bold border border-rose-500/20">
+                          National Gallery of Ireland (NGI) & NLI Archives
+                        </span>
+                      </div>
+
+                      <div className="grid grid-cols-1 gap-4">
+                        {currentCell.artReferences.map((art) => (
+                          <div key={art.id} className="p-4 rounded-xl bg-slate-950 border border-slate-800 space-y-2.5 hover:border-slate-700 transition-all">
+                            <div className="flex flex-col sm:flex-row sm:items-baseline justify-between gap-1 border-b border-slate-800/80 pb-2">
+                              <div>
+                                <span className="text-xs font-mono text-rose-400 font-bold">{art.artist} {art.artistLifespan && `(${art.artistLifespan})`}</span>
+                                <h5 className="text-base font-black text-white mt-0.5">{art.artworkTitle}</h5>
+                              </div>
+                              <div className="text-left sm:text-right">
+                                <span className="text-[11px] font-mono px-2 py-0.5 rounded bg-slate-800 text-slate-300">
+                                  {art.yearCreated} • {art.medium}
+                                </span>
+                              </div>
+                            </div>
+
+                            <p className="text-xs text-slate-200 leading-relaxed">
+                              {art.description}
+                            </p>
+
+                            <div className="p-2.5 rounded-lg bg-rose-950/20 border border-rose-500/20 text-xs text-rose-200/90 flex flex-col sm:flex-row sm:items-center justify-between gap-2">
+                              <span className="font-serif italic"><b className="font-mono not-italic text-rose-400">Significance: </b>{art.culturalSignificance}</span>
+                              <span className="text-[10px] font-mono shrink-0 px-2 py-0.5 rounded bg-slate-900 text-slate-400 border border-slate-800">
+                                🏛️ {art.galleryOrCollection} {art.catalogRef && `• ${art.catalogRef}`}
+                              </span>
+                            </div>
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                  )}
+
+                  {/* Diaspora & International Ties (e.g. Parco Italia) */}
+                  {activeCardTab === 'diaspora' && currentCell.communityLinks && (
+                    <div className="space-y-4">
+                      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 border-b border-slate-800 pb-3">
+                        <div>
+                          <div className="flex items-center gap-2">
+                            <Globe className="w-4 h-4 text-purple-400" />
+                            <span className="text-xs font-mono text-purple-400 uppercase font-bold">Diaspora & International Connections</span>
+                          </div>
+                          <h4 className="text-xl font-bold text-white mt-1">Global Ties & Cultural Footprints</h4>
+                        </div>
+                        <span className="px-2.5 py-1 rounded-full bg-purple-500/10 text-purple-300 font-mono text-xs font-bold border border-purple-500/20">
+                          Diplomatic & European Heritage
+                        </span>
+                      </div>
+
+                      <div className="grid grid-cols-1 gap-4">
+                        {currentCell.communityLinks.map((link) => (
+                          <div key={link.id} className="p-5 rounded-xl bg-gradient-to-r from-purple-950/20 via-slate-950 to-slate-950 border border-purple-500/30 space-y-3">
+                            <div className="flex items-center justify-between border-b border-purple-500/20 pb-2.5">
+                              <div className="flex items-center gap-2.5">
+                                <span className="text-2xl">{link.flagEmoji}</span>
+                                <div>
+                                  <h5 className="text-base font-bold text-white">{link.communityName}</h5>
+                                  <span className="text-xs font-mono text-purple-400">{link.connectionEra}</span>
+                                </div>
+                              </div>
+                            </div>
+
+                            <p className="text-xs font-bold text-slate-200">
+                              {link.summary}
+                            </p>
+
+                            <p className="text-xs text-slate-300 leading-relaxed font-serif">
+                              {link.narrative}
+                            </p>
+
+                            <div className="space-y-1.5 pt-1 border-t border-slate-800/80">
+                              <span className="text-[10px] font-mono uppercase text-slate-400 font-bold">Key Milestones & Diplomatic Figures:</span>
+                              <div className="flex flex-wrap gap-1.5">
+                                {link.keyFiguresOrMilestones.map((milestone, idx) => (
+                                  <span key={idx} className="text-[11px] font-mono px-2.5 py-1 rounded-lg bg-slate-900 border border-purple-500/30 text-purple-200">
+                                    • {milestone}
+                                  </span>
+                                ))}
+                              </div>
+                            </div>
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                  )}
+
+                  {/* CSO Live 2022 Census & Modern Demographics */}
+                  {activeCardTab === 'cso' && currentCell.csoModern && (
+                    <div className="space-y-4">
+                      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 border-b border-slate-800 pb-3">
+                        <div>
+                          <div className="flex items-center gap-2">
+                            <BarChart3 className="w-4 h-4 text-sky-400" />
+                            <span className="text-xs font-mono text-sky-400 uppercase font-bold">CSO Live 2022 Census & Modern Demographics</span>
+                          </div>
+                          <h4 className="text-xl font-bold text-white mt-1">{currentCell.townland} Contemporary Profile</h4>
+                        </div>
+                        <span className="px-2.5 py-1 rounded-full bg-sky-500/10 text-sky-300 font-mono text-xs font-bold border border-sky-500/20">
+                          Central Statistics Office (CSO) 2022
+                        </span>
+                      </div>
+
+                      {/* 4 Modern Demographic Metrics */}
+                      <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
+                        <div className="p-3.5 rounded-xl bg-slate-950 border border-slate-800">
+                          <span className="text-xs text-slate-400 font-mono">2022 Population</span>
+                          <p className="text-lg font-black text-white mt-0.5">{currentCell.csoModern.population2022.toLocaleString()}</p>
+                          <span className="text-[10px] text-emerald-400 font-mono font-bold">
+                            {currentCell.csoModern.growthFrom1911Pct} since 1911
+                          </span>
+                        </div>
+
+                        <div className="p-3.5 rounded-xl bg-slate-950 border border-slate-800">
+                          <span className="text-xs text-slate-400 font-mono">Private Households</span>
+                          <p className="text-lg font-black text-white mt-0.5">{currentCell.csoModern.households2022.toLocaleString()}</p>
+                          <span className="text-[10px] text-slate-500 font-mono">Occupied homes</span>
+                        </div>
+
+                        <div className="p-3.5 rounded-xl bg-slate-950 border border-slate-800">
+                          <span className="text-xs text-slate-400 font-mono">Broadband Connectivity</span>
+                          <p className="text-lg font-black text-sky-400 mt-0.5">{currentCell.csoModern.broadbandCoveragePct}%</p>
+                          <span className="text-[10px] text-slate-500 font-mono">High-speed broadband</span>
+                        </div>
+
+                        <div className="p-3.5 rounded-xl bg-slate-950 border border-slate-800">
+                          <span className="text-xs text-slate-400 font-mono">Historical Baseline</span>
+                          <p className="text-lg font-black text-amber-400 mt-0.5">
+                            {currentCell.census ? currentCell.census.totalPopulation.toLocaleString() : 'N/A'}
+                          </p>
+                          <span className="text-[10px] text-slate-500 font-mono">1911 Census baseline</span>
+                        </div>
+                      </div>
+
+                      {/* Demographic Narrative */}
+                      <div className="p-4 rounded-xl bg-slate-950 border border-slate-800 space-y-1.5">
+                        <span className="text-xs font-mono uppercase text-sky-400 font-bold">Community Profile:</span>
+                        <p className="text-xs text-slate-200 leading-relaxed">
+                          {currentCell.csoModern.demographicProfile}
+                        </p>
+                      </div>
+
+                      {/* Economic Drivers & Infrastructure */}
+                      <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                        <div className="p-3.5 rounded-xl bg-slate-950 border border-slate-800 space-y-2">
+                          <span className="text-xs font-mono uppercase text-emerald-400 font-bold">Primary Economic Drivers</span>
+                          <div className="space-y-1.5">
+                            {currentCell.csoModern.economicDrivers.map((driver, i) => (
+                              <div key={i} className="text-xs text-slate-300 flex items-center gap-1.5">
+                                <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 shrink-0"></span>
+                                <span>{driver}</span>
+                              </div>
+                            ))}
+                          </div>
+                        </div>
+
+                        <div className="p-3.5 rounded-xl bg-slate-950 border border-slate-800 space-y-2">
+                          <span className="text-xs font-mono uppercase text-sky-400 font-bold">Infrastructure & Innovation</span>
+                          <div className="space-y-1.5">
+                            {currentCell.csoModern.infrastructureMilestones.map((infra, i) => (
+                              <div key={i} className="text-xs text-slate-300 flex items-center gap-1.5">
+                                <span className="w-1.5 h-1.5 rounded-full bg-sky-400 shrink-0"></span>
+                                <span>{infra}</span>
+                              </div>
+                            ))}
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+                  )}
+
+                  {/* Famous Figures */}
+                  {activeCardTab === 'figures' && currentCell.famousFigures && (
+                    <div className="space-y-4">
+                      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 border-b border-slate-800 pb-3">
+                        <div>
+                          <div className="flex items-center gap-2">
+                            <Award className="w-4 h-4 text-amber-400" />
+                            <span className="text-xs font-mono text-amber-400 uppercase font-bold">Famous Local Figures</span>
+                          </div>
+                          <h4 className="text-xl font-bold text-white mt-1">Legends, Innovators & Pioneers of {currentCell.townland}</h4>
+                        </div>
+                        <span className="px-2.5 py-1 rounded-full bg-amber-500/10 text-amber-300 font-mono text-xs font-bold border border-amber-500/20">
+                          Dictionary of Irish Biography
+                        </span>
+                      </div>
+
+                      <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                        {currentCell.famousFigures.map((fig, i) => (
+                          <div key={i} className="p-4 rounded-xl bg-slate-950 border border-slate-800 space-y-2 hover:border-slate-700 transition-all">
+                            <div className="flex items-center justify-between">
+                              <span className="text-[10px] font-mono px-2 py-0.5 rounded font-bold uppercase bg-amber-500/10 text-amber-300 border border-amber-500/20">
+                                {fig.category}
+                              </span>
+                              <span className="text-xs font-mono text-slate-400">{fig.lifespan}</span>
+                            </div>
+
+                            <h5 className="text-base font-bold text-white">{fig.name}</h5>
+
+                            <p className="text-xs text-slate-300 leading-relaxed">
+                              {fig.significance}
+                            </p>
+
+                            <div className="pt-2 border-t border-slate-800/80">
+                              <p className="text-[11px] text-amber-200/90 font-serif italic">
+                                "{fig.quoteOrLegacy}"
+                              </p>
+                            </div>
+                          </div>
+                        ))}
+                      </div>
                     </div>
                   )}
                 </>

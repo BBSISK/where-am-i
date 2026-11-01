@@ -217,6 +217,92 @@ describe('Spatial RAG Engine', () => {
       expect(censusChunks.length).toBeGreaterThan(0);
       expect(censusChunks[0].title).toContain('1911 Census');
     });
+
+    it('indexes Art and National Gallery of Ireland (NGI) references for all areas', () => {
+      const lucan = spatialRagService.getAreaByName('Lucan');
+      expect(lucan?.artReferences).toBeDefined();
+      expect(lucan?.artReferences?.some(a => a.artist.includes('William Ashford'))).toBe(true);
+      expect(lucan?.artReferences?.some(a => a.artist.includes('Agostino Carlini'))).toBe(true);
+      expect(lucan?.artReferences?.some(a => a.galleryOrCollection.includes('National Gallery of Ireland'))).toBe(true);
+
+      const leixlip = spatialRagService.getAreaByName('Leixlip');
+      expect(leixlip?.artReferences).toBeDefined();
+      expect(leixlip?.artReferences?.some(a => a.artworkTitle.includes('The Salmon Leap') && a.artist.includes('Francis Wheatley'))).toBe(true);
+      expect(leixlip?.artReferences?.some(a => a.catalogRef === 'NGI.4363')).toBe(true);
+
+      const maynooth = spatialRagService.getAreaByName('Maynooth');
+      expect(maynooth?.artReferences).toBeDefined();
+      expect(maynooth?.artReferences?.some(a => a.artist.includes('Francini'))).toBe(true);
+      expect(maynooth?.artReferences?.some(a => a.artist.includes('Thomas Roberts'))).toBe(true);
+      expect(maynooth?.artReferences?.some(a => a.artist.includes('Augustus Welby Pugin'))).toBe(true);
+
+      // Test RAG search retrieval for art intents
+      const leixlipCoord = { lat: 53.3639, lng: -6.4950 };
+      const artChunks = spatialRagService.retrieveCorridorChunks(leixlipCoord, 'Wheatley Salmon Leap National Gallery');
+      expect(artChunks.length).toBeGreaterThan(0);
+      expect(artChunks[0].content).toContain('Francis Wheatley');
+    });
+
+    it('indexes Diaspora & Global Ties including Lucan Parco Italia and Leixlip Intel', () => {
+      const lucan = spatialRagService.getAreaByName('Lucan');
+      expect(lucan?.communityLinks).toBeDefined();
+      const italianLink = lucan?.communityLinks?.find(l => l.communityName.includes('Parco Italia'));
+      expect(italianLink).toBeDefined();
+      expect(italianLink?.flagEmoji).toBe('🇮🇹');
+      expect(italianLink?.narrative).toContain('Sergio Mattarella');
+      expect(italianLink?.summary).toContain('€10.5M');
+
+      const leixlip = spatialRagService.getAreaByName('Leixlip');
+      expect(leixlip?.communityLinks?.some(l => l.communityName.includes('Viking'))).toBe(true);
+      expect(leixlip?.communityLinks?.some(l => l.communityName.includes('Intel Ireland'))).toBe(true);
+
+      const maynooth = spatialRagService.getAreaByName('Maynooth');
+      expect(maynooth?.communityLinks?.some(l => l.communityName.includes('Sorbonne'))).toBe(true);
+
+      // Test RAG search retrieval for Italian connection in Lucan
+      const lucanCoord = { lat: 53.3575, lng: -6.4485 };
+      const italyChunks = spatialRagService.retrieveCorridorChunks(lucanCoord, 'Italian Ambassador Parco Italia');
+      expect(italyChunks.length).toBeGreaterThan(0);
+      expect(italyChunks[0].content).toContain('Parco Italia');
+    });
+
+    it('indexes live CSO 2022 Census data showing modern growth and tech profiles', () => {
+      const lucan = spatialRagService.getAreaByName('Lucan');
+      expect(lucan?.csoModern).toBeDefined();
+      expect(lucan?.csoModern?.population2022).toBe(57575);
+      expect(lucan?.csoModern?.growthFrom1911Pct).toBe('+7,169%');
+
+      const leixlip = spatialRagService.getAreaByName('Leixlip');
+      expect(leixlip?.csoModern).toBeDefined();
+      expect(leixlip?.csoModern?.population2022).toBe(16733);
+      expect(leixlip?.csoModern?.demographicProfile).toContain('STEM');
+
+      const maynooth = spatialRagService.getAreaByName('Maynooth');
+      expect(maynooth?.csoModern).toBeDefined();
+      expect(maynooth?.csoModern?.population2022).toBe(17259);
+      expect(maynooth?.csoModern?.demographicProfile).toContain('28.4 years');
+    });
+
+    it('indexes famous local figures across art, science, and history', () => {
+      const lucan = spatialRagService.getAreaByName('Lucan');
+      expect(lucan?.famousFigures?.some(f => f.name.includes('Patrick Sarsfield'))).toBe(true);
+      expect(lucan?.famousFigures?.some(f => f.name.includes('Carlini'))).toBe(true);
+      expect(lucan?.famousFigures?.some(f => f.name.includes('Shackleton'))).toBe(true);
+
+      const leixlip = spatialRagService.getAreaByName('Leixlip');
+      expect(leixlip?.famousFigures?.some(f => f.name.includes('Arthur Guinness'))).toBe(true);
+      expect(leixlip?.famousFigures?.some(f => f.name.includes('Desmond Guinness'))).toBe(true);
+
+      const maynooth = spatialRagService.getAreaByName('Maynooth');
+      expect(maynooth?.famousFigures?.some(f => f.name.includes('Paul Mescal'))).toBe(true);
+      expect(maynooth?.famousFigures?.some(f => f.name.includes('Nicholas Callan'))).toBe(true);
+
+      // Test RAG retrieval for Paul Mescal in Maynooth
+      const maynoothCoord = { lat: 53.3813, lng: -6.5918 };
+      const mescalChunks = spatialRagService.retrieveCorridorChunks(maynoothCoord, 'Paul Mescal actor Gladiator');
+      expect(mescalChunks.length).toBeGreaterThan(0);
+      expect(mescalChunks[0].content).toContain('Paul Mescal');
+    });
   });
 });
 

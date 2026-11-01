@@ -1,11 +1,11 @@
-import { GeoCoordinate, EnrichedH3Cell, ThreadOption, NationalMonument, FolkloreStory, GeologicalFeature, EtymologyInfo, HistoryEvent, WaterwayInfo, CouncilHeritageSource, CensusDemographics } from '../types';
+import { GeoCoordinate, EnrichedH3Cell, ThreadOption, NationalMonument, FolkloreStory, GeologicalFeature, EtymologyInfo, HistoryEvent, WaterwayInfo, CouncilHeritageSource, CensusDemographics, ArtReference, CommunityDiasporaLink, CsoModernMetrics, FamousFigure } from '../types';
 import { coordinateToH3, getCorridorNeighbors, calculateHaversineDistance } from './spatialEngine';
 import { N4_CORRIDOR_AREAS } from '../data/n4CorridorData';
 
 export interface AreaKnowledgeChunk {
   chunkId: string;
   h3Index: string;
-  category: 'etymology' | 'monument' | 'folklore' | 'geology' | 'history' | 'waterways' | 'thread';
+  category: 'etymology' | 'monument' | 'folklore' | 'geology' | 'history' | 'waterways' | 'thread' | 'art' | 'diaspora' | 'cso-modern' | 'figure';
   title: string;
   summary: string;
   content: string;
@@ -30,6 +30,10 @@ export interface AreaKnowledgeUnit {
   aliases?: string[]; // Townland sub-districts and neighborhood aliases
   councilSource?: CouncilHeritageSource; // County Council & Local Historical Society Sources
   census?: CensusDemographics; // 1911 Census, Griffith's Valuation, and Down Survey records
+  artReferences?: ArtReference[]; // National Gallery of Ireland, collections, and fine art
+  communityLinks?: CommunityDiasporaLink[]; // International community & diaspora links (e.g. Parco Italia)
+  csoModern?: CsoModernMetrics; // Central Statistics Office (CSO) 2022 Census & tech corridor data
+  famousFigures?: FamousFigure[]; // Renowned historical & contemporary figures
   etymology: EtymologyInfo;
   monuments: NationalMonument[];
   folklore: FolkloreStory;
@@ -156,6 +160,46 @@ class SpatialRagService {
           sourceCitation: 'National Archives of Ireland (1911 Census) & AskAboutIreland (Griffith’s Valuation)',
           metadata: { townland: area.townland, county: area.county, parish: area.parish, coordinates: area.coordinates }
         }] : []),
+        ...(area.artReferences?.map((art) => ({
+          chunkId: `${area.areaId}-art-${art.id}`,
+          h3Index: h3,
+          category: 'art' as const,
+          title: `Art & National Gallery: ${art.artworkTitle} by ${art.artist}`,
+          summary: `${art.yearCreated} • ${art.galleryOrCollection} (${art.medium})`,
+          content: `${art.artworkTitle} was created in ${art.yearCreated} by ${art.artist}${art.artistLifespan ? ` (${art.artistLifespan})` : ''}. Preserved at ${art.galleryOrCollection}${art.catalogRef ? ` [Ref: ${art.catalogRef}]` : ''}. Description: ${art.description} Cultural significance: ${art.culturalSignificance}`,
+          sourceCitation: `${art.galleryOrCollection} ${art.catalogRef ? `• ${art.catalogRef}` : ''}`,
+          metadata: { townland: area.townland, county: area.county, parish: area.parish, coordinates: area.coordinates }
+        })) || []),
+        ...(area.communityLinks?.map((link) => ({
+          chunkId: `${area.areaId}-diaspora-${link.id}`,
+          h3Index: h3,
+          category: 'diaspora' as const,
+          title: `Diaspora & International Connection: ${link.communityName} (${link.connectionEra})`,
+          summary: link.summary,
+          content: `${link.communityName} [${link.flagEmoji}] (${link.connectionEra}): ${link.summary}. Narrative: ${link.narrative}. Milestones: ${link.keyFiguresOrMilestones.join(', ')}.`,
+          sourceCitation: `Diplomatic & Diaspora Archives • ${link.communityName}`,
+          metadata: { townland: area.townland, county: area.county, parish: area.parish, coordinates: area.coordinates }
+        })) || []),
+        ...(area.csoModern ? [{
+          chunkId: `${area.areaId}-cso-modern`,
+          h3Index: h3,
+          category: 'cso-modern' as const,
+          title: `CSO Live Modern Demographics & Tech Corridor: ${area.townland} (2022 Census)`,
+          summary: `Population ${area.csoModern.population2022.toLocaleString()} (${area.csoModern.growthFrom1911Pct} since 1911). Households: ${area.csoModern.households2022.toLocaleString()}`,
+          content: `Central Statistics Office (CSO) 2022 Census: ${area.townland} has a population of ${area.csoModern.population2022.toLocaleString()} (${area.csoModern.growthFrom1911Pct} growth since 1911) across ${area.csoModern.households2022.toLocaleString()} private households (${area.csoModern.broadbandCoveragePct}% broadband coverage). Profile: ${area.csoModern.demographicProfile} Economic Drivers: ${area.csoModern.economicDrivers.join(', ')}. Infrastructure: ${area.csoModern.infrastructureMilestones.join(', ')}.`,
+          sourceCitation: 'Central Statistics Office (CSO) Census 2022 & Regional Demographic Profiles',
+          metadata: { townland: area.townland, county: area.county, parish: area.parish, coordinates: area.coordinates }
+        }] : []),
+        ...(area.famousFigures?.map((fig, fIdx) => ({
+          chunkId: `${area.areaId}-fig-${fIdx}`,
+          h3Index: h3,
+          category: 'figure' as const,
+          title: `Famous Local Figure: ${fig.name} (${fig.lifespan})`,
+          summary: `${fig.category} • ${fig.significance}`,
+          content: `${fig.name} (${fig.lifespan}) — Category: ${fig.category}. Significance: ${fig.significance}. Legacy / Quote: ${fig.quoteOrLegacy}`,
+          sourceCitation: 'Dictionary of Irish Biography & National Cultural Heritage',
+          metadata: { townland: area.townland, county: area.county, parish: area.parish, coordinates: area.coordinates }
+        })) || []),
         ...area.threads.map((t, idx) => ({
           chunkId: `${area.areaId}-thread-${t.id}`,
           h3Index: h3,
@@ -277,6 +321,10 @@ class SpatialRagService {
       waterways: area.waterways,
       councilSource: area.councilSource,
       census: area.census,
+      artReferences: area.artReferences,
+      communityLinks: area.communityLinks,
+      csoModern: area.csoModern,
+      famousFigures: area.famousFigures,
       teaserScript: area.teaserScript,
       narrativeScript: area.narrativeScript,
       threads: area.threads,
