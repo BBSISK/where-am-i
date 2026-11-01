@@ -251,7 +251,7 @@ export const App: React.FC = () => {
           <div className="flex items-center gap-4">
             <span className="text-slate-500">Built with Uber H3 • LangGraph • ElevenLabs • Logainm • Dúchas</span>
             <div className="flex items-center gap-1 text-emerald-400">
-              <span>Included in Ask Barry Portfolio</span>
+              <span>Autonomous Heritage Engine</span>
               <Sparkles className="w-3.5 h-3.5" />
             </div>
           </div>

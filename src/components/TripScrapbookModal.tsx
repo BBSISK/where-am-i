@@ -120,12 +120,12 @@ export const TripScrapbookModal: React.FC<TripScrapbookModalProps> = ({
             </button>
             <button
               onClick={() => {
-                alert('Trip Scrapbook copied to clipboard for your Ask Barry profile!');
+                navigator.clipboard?.writeText(JSON.stringify(savedThreads, null, 2)); alert('Trip Scrapbook copied to clipboard!');
               }}
               className="flex items-center gap-1.5 px-4 py-2 rounded-xl bg-emerald-600 hover:bg-emerald-500 text-white text-xs font-mono font-bold shadow-lg shadow-emerald-600/20 transition-all"
             >
               <Share2 className="w-3.5 h-3.5" />
-              <span>Export to Ask Barry</span>
+              <span>Copy Trip Summary</span>
             </button>
           </div>
         </div>
