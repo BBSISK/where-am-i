@@ -9,25 +9,40 @@ import { SIMULATED_ROUTES } from './data/irelandRoutes';
 import { getEnrichedDataForWaypoint } from './data/heritageKnowledgeBase';
 import { coordinateToH3, calculateBearing } from './services/spatialEngine';
 import { audioService } from './services/audioNarrationService';
+import { realGpsService, RealGpsState } from './services/realGpsService';
+import { DynamicHeritageService } from './services/dynamicHeritageService';
 import { EnrichedH3Cell, ThreadOption, SavedTripThread } from './types';
 import { Sparkles } from 'lucide-react';
 
 export const App: React.FC = () => {
   const [activeTab, setActiveTab] = useState<'drive' | 'map' | 'dev'>('drive');
+  
+  // DRIVING MODE: Primary is 'real-gps' (real vehicle hardware GPS), 'simulator' is demo bolt-on
+  const [drivingMode, setDrivingMode] = useState<'real-gps' | 'simulator'>('real-gps');
+  const [gpsState, setGpsState] = useState<RealGpsState>(realGpsService.getState());
+
+  // Simulator route state
   const [currentRoute, setCurrentRoute] = useState(SIMULATED_ROUTES[0]);
   const [currentWaypointIndex, setCurrentWaypointIndex] = useState(0);
   const [isPlaying, setIsPlaying] = useState(false);
   const [playbackSpeed, setPlaybackSpeed] = useState(1);
+
+  // Audio & Modals
   const [isAudioMuted, setIsAudioMuted] = useState(false);
   const [isSpeaking, setIsSpeaking] = useState(false);
   const [isVoiceModalOpen, setIsVoiceModalOpen] = useState(false);
   const [isScrapbookOpen, setIsScrapbookOpen] = useState(false);
   const [, setVoiceVersion] = useState(0);
 
-  // Active pulled thread state
+  // Active cell & threads
+  const [currentCell, setCurrentCell] = useState<EnrichedH3Cell>(() => {
+    const initWp = SIMULATED_ROUTES[0].waypoints[0];
+    const initH3 = coordinateToH3(initWp.coordinate, 8);
+    return getEnrichedDataForWaypoint(initWp.name, initH3);
+  });
   const [activeThread, setActiveThread] = useState<ThreadOption | null>(null);
-  
-  // Trip Scrapbook state (persisted to localStorage)
+
+  // Trip Scrapbook persistence
   const [savedThreads, setSavedThreads] = useState<SavedTripThread[]>(() => {
     if (typeof window !== 'undefined') {
       const saved = localStorage.getItem('whereami_saved_threads');
@@ -52,25 +67,63 @@ export const App: React.FC = () => {
     };
   }, []);
 
-  const currentWaypoint = currentRoute.waypoints[currentWaypointIndex];
-  const nextWaypoint = currentRoute.waypoints[(currentWaypointIndex + 1) % currentRoute.waypoints.length];
-
-  // Derive spatial H3 index and enriched data
-  const currentH3Index = coordinateToH3(currentWaypoint.coordinate, 8);
-  const currentCell: EnrichedH3Cell = getEnrichedDataForWaypoint(currentWaypoint.name, currentH3Index);
-  const bearing = calculateBearing(currentWaypoint.coordinate, nextWaypoint.coordinate);
-
-  // When changing waypoint during active play, reset active thread and speak teaser
+  // Subscribe to Real GPS state
   useEffect(() => {
-    setActiveThread(null);
-    if (!isAudioMuted && isPlaying && currentCell.teaserScript) {
+    const unsubGps = realGpsService.subscribe((state) => {
+      setGpsState(state);
+    });
+
+    // Listen for Real H3 Cell Entry as the vehicle travels along any Irish road
+    const unsubCell = realGpsService.onCellEntry(async (newH3Id, coord) => {
+      const cell = await DynamicHeritageService.resolveCell(newH3Id, coord);
+      setCurrentCell(cell);
+      setActiveThread(null);
+      if (!isAudioMuted && cell.teaserScript) {
+        audioService.speak(cell.teaserScript);
+      }
+    });
+
+    return () => {
+      unsubGps();
+      unsubCell();
+    };
+  }, [isAudioMuted]);
+
+  // Handle Real GPS Start/Stop
+  const handleStartGps = async () => {
+    await realGpsService.startTracking();
+    // Immediate voice feedback unlocked by user gesture
+    if (!isAudioMuted && currentCell.teaserScript) {
       audioService.speak(currentCell.teaserScript);
     }
-  }, [currentWaypointIndex, currentRoute.id]);
+  };
 
-  // Simulation timer loop
+  const handleStopGps = () => {
+    realGpsService.stopTracking();
+    audioService.stop();
+  };
+
+  // Simulator: derived waypoints & bearing
+  const simWaypoint = currentRoute.waypoints[currentWaypointIndex];
+  const nextSimWaypoint = currentRoute.waypoints[(currentWaypointIndex + 1) % currentRoute.waypoints.length];
+  const simBearing = calculateBearing(simWaypoint.coordinate, nextSimWaypoint.coordinate);
+
+  // Simulator waypoint update
   useEffect(() => {
-    if (!isPlaying) return;
+    if (drivingMode === 'simulator') {
+      const h3Idx = coordinateToH3(simWaypoint.coordinate, 8);
+      const cell = getEnrichedDataForWaypoint(simWaypoint.name, h3Idx);
+      setCurrentCell(cell);
+      setActiveThread(null);
+      if (!isAudioMuted && isPlaying && cell.teaserScript) {
+        audioService.speak(cell.teaserScript);
+      }
+    }
+  }, [currentWaypointIndex, currentRoute.id, drivingMode]);
+
+  // Simulator timer loop
+  useEffect(() => {
+    if (drivingMode !== 'simulator' || !isPlaying) return;
 
     const intervalTime = 8000 / playbackSpeed;
     const timer = setInterval(() => {
@@ -84,9 +137,9 @@ export const App: React.FC = () => {
     }, intervalTime);
 
     return () => clearInterval(timer);
-  }, [isPlaying, playbackSpeed, currentRoute.waypoints.length]);
+  }, [drivingMode, isPlaying, playbackSpeed, currentRoute.waypoints.length]);
 
-  const handleRouteChange = (routeId: string) => {
+  const handleSimulatorRouteChange = (routeId: string) => {
     const found = SIMULATED_ROUTES.find((r) => r.id === routeId);
     if (found) {
       audioService.stop();
@@ -97,11 +150,10 @@ export const App: React.FC = () => {
     }
   };
 
-  const handleTogglePlay = () => {
+  const handleToggleSimulatorPlay = () => {
     const nextState = !isPlaying;
     setIsPlaying(nextState);
     if (nextState) {
-      // Starting drive: immediately trigger speech for the first location teaser
       if (!isAudioMuted && currentCell.teaserScript) {
         audioService.speak(currentCell.teaserScript);
       }
@@ -110,7 +162,7 @@ export const App: React.FC = () => {
     }
   };
 
-  const handleReset = () => {
+  const handleResetSimulator = () => {
     audioService.stop();
     setCurrentWaypointIndex(0);
     setActiveThread(null);
@@ -135,23 +187,23 @@ export const App: React.FC = () => {
     const wp = currentRoute.waypoints[index];
     const h3Idx = coordinateToH3(wp.coordinate, 8);
     const cell = getEnrichedDataForWaypoint(wp.name, h3Idx);
+    setCurrentCell(cell);
     if (!isAudioMuted && cell.teaserScript) {
       audioService.speak(cell.teaserScript);
     }
   };
 
-  // Pull on a Thread Handler
   const handlePullThread = (thread: ThreadOption) => {
     setActiveThread(thread);
     audioService.speak(thread.spokenNarrative);
 
-    // Save thread to scrapbook if not already present
+    // Save thread to scrapbook
     setSavedThreads((prev) => {
       if (prev.some((t) => t.id === thread.id)) return prev;
       const newEntry: SavedTripThread = {
         id: thread.id,
         timestamp: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
-        h3Index: currentH3Index,
+        h3Index: currentCell.h3Index,
         townland: currentCell.townland,
         threadTitle: thread.title,
         category: thread.category,
@@ -172,6 +224,10 @@ export const App: React.FC = () => {
     }
   };
 
+  // Telemetry values depending on active mode
+  const activeSpeed = drivingMode === 'real-gps' ? gpsState.speedKmh : isPlaying ? Math.round(simWaypoint.speedLimitKmh * 0.95) : 0;
+  const activeBearing = drivingMode === 'real-gps' ? gpsState.heading : simBearing;
+
   return (
     <div className="min-h-screen bg-slate-950 text-slate-100 flex flex-col font-sans">
       {/* Sticky Navigation */}
@@ -181,29 +237,41 @@ export const App: React.FC = () => {
         isAudioMuted={isAudioMuted}
         onToggleMute={handleToggleMute}
         isSpeaking={isSpeaking}
-        currentRouteTitle={currentRoute.title}
+        currentRouteTitle={
+          drivingMode === 'real-gps'
+            ? gpsState.status === 'locked'
+              ? `🛰️ Live GPS: ${currentCell.townland} (${currentCell.county})`
+              : '🛰️ Live Vehicle GPS Mode'
+            : `🕹️ Demo: ${currentRoute.title}`
+        }
         onOpenVoiceStudio={() => setIsVoiceModalOpen(true)}
       />
 
-      {/* Main View Area */}
+      {/* Main View */}
       <main className="flex-1 pb-16">
         {activeTab === 'drive' && (
           <DriveModeView
+            drivingMode={drivingMode}
+            setDrivingMode={setDrivingMode}
+            gpsState={gpsState}
+            onStartGps={handleStartGps}
+            onStopGps={handleStopGps}
             currentRoute={currentRoute}
-            onRouteChange={handleRouteChange}
+            onRouteChange={handleSimulatorRouteChange}
             availableRoutes={SIMULATED_ROUTES}
             currentWaypointIndex={currentWaypointIndex}
             totalWaypoints={currentRoute.waypoints.length}
-            currentCell={currentCell}
             isPlaying={isPlaying}
-            onTogglePlay={handleTogglePlay}
-            onReset={handleReset}
+            onTogglePlay={handleToggleSimulatorPlay}
+            onReset={handleResetSimulator}
             playbackSpeed={playbackSpeed}
             onSpeedChange={setPlaybackSpeed}
+            onSelectWaypoint={handleSelectWaypoint}
+            currentCell={currentCell}
             isSpeaking={isSpeaking}
             onReplayAudio={handleReplayAudio}
-            bearing={bearing}
-            onSelectWaypoint={handleSelectWaypoint}
+            bearing={activeBearing}
+            speedKmh={activeSpeed}
             onPullThread={handlePullThread}
             activeThread={activeThread}
             onOpenScrapbook={() => setIsScrapbookOpen(true)}
@@ -240,18 +308,18 @@ export const App: React.FC = () => {
         onClearScrapbook={handleClearScrapbook}
       />
 
-      {/* Footer / Portfolio Anchor */}
+      {/* Footer */}
       <footer className="border-t border-slate-800 bg-slate-900/60 py-6 mt-auto">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 flex flex-col sm:flex-row items-center justify-between gap-4 text-xs font-mono text-slate-400">
           <div className="flex items-center gap-2">
             <span className="w-2 h-2 rounded-full bg-emerald-500"></span>
-            <span>Where Am I? (Anseo) • Éire Spatial Intelligence</span>
+            <span>Where Am I? (Anseo) • Live Geospatial Vehicle Engine</span>
           </div>
 
           <div className="flex items-center gap-4">
-            <span className="text-slate-500">Built with Uber H3 • LangGraph • ElevenLabs • Logainm • Dúchas</span>
+            <span className="text-slate-500">Hardware GPS • Uber H3 • LangGraph • ElevenLabs • Logainm</span>
             <div className="flex items-center gap-1 text-emerald-400">
-              <span>Autonomous Heritage Engine</span>
+              <span>Autonomous Heritage Copilot</span>
               <Sparkles className="w-3.5 h-3.5" />
             </div>
           </div>

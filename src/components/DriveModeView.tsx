@@ -12,26 +12,42 @@ import {
   Volume2,
   ChevronRight,
   Bookmark,
-  ArrowRight
+  ArrowRight,
+  Satellite,
+  ShieldAlert,
+  Sun,
+  Activity
 } from 'lucide-react';
 import { EnrichedH3Cell, SimulatedRoute, ThreadOption } from '../types';
+import { RealGpsState } from '../services/realGpsService';
 
 interface DriveModeViewProps {
+  // GPS & Driving Modes
+  drivingMode: 'real-gps' | 'simulator';
+  setDrivingMode: (mode: 'real-gps' | 'simulator') => void;
+  gpsState: RealGpsState;
+  onStartGps: () => void;
+  onStopGps: () => void;
+
+  // Simulator props (Secondary mode)
   currentRoute: SimulatedRoute;
   onRouteChange: (routeId: string) => void;
   availableRoutes: SimulatedRoute[];
   currentWaypointIndex: number;
   totalWaypoints: number;
-  currentCell: EnrichedH3Cell;
   isPlaying: boolean;
   onTogglePlay: () => void;
   onReset: () => void;
   playbackSpeed: number;
   onSpeedChange: (speed: number) => void;
+  onSelectWaypoint: (index: number) => void;
+
+  // Shared HUD & Thread props
+  currentCell: EnrichedH3Cell;
   isSpeaking: boolean;
   onReplayAudio: () => void;
   bearing: number;
-  onSelectWaypoint: (index: number) => void;
+  speedKmh: number;
   onPullThread: (thread: ThreadOption) => void;
   activeThread: ThreadOption | null;
   onOpenScrapbook: () => void;
@@ -39,138 +55,228 @@ interface DriveModeViewProps {
 }
 
 export const DriveModeView: React.FC<DriveModeViewProps> = ({
+  drivingMode,
+  setDrivingMode,
+  gpsState,
+  onStartGps,
+  onStopGps,
   currentRoute,
   onRouteChange,
   availableRoutes,
   currentWaypointIndex,
   totalWaypoints,
-  currentCell,
   isPlaying,
   onTogglePlay,
   onReset,
   playbackSpeed,
   onSpeedChange,
+  onSelectWaypoint,
+  currentCell,
   isSpeaking,
   onReplayAudio,
   bearing,
-  onSelectWaypoint,
+  speedKmh,
   onPullThread,
   activeThread,
   onOpenScrapbook,
   savedThreadsCount
 }) => {
   const [activeCardTab, setActiveCardTab] = useState<'etymology' | 'monuments' | 'folklore' | 'geology'>('etymology');
-  const activeWaypoint = currentRoute.waypoints[currentWaypointIndex];
+  const isGpsLocked = gpsState.status === 'locked';
 
   return (
     <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6 space-y-6">
 
-      {/* Top Driving Control Bar */}
-      <div className="bg-slate-900 border border-slate-800 rounded-2xl p-4 sm:p-5 shadow-xl flex flex-col md:flex-row items-center justify-between gap-4">
+      {/* Top Mode Selector Bar: Real GPS vs Simulator */}
+      <div className="flex flex-col sm:flex-row items-center justify-between gap-4 bg-slate-900 border border-slate-800 p-3 sm:p-4 rounded-2xl shadow-xl">
         
-        {/* Route Selector & Region */}
-        <div className="flex flex-col sm:flex-row items-start sm:items-center gap-3 w-full md:w-auto">
-          <div className="w-10 h-10 rounded-xl bg-slate-800 border border-slate-700 flex items-center justify-center text-emerald-400">
-            <Radio className="w-5 h-5 animate-pulse" />
-          </div>
-          <div>
-            <div className="flex items-center gap-2">
-              <span className="text-xs uppercase font-mono tracking-wider text-emerald-400 font-semibold">Active GPS Corridor</span>
-              <span className="text-xs text-slate-500">•</span>
-              <span className="text-xs font-mono text-slate-400">{currentRoute.region}</span>
-            </div>
-            <select
-              value={currentRoute.id}
-              onChange={(e) => onRouteChange(e.target.value)}
-              className="bg-slate-950 border border-slate-700 rounded-lg text-white font-bold text-sm sm:text-base py-1 px-2.5 mt-1 focus:ring-2 focus:ring-emerald-500 focus:outline-none"
-            >
-              {availableRoutes.map(r => (
-                <option key={r.id} value={r.id}>{r.title}</option>
-              ))}
-            </select>
-          </div>
-        </div>
-
-        {/* Playback Controls & Scrapbook Button */}
-        <div className="flex items-center gap-2 w-full md:w-auto justify-end flex-wrap">
-          
-          {/* Trip Scrapbook Badge Button */}
+        {/* Primary Mode Switcher */}
+        <div className="flex items-center gap-2 bg-slate-950 p-1.5 rounded-xl border border-slate-800 w-full sm:w-auto">
           <button
-            onClick={onOpenScrapbook}
-            className="flex items-center gap-1.5 px-3 py-2 rounded-xl bg-emerald-500/10 hover:bg-emerald-500/20 border border-emerald-500/30 text-emerald-300 text-xs font-mono font-bold transition-all"
-            title="Open Trip Scrapbook"
-          >
-            <Bookmark className="w-4 h-4 text-emerald-400" />
-            <span>Trip Scrapbook</span>
-            <span className="px-1.5 py-0.2 rounded-full bg-emerald-500 text-slate-950 text-[10px] font-black">
-              {savedThreadsCount}
-            </span>
-          </button>
-
-          <button
-            onClick={onTogglePlay}
-            className={`flex items-center gap-2 px-4 py-2 rounded-xl font-bold text-sm transition-all shadow-lg ${
-              isPlaying
-                ? 'bg-amber-600 hover:bg-amber-500 text-white shadow-amber-600/20'
-                : 'bg-emerald-600 hover:bg-emerald-500 text-white shadow-emerald-600/20'
+            onClick={() => setDrivingMode('real-gps')}
+            className={`flex-1 sm:flex-initial flex items-center justify-center gap-2 px-4 py-2 rounded-lg text-xs sm:text-sm font-bold transition-all ${
+              drivingMode === 'real-gps'
+                ? 'bg-emerald-600 text-white shadow-md shadow-emerald-600/30'
+                : 'text-slate-400 hover:text-white hover:bg-slate-800/50'
             }`}
           >
-            {isPlaying ? <Pause className="w-4 h-4 fill-current" /> : <Play className="w-4 h-4 fill-current" />}
-            <span>{isPlaying ? 'Pause Driving' : 'Start Driving'}</span>
+            <Satellite className="w-4 h-4 text-emerald-300" />
+            <span>🛰️ Live Vehicle GPS (Primary)</span>
           </button>
 
           <button
-            onClick={onReset}
-            className="p-2 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-300 border border-slate-700 transition-all"
-            title="Reset Route"
+            onClick={() => setDrivingMode('simulator')}
+            className={`flex-1 sm:flex-initial flex items-center justify-center gap-2 px-4 py-2 rounded-lg text-xs sm:text-sm font-bold transition-all ${
+              drivingMode === 'simulator'
+                ? 'bg-amber-600 text-white shadow-md shadow-amber-600/30'
+                : 'text-slate-400 hover:text-white hover:bg-slate-800/50'
+            }`}
           >
-            <RotateCcw className="w-4 h-4" />
+            <Activity className="w-4 h-4 text-amber-300" />
+            <span>Demo Simulator</span>
           </button>
-
-          {/* Speed Multipliers */}
-          <div className="flex items-center bg-slate-950 rounded-xl border border-slate-800 p-1 text-xs font-mono">
-            {[1, 2, 5].map((speed) => (
-              <button
-                key={speed}
-                onClick={() => onSpeedChange(speed)}
-                className={`px-2.5 py-1 rounded-lg font-bold transition-all ${
-                  playbackSpeed === speed
-                    ? 'bg-emerald-600 text-white'
-                    : 'text-slate-400 hover:text-white'
-                }`}
-              >
-                {speed}x
-              </button>
-            ))}
-          </div>
         </div>
+
+        {/* Scrapbook Button */}
+        <button
+          onClick={onOpenScrapbook}
+          className="flex items-center gap-2 px-3.5 py-2 rounded-xl bg-slate-950 hover:bg-slate-800/80 border border-slate-800 text-slate-200 text-xs font-mono font-bold transition-all"
+        >
+          <Bookmark className="w-4 h-4 text-emerald-400" />
+          <span>Trip Scrapbook</span>
+          <span className="px-1.5 py-0.2 rounded-full bg-emerald-500 text-slate-950 text-[10px] font-black">
+            {savedThreadsCount}
+          </span>
+        </button>
 
       </div>
 
-      {/* Main HUD Layout */}
+      {/* Mode-Specific Action Controller */}
+      {drivingMode === 'real-gps' ? (
+        /* Real GPS Dashboard Controller */
+        <div className="bg-gradient-to-r from-emerald-950/40 via-slate-900 to-slate-900 border border-emerald-500/30 rounded-2xl p-4 sm:p-5 shadow-xl flex flex-col md:flex-row items-center justify-between gap-4">
+          <div className="flex items-center gap-3">
+            <div className={`w-12 h-12 rounded-2xl flex items-center justify-center border transition-all ${
+              isGpsLocked
+                ? 'bg-emerald-500/20 border-emerald-500/40 text-emerald-400'
+                : 'bg-slate-800 border-slate-700 text-slate-400'
+            }`}>
+              <Satellite className={`w-6 h-6 ${isGpsLocked ? 'animate-pulse' : ''}`} />
+            </div>
+            <div>
+              <div className="flex items-center gap-2">
+                <span className="text-xs uppercase font-mono font-bold text-emerald-400">Hardware GPS Tracking</span>
+                {isGpsLocked && (
+                  <span className="text-[10px] font-mono px-2 py-0.5 rounded-full bg-emerald-500/20 text-emerald-300 border border-emerald-500/30">
+                    Accuracy: ±{gpsState.accuracyMeters}m
+                  </span>
+                )}
+                {gpsState.isScreenWakeLocked && (
+                  <span className="text-[10px] font-mono px-2 py-0.5 rounded-full bg-amber-500/10 text-amber-300 flex items-center gap-1 border border-amber-500/20">
+                    <Sun className="w-3 h-3 text-amber-400" />
+                    <span>Screen Awake</span>
+                  </span>
+                )}
+              </div>
+              <h3 className="text-base sm:text-lg font-bold text-white mt-0.5">
+                {isGpsLocked
+                  ? `${currentCell.townland} (${currentCell.county})`
+                  : gpsState.status === 'requesting'
+                  ? 'Acquiring Satellite Lock...'
+                  : 'Ready to drive in real life'}
+              </h3>
+            </div>
+          </div>
+
+          <div className="flex items-center gap-3 w-full md:w-auto justify-end">
+            {isGpsLocked ? (
+              <button
+                onClick={onStopGps}
+                className="w-full sm:w-auto px-5 py-3 rounded-xl bg-rose-600/80 hover:bg-rose-600 text-white text-xs font-mono font-bold transition-all shadow-lg shadow-rose-600/20"
+              >
+                Stop GPS Tracking
+              </button>
+            ) : (
+              <button
+                onClick={onStartGps}
+                className="w-full sm:w-auto flex items-center justify-center gap-2 px-6 py-3 rounded-xl bg-emerald-600 hover:bg-emerald-500 text-white font-bold text-sm shadow-xl shadow-emerald-600/30 transition-all"
+              >
+                <Satellite className="w-5 h-5 fill-current" />
+                <span>Start Live GPS Driving</span>
+              </button>
+            )}
+          </div>
+        </div>
+      ) : (
+        /* Simulator Controller */
+        <div className="bg-slate-900 border border-slate-800 rounded-2xl p-4 sm:p-5 shadow-xl flex flex-col md:flex-row items-center justify-between gap-4">
+          <div className="flex items-center gap-3">
+            <div className="w-10 h-10 rounded-xl bg-slate-800 border border-slate-700 flex items-center justify-center text-amber-400">
+              <Radio className="w-5 h-5 animate-pulse" />
+            </div>
+            <div>
+              <span className="text-xs uppercase font-mono tracking-wider text-amber-400 font-semibold">Demo Simulation Corridor</span>
+              <select
+                value={currentRoute.id}
+                onChange={(e) => onRouteChange(e.target.value)}
+                className="bg-slate-950 border border-slate-700 rounded-lg text-white font-bold text-sm sm:text-base py-1 px-2.5 mt-1 focus:ring-2 focus:ring-amber-500 focus:outline-none block"
+              >
+                {availableRoutes.map(r => (
+                  <option key={r.id} value={r.id}>{r.title}</option>
+                ))}
+              </select>
+            </div>
+          </div>
+
+          <div className="flex items-center gap-2 w-full md:w-auto justify-end">
+            <button
+              onClick={onTogglePlay}
+              className={`flex items-center gap-2 px-4 py-2.5 rounded-xl font-bold text-sm transition-all shadow-lg ${
+                isPlaying
+                  ? 'bg-amber-600 hover:bg-amber-500 text-white shadow-amber-600/20'
+                  : 'bg-emerald-600 hover:bg-emerald-500 text-white shadow-emerald-600/20'
+              }`}
+            >
+              {isPlaying ? <Pause className="w-4 h-4 fill-current" /> : <Play className="w-4 h-4 fill-current" />}
+              <span>{isPlaying ? 'Pause Demo' : 'Play Demo'}</span>
+            </button>
+
+            <button
+              onClick={onReset}
+              className="p-2.5 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-300 border border-slate-700 transition-all"
+            >
+              <RotateCcw className="w-4 h-4" />
+            </button>
+
+            <div className="flex items-center bg-slate-950 rounded-xl border border-slate-800 p-1 text-xs font-mono">
+              {[1, 2, 5].map((speed) => (
+                <button
+                  key={speed}
+                  onClick={() => onSpeedChange(speed)}
+                  className={`px-2 py-1 rounded-lg font-bold transition-all ${
+                    playbackSpeed === speed ? 'bg-amber-600 text-white' : 'text-slate-400 hover:text-white'
+                  }`}
+                >
+                  {speed}x
+                </button>
+              ))}
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* GPS Error Alert */}
+      {gpsState.status === 'error' && (
+        <div className="p-4 rounded-2xl bg-rose-500/10 border border-rose-500/30 text-rose-300 text-xs flex items-center gap-3">
+          <ShieldAlert className="w-5 h-5 shrink-0 text-rose-400" />
+          <span>{gpsState.errorMessage}</span>
+        </div>
+      )}
+
+      {/* Main Vehicular HUD */}
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
 
-        {/* Left Column: Vehicle Telemetry & Corridor Scrubber */}
+        {/* Left Column: Speedometer, Heading, H3 Hex, and Distance */}
         <div className="space-y-6">
 
-          {/* Telemetry Card */}
+          {/* Speed & Heading HUD */}
           <div className="bg-gradient-to-b from-slate-900 to-slate-950 border border-slate-800 rounded-2xl p-5 shadow-xl relative overflow-hidden">
-            <div className="absolute top-0 right-0 w-32 h-32 bg-emerald-500/5 rounded-full blur-2xl pointer-events-none"></div>
-
             <div className="flex items-center justify-between pb-4 border-b border-slate-800">
-              <span className="text-xs font-mono text-slate-400 uppercase tracking-wider">Vehicle Telemetry</span>
+              <span className="text-xs font-mono text-slate-400 uppercase tracking-wider">
+                {drivingMode === 'real-gps' ? 'Live Telemetry' : 'Simulated Telemetry'}
+              </span>
               <div className="flex items-center gap-1.5 px-2 py-0.5 rounded-full bg-emerald-500/10 text-emerald-400 text-xs font-mono">
                 <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-ping"></span>
-                <span>GPS Locked</span>
+                <span>{drivingMode === 'real-gps' ? (isGpsLocked ? 'GPS Connected' : 'GPS Idle') : 'Simulator Active'}</span>
               </div>
             </div>
 
             <div className="grid grid-cols-2 gap-4 mt-4">
               <div>
-                <p className="text-xs text-slate-400 font-mono">Simulated Speed</p>
+                <p className="text-xs text-slate-400 font-mono">Vehicle Speed</p>
                 <div className="flex items-baseline gap-1 mt-1">
                   <span className="text-4xl font-extrabold text-white tracking-tight">
-                    {isPlaying ? Math.round(activeWaypoint.speedLimitKmh * 0.95) : 0}
+                    {speedKmh}
                   </span>
                   <span className="text-xs font-bold text-slate-400">km/h</span>
                 </div>
@@ -190,10 +296,10 @@ export const DriveModeView: React.FC<DriveModeViewProps> = ({
               </div>
             </div>
 
-            {/* Spatial H3 Hex Badge */}
+            {/* Current Spatial H3 Hex ID */}
             <div className="mt-5 pt-4 border-t border-slate-800/80">
               <div className="flex items-center justify-between">
-                <span className="text-xs text-slate-400 font-mono">Uber H3 Spatial Cell (Res 8)</span>
+                <span className="text-xs text-slate-400 font-mono">Uber H3 Spatial Hex (Res 8)</span>
                 <span className="text-xs px-2 py-0.5 rounded bg-slate-800 text-emerald-400 font-mono">~0.74 km²</span>
               </div>
               <div className="mt-1.5 p-2.5 rounded-xl bg-slate-950 border border-slate-800 flex items-center justify-between font-mono">
@@ -202,50 +308,60 @@ export const DriveModeView: React.FC<DriveModeViewProps> = ({
               </div>
             </div>
 
-            {/* Location Title */}
+            {/* Location & Townland */}
             <div className="mt-4">
-              <p className="text-xs text-slate-400 font-mono">Current Townland & Road</p>
-              <h3 className="text-lg font-bold text-white mt-0.5">{activeWaypoint.name}</h3>
-              <p className="text-xs font-mono text-emerald-400 mt-0.5">{activeWaypoint.roadName}</p>
+              <p className="text-xs text-slate-400 font-mono">Active Townland</p>
+              <h3 className="text-lg font-bold text-white mt-0.5">{currentCell.townland}</h3>
+              <p className="text-xs font-mono text-emerald-400 mt-0.5">County {currentCell.county}</p>
             </div>
+
+            {/* Total Distance Driven in Real GPS */}
+            {drivingMode === 'real-gps' && isGpsLocked && (
+              <div className="mt-3 pt-3 border-t border-slate-800/60 flex items-center justify-between text-xs font-mono text-slate-400">
+                <span>Trip Distance:</span>
+                <span className="text-white font-bold">{(gpsState.totalDistanceDrivenMeters / 1000).toFixed(2)} km</span>
+              </div>
+            )}
 
           </div>
 
-          {/* Corridor Waypoint Progress */}
-          <div className="bg-slate-900 border border-slate-800 rounded-2xl p-5 shadow-xl">
-            <div className="flex items-center justify-between mb-3">
-              <span className="text-xs font-mono text-slate-400 uppercase tracking-wider">Corridor Milestones</span>
-              <span className="text-xs font-mono text-emerald-400">
-                {currentWaypointIndex + 1} of {totalWaypoints}
-              </span>
-            </div>
+          {/* Simulator Milestones Scrubber (Visible in Simulator Mode) */}
+          {drivingMode === 'simulator' && (
+            <div className="bg-slate-900 border border-slate-800 rounded-2xl p-5 shadow-xl">
+              <div className="flex items-center justify-between mb-3">
+                <span className="text-xs font-mono text-slate-400 uppercase tracking-wider">Demo Waypoints</span>
+                <span className="text-xs font-mono text-emerald-400">
+                  {currentWaypointIndex + 1} of {totalWaypoints}
+                </span>
+              </div>
 
-            <div className="space-y-2">
-              {currentRoute.waypoints.map((wp, idx) => (
-                <button
-                  key={idx}
-                  onClick={() => onSelectWaypoint(idx)}
-                  className={`w-full text-left p-2.5 rounded-xl border text-xs transition-all flex items-center justify-between ${
-                    idx === currentWaypointIndex
-                      ? 'bg-emerald-500/10 border-emerald-500 text-white font-bold'
-                      : idx < currentWaypointIndex
-                      ? 'bg-slate-950/40 border-slate-800/80 text-slate-400 hover:text-white'
-                      : 'bg-slate-950/20 border-slate-800/40 text-slate-600 hover:text-slate-400'
-                  }`}
-                >
-                  <div className="flex items-center gap-2">
-                    <span className={`w-2 h-2 rounded-full ${idx === currentWaypointIndex ? 'bg-emerald-400 animate-pulse' : idx < currentWaypointIndex ? 'bg-emerald-700' : 'bg-slate-700'}`}></span>
-                    <span className="truncate max-w-[200px]">{wp.name}</span>
-                  </div>
-                  <ChevronRight className="w-3.5 h-3.5 opacity-50" />
-                </button>
-              ))}
+              <div className="space-y-2">
+                {currentRoute.waypoints.map((wp, idx) => (
+                  <button
+                    key={idx}
+                    onClick={() => onSelectWaypoint(idx)}
+                    className={`w-full text-left p-2.5 rounded-xl border text-xs transition-all flex items-center justify-between ${
+                      idx === currentWaypointIndex
+                        ? 'bg-amber-500/10 border-amber-500 text-white font-bold'
+                        : idx < currentWaypointIndex
+                        ? 'bg-slate-950/40 border-slate-800/80 text-slate-400 hover:text-white'
+                        : 'bg-slate-950/20 border-slate-800/40 text-slate-600 hover:text-slate-400'
+                    }`}
+                  >
+                    <div className="flex items-center gap-2">
+                      <span className={`w-2 h-2 rounded-full ${idx === currentWaypointIndex ? 'bg-amber-400 animate-pulse' : 'bg-slate-700'}`}></span>
+                      <span className="truncate max-w-[200px]">{wp.name}</span>
+                    </div>
+                    <ChevronRight className="w-3.5 h-3.5 opacity-50" />
+                  </button>
+                ))}
+              </div>
             </div>
-          </div>
+          )}
 
         </div>
 
-        {/* Right 2 Columns: Ambient Teaser & "PULL ON A THREAD" Interactive Deck */}
+        {/* Right 2 Columns: Ambient Audio Teaser & "PULL ON A THREAD" Interactive Deck */}
         <div className="lg:col-span-2 space-y-6">
 
           {/* 10-Second Ambient Audio Teaser (The Breadcrumb) */}
@@ -281,7 +397,7 @@ export const DriveModeView: React.FC<DriveModeViewProps> = ({
             </div>
           </div>
 
-          {/* "PULL ON A THREAD" Interactive Deck (Steering-Safe Big Buttons) */}
+          {/* "PULL ON A THREAD" Interactive Deck */}
           <div className="bg-slate-900 border border-slate-800 rounded-2xl p-5 shadow-xl space-y-4">
             <div className="flex items-center justify-between border-b border-slate-800 pb-3">
               <div className="flex items-center gap-2">
@@ -342,7 +458,7 @@ export const DriveModeView: React.FC<DriveModeViewProps> = ({
                 })
               ) : (
                 <div className="p-4 rounded-xl bg-slate-950 border border-slate-800 text-xs text-slate-400">
-                  No extra threads available for this waypoint.
+                  No extra threads available for this cell.
                 </div>
               )}
             </div>
@@ -378,10 +494,8 @@ export const DriveModeView: React.FC<DriveModeViewProps> = ({
 
           </div>
 
-          {/* Rich Cultural Knowledge Explorer Card */}
+          {/* 4 Cultural Tabs */}
           <div className="bg-slate-900 border border-slate-800 rounded-2xl shadow-xl overflow-hidden">
-            
-            {/* Tabs for Data Layers */}
             <div className="flex border-b border-slate-800 bg-slate-950/40 overflow-x-auto">
               <button
                 onClick={() => setActiveCardTab('etymology')}
@@ -432,10 +546,7 @@ export const DriveModeView: React.FC<DriveModeViewProps> = ({
               </button>
             </div>
 
-            {/* Tab Content Display */}
             <div className="p-6">
-
-              {/* Tab 1: Etymology */}
               {activeCardTab === 'etymology' && (
                 <div className="space-y-4">
                   <div className="flex flex-col sm:flex-row sm:items-baseline justify-between gap-2 border-b border-slate-800 pb-3">
@@ -470,28 +581,15 @@ export const DriveModeView: React.FC<DriveModeViewProps> = ({
                 </div>
               )}
 
-              {/* Tab 2: Monuments */}
               {activeCardTab === 'monuments' && (
                 <div className="space-y-4">
-                  <div className="flex items-center justify-between">
-                    <h4 className="text-sm font-mono text-slate-400 uppercase">
-                      Archaeological Survey of Ireland (ASI) Sites in this Cell
-                    </h4>
-                    <span className="text-xs font-mono px-2 py-0.5 rounded bg-emerald-500/10 text-emerald-400 border border-emerald-500/20">
-                      National Monuments Service
-                    </span>
-                  </div>
-
                   <div className="grid grid-cols-1 gap-3">
                     {currentCell.monuments.map((m) => (
                       <div key={m.id} className="p-4 rounded-xl bg-slate-950 border border-slate-800 space-y-2">
                         <div className="flex items-center justify-between">
-                          <div className="flex items-center gap-2">
-                            <span className="px-2 py-0.5 rounded bg-amber-500/10 text-amber-400 text-xs font-bold font-mono">
-                              {m.type}
-                            </span>
-                            <span className="text-xs font-mono text-slate-500">{m.era}</span>
-                          </div>
+                          <span className="px-2 py-0.5 rounded bg-amber-500/10 text-amber-400 text-xs font-bold font-mono">
+                            {m.type} • {m.era}
+                          </span>
                           <span className="text-xs font-mono text-emerald-400 font-semibold">
                             {m.distanceMeters}m from route
                           </span>
@@ -504,51 +602,24 @@ export const DriveModeView: React.FC<DriveModeViewProps> = ({
                 </div>
               )}
 
-              {/* Tab 3: Folklore */}
               {activeCardTab === 'folklore' && (
                 <div className="space-y-4">
-                  <div className="flex items-center justify-between border-b border-slate-800 pb-3">
-                    <div>
-                      <span className="text-xs font-mono text-amber-400 uppercase">National Folklore Collection (1937–38)</span>
-                      <h4 className="text-lg font-bold text-white">{currentCell.folklore.title}</h4>
-                    </div>
-                    <span className="px-2 py-1 rounded bg-amber-500/10 text-amber-300 text-xs font-mono border border-amber-500/20">
-                      {currentCell.folklore.category}
-                    </span>
-                  </div>
-
+                  <h4 className="text-lg font-bold text-white">{currentCell.folklore.title}</h4>
                   <blockquote className="p-4 rounded-xl bg-slate-950 border-l-4 border-amber-500 text-sm text-slate-300 italic leading-relaxed">
                     "{currentCell.folklore.storySnippet}"
                   </blockquote>
                 </div>
               )}
 
-              {/* Tab 4: Geology */}
               {activeCardTab === 'geology' && (
                 <div className="space-y-4">
-                  <div className="flex items-center justify-between border-b border-slate-800 pb-3">
-                    <div>
-                      <span className="text-xs font-mono text-emerald-400 uppercase">Geological Survey Ireland (GSI)</span>
-                      <h4 className="text-lg font-bold text-white">{currentCell.geology.name}</h4>
-                    </div>
-                    <span className="px-2 py-0.5 rounded bg-slate-800 text-slate-300 text-xs font-mono">
-                      {currentCell.geology.type}
-                    </span>
-                  </div>
-
-                  <div className="p-4 rounded-xl bg-slate-950 border border-slate-800 space-y-2">
-                    <div className="text-xs font-mono text-amber-400">
-                      Geological Epoch: {currentCell.geology.ageEpoch}
-                    </div>
-                    <p className="text-sm text-slate-300 leading-relaxed">
-                      {currentCell.geology.scientificInsight}
-                    </p>
-                  </div>
+                  <h4 className="text-lg font-bold text-white">{currentCell.geology.name}</h4>
+                  <p className="text-sm text-slate-300 leading-relaxed p-4 rounded-xl bg-slate-950 border border-slate-800">
+                    {currentCell.geology.scientificInsight}
+                  </p>
                 </div>
               )}
-
             </div>
-
           </div>
 
         </div>
