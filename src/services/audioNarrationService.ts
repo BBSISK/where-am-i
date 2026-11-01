@@ -61,9 +61,13 @@ class AudioNarrationService {
   // Audio blob cache
   private audioBlobCache: Map<string, string> = new Map();
 
+  // Execution session arbiter & cancellation controller
+  private currentSessionId: number = 0;
+  private abortController: AbortController | null = null;
+
   // Track & Playback state
   private currentTrack: AudioTrackInfo | null = null;
-  private playbackState: 'idle' | 'playing' | 'paused' = 'idle';
+  private playbackState: 'idle' | 'loading' | 'playing' | 'paused' = 'idle';
   private currentUtterance: SpeechSynthesisUtterance | null = null;
 
   // Settings
@@ -81,7 +85,7 @@ class AudioNarrationService {
       this.elevenApiKey = (envKey || localKey || '').trim();
       
       const savedVoiceId = localStorage.getItem('elevenlabs_voice_id');
-      // If previous session stored the 404-prone Fin ID without key, migrate to George
+      // Always ensure valid default (avoid stale 404 Fin voice)
       if (!savedVoiceId || savedVoiceId === 'D38z5RcWu1voky8WS1ja') {
         this.selectedVoiceId = ELEVENLABS_VOICE_PRESETS[0].id;
       } else {
@@ -140,8 +144,7 @@ class AudioNarrationService {
   }
 
   /**
-   * Must be called during a user touch/click gesture (e.g. tapping "Start Driving")
-   * to prime mobile iOS Safari's audio subsystem for subsequent async playback.
+   * Prime mobile Safari audio subsystem on initial tap
    */
   public unlockMobileAudio(): void {
     if (this.sharedAudioElement) {
@@ -253,7 +256,7 @@ class AudioNarrationService {
     return this.lastErrorMessage;
   }
 
-  public getPlaybackState(): 'idle' | 'playing' | 'paused' {
+  public getPlaybackState(): 'idle' | 'loading' | 'playing' | 'paused' {
     return this.playbackState;
   }
 
@@ -289,6 +292,10 @@ class AudioNarrationService {
     }
   }
 
+  /**
+   * Strict Exclusive Audio Dispatcher.
+   * Guaranteed: ONLY ONE voice can ever produce sound at any moment.
+   */
   public async speak(
     text: string,
     options?: { trackId?: string; onEnd?: () => void } | (() => void)
@@ -296,55 +303,64 @@ class AudioNarrationService {
     const onEnd = typeof options === 'function' ? options : options?.onEnd;
     const trackId = typeof options === 'object' && options?.trackId ? options.trackId : `track-${Date.now()}`;
 
+    // 1. Immediately kill all existing sound and cancel in-flight requests
+    this.stop();
+
     if (this.isMuted) {
       onEnd?.();
       return;
     }
 
-    this.stop();
+    const sessionId = ++this.currentSessionId;
     this.lastErrorMessage = null;
     this.currentTrack = { trackId, text, charIndex: 0, onEnd };
-    this.playbackState = 'playing';
+    this.playbackState = 'loading';
 
-    if (this.provider === 'elevenlabs' && this.elevenApiKey) {
+    // Route exclusively to the configured provider:
+    if (this.provider === 'elevenlabs' && this.hasApiKey()) {
       try {
-        await this.speakWithElevenLabs(text, () => {
-          this.playbackState = 'idle';
-          this.currentTrack = null;
-          this.notify(false);
-          onEnd?.();
+        await this.speakWithElevenLabs(sessionId, text, () => {
+          if (this.currentSessionId === sessionId) {
+            this.playbackState = 'idle';
+            this.currentTrack = null;
+            this.notify(false);
+            onEnd?.();
+          }
         });
-        return;
       } catch (err: any) {
-        this.lastErrorMessage = err?.message || 'ElevenLabs error';
-        console.warn('ElevenLabs playback failed, falling back to Web Speech API:', err);
-        // Fallback to Web Speech API
-        this.speakWithWebSpeech(text, () => {
+        if (this.currentSessionId === sessionId) {
+          this.lastErrorMessage = err?.message || 'ElevenLabs error';
+          console.warn('ElevenLabs playback failed:', err);
           this.playbackState = 'idle';
           this.currentTrack = null;
           this.notify(false);
           onEnd?.();
-        });
-        return;
+        }
       }
+      return;
     }
 
-    this.speakWithWebSpeech(text, () => {
-      this.playbackState = 'idle';
-      this.currentTrack = null;
-      this.notify(false);
-      onEnd?.();
+    // Otherwise use Native Web Speech (Never run both!)
+    this.speakWithWebSpeech(sessionId, text, () => {
+      if (this.currentSessionId === sessionId) {
+        this.playbackState = 'idle';
+        this.currentTrack = null;
+        this.notify(false);
+        onEnd?.();
+      }
     });
   }
 
-  private async speakWithElevenLabs(text: string, onEnd?: () => void): Promise<void> {
+  private async speakWithElevenLabs(sessionId: number, text: string, onEnd?: () => void): Promise<void> {
     const cacheKey = `${this.selectedVoiceId}_${text}`;
     let audioUrl = this.audioBlobCache.get(cacheKey);
 
     if (!audioUrl) {
-      this.notify(true);
+      this.abortController = new AbortController();
+
       const response = await fetch(`https://api.elevenlabs.io/v1/text-to-speech/${this.selectedVoiceId}`, {
         method: 'POST',
+        signal: this.abortController.signal,
         headers: {
           'xi-api-key': this.elevenApiKey,
           'Content-Type': 'application/json',
@@ -362,14 +378,27 @@ class AudioNarrationService {
         })
       });
 
+      // If user stopped while fetching, abort immediately
+      if (this.currentSessionId !== sessionId) {
+        return;
+      }
+
       if (!response.ok) {
         const errorText = await response.text();
         throw new Error(`ElevenLabs (${response.status}): ${errorText}`);
       }
 
       const blob = await response.blob();
+      if (this.currentSessionId !== sessionId) {
+        return;
+      }
+
       audioUrl = URL.createObjectURL(blob);
       this.audioBlobCache.set(cacheKey, audioUrl);
+    }
+
+    if (this.currentSessionId !== sessionId) {
+      return;
     }
 
     if (!this.sharedAudioElement) {
@@ -380,29 +409,35 @@ class AudioNarrationService {
     audio.src = audioUrl;
 
     audio.onplay = () => {
-      this.playbackState = 'playing';
-      this.notify(true);
+      if (this.currentSessionId === sessionId) {
+        this.playbackState = 'playing';
+        this.notify(true);
+      }
     };
 
     audio.onended = () => {
-      this.playbackState = 'idle';
-      this.currentTrack = null;
-      this.notify(false);
-      onEnd?.();
+      if (this.currentSessionId === sessionId) {
+        this.playbackState = 'idle';
+        this.currentTrack = null;
+        this.notify(false);
+        onEnd?.();
+      }
     };
 
     audio.onerror = (err) => {
-      console.warn('Audio playback error:', err);
-      this.playbackState = 'idle';
-      this.currentTrack = null;
-      this.notify(false);
-      onEnd?.();
+      if (this.currentSessionId === sessionId) {
+        console.warn('Audio playback error:', err);
+        this.playbackState = 'idle';
+        this.currentTrack = null;
+        this.notify(false);
+        onEnd?.();
+      }
     };
 
     await audio.play();
   }
 
-  private speakWithWebSpeech(text: string, onEnd?: () => void, startCharIndex = 0): void {
+  private speakWithWebSpeech(sessionId: number, text: string, onEnd?: () => void, startCharIndex = 0): void {
     if (!this.synth) {
       onEnd?.();
       return;
@@ -428,14 +463,14 @@ class AudioNarrationService {
     };
 
     utterance.onstart = () => {
-      if (this.currentUtterance === utterance) {
+      if (this.currentSessionId === sessionId && this.currentUtterance === utterance) {
         this.playbackState = 'playing';
         this.notify(true);
       }
     };
 
     utterance.onend = () => {
-      if (this.currentUtterance === utterance && this.playbackState === 'playing') {
+      if (this.currentSessionId === sessionId && this.currentUtterance === utterance) {
         this.playbackState = 'idle';
         this.currentTrack = null;
         this.currentUtterance = null;
@@ -444,13 +479,11 @@ class AudioNarrationService {
       }
     };
 
-    utterance.onerror = (err: any) => {
-      // If error is caused by our own pause cancel, do not clear the paused state!
+    utterance.onerror = () => {
       if (this.playbackState === 'paused') {
         return;
       }
-      if (this.currentUtterance === utterance) {
-        console.warn('SpeechSynthesis error:', err);
+      if (this.currentSessionId === sessionId && this.currentUtterance === utterance) {
         this.playbackState = 'idle';
         this.currentTrack = null;
         this.currentUtterance = null;
@@ -463,16 +496,32 @@ class AudioNarrationService {
   }
 
   public stop(): void {
+    // Increment session ID to immediately invalidate any pending in-flight async operations
+    ++this.currentSessionId;
+    
+    // Abort pending fetch
+    if (this.abortController) {
+      this.abortController.abort();
+      this.abortController = null;
+    }
+
     this.playbackState = 'idle';
     this.currentTrack = null;
     this.currentUtterance = null;
+
+    // 1. Hard silence HTMLAudio
     if (this.sharedAudioElement) {
       this.sharedAudioElement.pause();
       this.sharedAudioElement.currentTime = 0;
+      this.sharedAudioElement.removeAttribute('src');
+      this.sharedAudioElement.load();
     }
+
+    // 2. Hard silence Web Speech
     if (this.synth) {
       this.synth.cancel();
     }
+
     this.notify(false);
   }
 
@@ -495,6 +544,7 @@ class AudioNarrationService {
   public resume(): void {
     if (this.playbackState !== 'paused' || !this.currentTrack) return;
 
+    const sessionId = ++this.currentSessionId;
     this.playbackState = 'playing';
 
     if (this.provider === 'elevenlabs' && this.sharedAudioElement) {
@@ -503,7 +553,7 @@ class AudioNarrationService {
     } else if (this.synth) {
       // Resume speaking from the exact word where it was paused!
       const resumeFrom = this.currentTrack.charIndex || 0;
-      this.speakWithWebSpeech(this.currentTrack.text, this.currentTrack.onEnd, resumeFrom);
+      this.speakWithWebSpeech(sessionId, this.currentTrack.text, this.currentTrack.onEnd, resumeFrom);
       this.notify(true);
     }
   }

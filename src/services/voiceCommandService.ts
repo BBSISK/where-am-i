@@ -10,6 +10,7 @@ export interface VoiceCommandState {
 class VoiceCommandService {
   private recognition: any = null;
   private isListeningActive: boolean = false;
+  private isAudioDucked: boolean = false;
   private listeners: Set<(state: VoiceCommandState) => void> = new Set();
   private commandCallbacks: Set<(cmd: VoiceCommandType) => void> = new Set();
 
@@ -124,7 +125,14 @@ class VoiceCommandService {
     }, 3000);
   }
 
+  public setAudioDucked(ducked: boolean) {
+    this.isAudioDucked = ducked;
+  }
+
   private handleSpeechResult(event: any) {
+    // If audio is actively speaking, ignore microphone input to prevent acoustic feedback loop
+    if (this.isAudioDucked) return;
+
     let transcript = '';
     for (let i = event.resultIndex; i < event.results.length; ++i) {
       transcript += event.results[i][0].transcript;

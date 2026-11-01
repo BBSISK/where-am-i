@@ -63,6 +63,7 @@ export const App: React.FC = () => {
   useEffect(() => {
     const unsub = audioService.subscribe((speaking) => {
       setIsSpeaking(speaking);
+      voiceCommandService.setAudioDucked(speaking);
     });
     return () => {
       unsub();
@@ -73,20 +74,12 @@ export const App: React.FC = () => {
   useEffect(() => {
     let lastResolvedH3 = "";
 
-    const unsubGps = realGpsService.subscribe(async (state) => {
+    const unsubGps = realGpsService.subscribe((state) => {
       setGpsState(state);
-      // Immediately resolve the real location as soon as GPS coordinates arrive
-      if (state.status === "locked" && state.coordinate && state.h3Index && state.h3Index !== lastResolvedH3) {
-        lastResolvedH3 = state.h3Index;
-        const cell = await DynamicHeritageService.resolveCell(state.h3Index, state.coordinate);
-        setCurrentCell(cell);
-        if (!isAudioMuted && cell.teaserScript) {
-          audioService.speak(cell.teaserScript, { trackId: 'ambient-teaser' });
-        }
-      }
     });
 
     const unsubCell = realGpsService.onCellEntry(async (newH3Id, coord) => {
+      if (newH3Id === lastResolvedH3) return;
       lastResolvedH3 = newH3Id;
       const cell = await DynamicHeritageService.resolveCell(newH3Id, coord);
       setCurrentCell(cell);
