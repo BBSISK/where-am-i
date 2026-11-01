@@ -227,6 +227,9 @@ export const VoiceSettingsModal: React.FC<VoiceSettingsModalProps> = ({
             <label className="text-xs font-mono text-slate-400 uppercase tracking-wider block">
               Device Voices ({webVoices.length} available)
             </label>
+            <p className="text-[11px] text-slate-500">
+              Your phone may use a different voice if the one you pick isn't downloaded. On Android, male or female is set in your phone's text-to-speech settings.
+            </p>
             {webVoices.length > 0 ? (
               <select
                 onChange={(e) => audioService.setPreferredWebVoice(e.target.value)}

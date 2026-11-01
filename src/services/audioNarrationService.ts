@@ -51,6 +51,32 @@ export interface AudioTrackInfo {
   onEnd?: () => void;
 }
 
+/** Minimal shape so the picker can be unit-tested without a browser. */
+export interface DeviceVoiceLike {
+  name: string;
+  lang: string;
+  voiceURI: string;
+  localService?: boolean;
+}
+
+/**
+ * Chooses the device (Web Speech) voice. Accent preference only, never gender:
+ * the app cannot reliably know or control a device voice's gender.
+ * Order: user's saved choice > Irish English > British English > on-device English > any English.
+ */
+export function pickDeviceVoice<T extends DeviceVoiceLike>(voices: T[], savedVoiceUri?: string | null): T | null {
+  if (!voices || voices.length === 0) return null;
+  const norm = (l: string) => l.replace('_', '-').toLowerCase();
+  if (savedVoiceUri) {
+    const saved = voices.find(v => v.voiceURI === savedVoiceUri);
+    if (saved) return saved;
+  }
+  const english = voices.filter(v => norm(v.lang).startsWith('en'));
+  const byLang = (code: string) =>
+    english.find(v => norm(v.lang) === code && v.localService !== false) || english.find(v => norm(v.lang) === code);
+  return byLang('en-ie') || byLang('en-gb') || english.find(v => v.localService) || english[0] || null;
+}
+
 class AudioNarrationService {
   private synth: SpeechSynthesis | null = null;
   private sharedAudioElement: HTMLAudioElement | null = null;
@@ -136,54 +162,8 @@ class AudioNarrationService {
     const voices = this.synth.getVoices();
     if (!voices || voices.length === 0) return;
 
-    // Check saved manual preference
     const savedVoiceUri = typeof window !== 'undefined' ? localStorage.getItem('preferred_web_voice_uri') : null;
-    if (savedVoiceUri) {
-      const found = voices.find(v => v.voiceURI === savedVoiceUri);
-      if (found) {
-        this.preferredWebVoice = found;
-        return;
-      }
-    }
-
-    // Comprehensive blacklist of default female synthesized voices
-    const femaleNames = [
-      'moira', 'samantha', 'victoria', 'karen', 'serena', 'fiona', 'tessa', 'siri',
-      'kate', 'susan', 'zoe', 'ava', 'allison', 'nicky', 'stephanie', 'alice', 'veena',
-      'claire', 'yuna', 'amelie', 'kyoko', 'sin-ji', 'ting-ting', 'mónica'
-    ];
-    
-    // Priority 1: Male Celtic / British voices (George, Daniel, Oliver, Arthur, Malcolm, Graham)
-    const maleCelticOrBritish = voices.find(v => {
-      const name = v.name.toLowerCase();
-      const isEnglish = v.lang.startsWith('en');
-      const isMale = (
-        name.includes('george') ||
-        name.includes('daniel') ||
-        name.includes('oliver') ||
-        name.includes('arthur') ||
-        name.includes('malcolm') ||
-        name.includes('graham') ||
-        name.includes('male')
-      ) && !femaleNames.some(f => name.includes(f));
-      return isEnglish && isMale;
-    });
-
-    // Priority 2: Any English male voice (Alex, Fred, Aaron, Rishi, etc.)
-    const anyMaleEnglish = voices.find(v => {
-      const name = v.name.toLowerCase();
-      const isEnglish = v.lang.startsWith('en');
-      const isMale = (name.includes('alex') || name.includes('fred') || name.includes('aaron') || name.includes('rishi') || name.includes('gordon')) && !femaleNames.some(f => name.includes(f));
-      return isEnglish && isMale;
-    });
-
-    // Priority 3: Any English voice that is NOT explicitly on the female voice list
-    const nonFemaleEnglish = voices.find(v => {
-      const name = v.name.toLowerCase();
-      return v.lang.startsWith('en') && !femaleNames.some(f => name.includes(f));
-    });
-
-    this.preferredWebVoice = maleCelticOrBritish || anyMaleEnglish || nonFemaleEnglish || voices.find(v => v.lang.startsWith('en')) || null;
+    this.preferredWebVoice = pickDeviceVoice(voices, savedVoiceUri);
   }
 
   public getAvailableWebVoices(): SpeechSynthesisVoice[] {
@@ -605,9 +585,11 @@ class AudioNarrationService {
       const preset = ELEVENLABS_VOICE_PRESETS.find(p => p.id === this.selectedVoiceId);
       return preset ? `${preset.name} (ElevenLabs)` : `Custom ElevenLabs (${this.selectedVoiceId.slice(0, 6)}…)`;
     }
+    // Honest label: we can only report the voice we REQUESTED. The phone may substitute another
+    // (e.g. Android picks male/female in system settings; iOS swaps in a default if a voice isn't downloaded).
     return this.preferredWebVoice
-      ? `${this.preferredWebVoice.name} (Male Narrator)`
-      : 'George / Male Narrator';
+      ? `Device voice: ${this.preferredWebVoice.name} (${this.preferredWebVoice.lang})`
+      : 'Device voice (system default)';
   }
 }
 
