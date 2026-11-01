@@ -34,12 +34,12 @@ export const ELEVENLABS_VOICE_PRESETS: ElevenLabsVoicePreset[] = [
 
 class AudioNarrationService {
   private synth: SpeechSynthesis | null = null;
-  private currentAudioElement: HTMLAudioElement | null = null;
+  private sharedAudioElement: HTMLAudioElement | null = null;
   private isMuted: boolean = false;
   private preferredWebVoice: SpeechSynthesisVoice | null = null;
   private listeners: Set<(speaking: boolean) => void> = new Set();
   
-  // Audio blob cache to prevent re-billing ElevenLabs tokens on repeated cells
+  // Audio blob cache
   private audioBlobCache: Map<string, string> = new Map();
 
   // Settings
@@ -47,19 +47,21 @@ class AudioNarrationService {
   private elevenApiKey: string = '';
   private selectedVoiceId: string = ELEVENLABS_VOICE_PRESETS[0].id;
   private modelId: string = 'eleven_turbo_v2_5';
+  private lastErrorMessage: string | null = null;
 
   constructor() {
     if (typeof window !== 'undefined') {
-      // Load saved settings from localStorage
-      this.elevenApiKey = localStorage.getItem('elevenlabs_api_key') || '';
+      this.elevenApiKey = localStorage.getItem('elevenlabs_api_key') || (import.meta as any).env?.VITE_ELEVENLABS_API_KEY || '';
       this.selectedVoiceId = localStorage.getItem('elevenlabs_voice_id') || ELEVENLABS_VOICE_PRESETS[0].id;
       const savedProvider = localStorage.getItem('audio_provider');
       if (savedProvider === 'webspeech' || savedProvider === 'elevenlabs') {
         this.provider = savedProvider;
       } else {
-        // Default to elevenlabs if key exists, otherwise webspeech with prompt
         this.provider = this.elevenApiKey ? 'elevenlabs' : 'webspeech';
       }
+
+      // Pre-instantiate single shared audio element for mobile Safari compatibility
+      this.sharedAudioElement = new Audio();
 
       if ('speechSynthesis' in window) {
         this.synth = window.speechSynthesis;
@@ -68,6 +70,22 @@ class AudioNarrationService {
           speechSynthesis.onvoiceschanged = () => this.initWebVoice();
         }
       }
+    }
+  }
+
+  public hasApiKey(): boolean {
+    return Boolean(this.elevenApiKey && this.elevenApiKey.length > 5);
+  }
+
+  /**
+   * Must be called during a user touch/click gesture (e.g. tapping "Start Driving")
+   * to prime mobile iOS Safari's audio subsystem for subsequent async playback.
+   */
+  public unlockMobileAudio(): void {
+    if (this.sharedAudioElement) {
+      // 10ms silent wave base64
+      this.sharedAudioElement.src = 'data:audio/wav;base64,UklGRigAAABXQVZFZm10IBIAAAABAAEARKwAAIhYAQACABAAAABkYXRhAgAAAAEA';
+      this.sharedAudioElement.play().catch(() => {});
     }
   }
 
@@ -128,10 +146,10 @@ class AudioNarrationService {
     return this.selectedVoiceId;
   }
 
-  /**
-   * Primary speech synthesis trigger. Uses ElevenLabs if API key configured and provider is set,
-   * otherwise gracefully falls back to native Web Speech API.
-   */
+  public getLastError(): string | null {
+    return this.lastErrorMessage;
+  }
+
   public async speak(text: string, onEnd?: () => void): Promise<void> {
     if (this.isMuted) {
       onEnd?.();
@@ -139,20 +157,21 @@ class AudioNarrationService {
     }
 
     this.stop();
+    this.lastErrorMessage = null;
 
     if (this.provider === 'elevenlabs' && this.elevenApiKey) {
       try {
         await this.speakWithElevenLabs(text, onEnd);
         return;
-      } catch (err) {
-        console.warn('ElevenLabs playback failed, falling back to Web Speech API:', err);
-        // Fallback gracefully
+      } catch (err: any) {
+        this.lastErrorMessage = err?.message || 'ElevenLabs error';
+        console.warn('ElevenLabs playback failed:', err);
+        // Fallback to Web Speech API
         this.speakWithWebSpeech(text, onEnd);
         return;
       }
     }
 
-    // Default Web Speech API
     this.speakWithWebSpeech(text, onEnd);
   }
 
@@ -183,7 +202,7 @@ class AudioNarrationService {
 
       if (!response.ok) {
         const errorText = await response.text();
-        throw new Error(`ElevenLabs API returned ${response.status}: ${errorText}`);
+        throw new Error(`ElevenLabs (${response.status}): ${errorText}`);
       }
 
       const blob = await response.blob();
@@ -191,8 +210,12 @@ class AudioNarrationService {
       this.audioBlobCache.set(cacheKey, audioUrl);
     }
 
-    const audio = new Audio(audioUrl);
-    this.currentAudioElement = audio;
+    if (!this.sharedAudioElement) {
+      this.sharedAudioElement = new Audio();
+    }
+
+    const audio = this.sharedAudioElement;
+    audio.src = audioUrl;
 
     audio.onplay = () => {
       this.notify(true);
@@ -200,14 +223,12 @@ class AudioNarrationService {
 
     audio.onended = () => {
       this.notify(false);
-      this.currentAudioElement = null;
       onEnd?.();
     };
 
     audio.onerror = (err) => {
-      console.warn('Audio element error:', err);
+      console.warn('Audio playback error:', err);
       this.notify(false);
-      this.currentAudioElement = null;
       onEnd?.();
     };
 
@@ -246,10 +267,9 @@ class AudioNarrationService {
   }
 
   public stop(): void {
-    if (this.currentAudioElement) {
-      this.currentAudioElement.pause();
-      this.currentAudioElement.currentTime = 0;
-      this.currentAudioElement = null;
+    if (this.sharedAudioElement) {
+      this.sharedAudioElement.pause();
+      this.sharedAudioElement.currentTime = 0;
     }
     if (this.synth) {
       this.synth.cancel();
@@ -272,7 +292,7 @@ class AudioNarrationService {
   public getVoiceLabel(): string {
     if (this.provider === 'elevenlabs') {
       const preset = ELEVENLABS_VOICE_PRESETS.find(p => p.id === this.selectedVoiceId);
-      return preset ? `${preset.name} (ElevenLabs AI)` : 'Custom ElevenLabs Voice';
+      return preset ? `${preset.name} (ElevenLabs)` : 'Custom ElevenLabs Voice';
     }
     return this.preferredWebVoice
       ? `${this.preferredWebVoice.name} (${this.preferredWebVoice.lang})`

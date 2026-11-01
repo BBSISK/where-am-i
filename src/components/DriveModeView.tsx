@@ -16,10 +16,14 @@ import {
   Satellite,
   ShieldAlert,
   Sun,
-  Activity
+  Activity,
+  Mic,
+  MicOff,
+  Settings
 } from 'lucide-react';
 import { EnrichedH3Cell, SimulatedRoute, ThreadOption } from '../types';
 import { RealGpsState } from '../services/realGpsService';
+import { VoiceCommandState } from '../services/voiceCommandService';
 
 interface DriveModeViewProps {
   // GPS & Driving Modes
@@ -28,6 +32,14 @@ interface DriveModeViewProps {
   gpsState: RealGpsState;
   onStartGps: () => void;
   onStopGps: () => void;
+
+  // Voice & Audio Status
+  voiceState: VoiceCommandState;
+  onToggleVoiceCommand: () => void;
+  audioProvider: 'elevenlabs' | 'webspeech';
+  hasElevenApiKey: boolean;
+  audioLastError: string | null;
+  onOpenVoiceStudio: () => void;
 
   // Simulator props (Secondary mode)
   currentRoute: SimulatedRoute;
@@ -60,6 +72,12 @@ export const DriveModeView: React.FC<DriveModeViewProps> = ({
   gpsState,
   onStartGps,
   onStopGps,
+  voiceState,
+  onToggleVoiceCommand,
+  audioProvider,
+  hasElevenApiKey,
+  audioLastError,
+  onOpenVoiceStudio,
   currentRoute,
   onRouteChange,
   availableRoutes,
@@ -252,6 +270,128 @@ export const DriveModeView: React.FC<DriveModeViewProps> = ({
           <span>{gpsState.errorMessage}</span>
         </div>
       )}
+
+      {/* Voice Copilot & Speech Recognition Bar */}
+      <div className="space-y-2">
+        {/* Voice Command Detected Banner */}
+        {voiceState.commandDetected === 'tell_me_more' && (
+          <div className="p-3.5 rounded-2xl bg-gradient-to-r from-amber-500/20 via-emerald-500/20 to-slate-900 border border-amber-400 text-amber-200 text-xs sm:text-sm font-bold flex items-center gap-3 shadow-xl animate-pulse">
+            <Sparkles className="w-5 h-5 text-amber-300 shrink-0" />
+            <span>🎉 Voice Command Detected: "Tell Me More" — Unfolding authentic Irish heritage thread!</span>
+          </div>
+        )}
+
+        {/* Voice Command Status Pill */}
+        <div className="flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-3 p-3 sm:px-4 rounded-2xl bg-slate-900 border border-slate-800 text-xs font-mono">
+          <div className="flex items-center gap-3">
+            <div className={`p-2 rounded-xl flex items-center justify-center transition-all ${
+              voiceState.isListening
+                ? 'bg-emerald-500/20 text-emerald-300 border border-emerald-500/40'
+                : 'bg-slate-800 text-slate-400 border border-slate-700'
+            }`}>
+              {voiceState.isListening ? (
+                <Mic className="w-4 h-4 animate-pulse text-emerald-400" />
+              ) : (
+                <MicOff className="w-4 h-4" />
+              )}
+            </div>
+
+            <div>
+              <div className="flex items-center gap-2">
+                <span className={`font-bold ${voiceState.isListening ? 'text-emerald-400' : 'text-slate-400'}`}>
+                  {voiceState.isListening ? '🎙️ In-Car Voice Copilot Active' : '🎙️ Voice Copilot Standby'}
+                </span>
+                {voiceState.isListening && (
+                  <span className="flex h-2 w-2 relative">
+                    <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75"></span>
+                    <span className="relative inline-flex rounded-full h-2 w-2 bg-emerald-500"></span>
+                  </span>
+                )}
+              </div>
+              <p className="text-[11px] text-slate-400 mt-0.5">
+                {voiceState.isListening ? (
+                  <>Say <strong className="text-amber-300">"Tell me more"</strong> for deep folklore • <strong className="text-slate-300">"Stop"</strong> to silence</>
+                ) : (
+                  <>Tap mic to enable hands-free driver speech commands</>
+                )}
+              </p>
+            </div>
+          </div>
+
+          <div className="flex items-center gap-2 justify-end">
+            {voiceState.lastHeardPhrase && (
+              <span className="text-[10px] text-slate-400 italic bg-slate-950 px-2.5 py-1 rounded-lg border border-slate-800 truncate max-w-[180px]">
+                Heard: "{voiceState.lastHeardPhrase}"
+              </span>
+            )}
+
+            <button
+              onClick={onToggleVoiceCommand}
+              className={`px-3 py-1.5 rounded-xl font-bold text-xs transition-all flex items-center gap-1.5 ${
+                voiceState.isListening
+                  ? 'bg-rose-500/20 text-rose-300 border border-rose-500/30 hover:bg-rose-500/30'
+                  : 'bg-emerald-600 hover:bg-emerald-500 text-white shadow-md shadow-emerald-600/20'
+              }`}
+            >
+              {voiceState.isListening ? (
+                <>
+                  <MicOff className="w-3.5 h-3.5" />
+                  <span>Turn Off Mic</span>
+                </>
+              ) : (
+                <>
+                  <Mic className="w-3.5 h-3.5" />
+                  <span>Enable Mic</span>
+                </>
+              )}
+            </button>
+          </div>
+        </div>
+
+        {/* ElevenLabs vs Native Device Audio Engine Banner */}
+        {audioLastError ? (
+          <div className="p-3 rounded-2xl bg-rose-500/10 border border-rose-500/30 text-rose-300 text-xs flex items-center justify-between">
+            <div className="flex items-center gap-2">
+              <ShieldAlert className="w-4 h-4 text-rose-400 shrink-0" />
+              <span>Voice notice: {audioLastError}. Reverted to native device speech.</span>
+            </div>
+            <button
+              onClick={onOpenVoiceStudio}
+              className="px-2.5 py-1 rounded-lg bg-rose-500/20 hover:bg-rose-500/30 text-rose-200 font-bold ml-2 shrink-0 flex items-center gap-1"
+            >
+              <Settings className="w-3 h-3" />
+              <span>Fix Key</span>
+            </button>
+          </div>
+        ) : !hasElevenApiKey || audioProvider === 'webspeech' ? (
+          <div className="p-3 rounded-2xl bg-amber-500/10 border border-amber-500/20 text-amber-200 text-xs flex items-center justify-between font-mono">
+            <div className="flex items-center gap-2">
+              <Volume2 className="w-4 h-4 text-amber-400 shrink-0" />
+              <span>Using device speech synthesis. Add an ElevenLabs API key on this phone for rich Irish AI voices.</span>
+            </div>
+            <button
+              onClick={onOpenVoiceStudio}
+              className="px-2.5 py-1 rounded-lg bg-amber-500/20 hover:bg-amber-500/30 text-amber-300 font-bold ml-2 shrink-0 flex items-center gap-1"
+            >
+              <Settings className="w-3 h-3" />
+              <span>Voice Studio</span>
+            </button>
+          </div>
+        ) : (
+          <div className="px-3.5 py-2 rounded-2xl bg-emerald-500/10 border border-emerald-500/20 text-emerald-300 text-xs flex items-center justify-between font-mono">
+            <div className="flex items-center gap-2">
+              <span className="w-2 h-2 rounded-full bg-emerald-400"></span>
+              <span>ElevenLabs High-Fidelity Irish AI Voice Active</span>
+            </div>
+            <button
+              onClick={onOpenVoiceStudio}
+              className="text-slate-400 hover:text-white text-[11px] underline"
+            >
+              Change Voice
+            </button>
+          </div>
+        )}
+      </div>
 
       {/* Main Vehicular HUD */}
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">

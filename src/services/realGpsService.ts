@@ -17,6 +17,7 @@ export interface RealGpsState {
 class RealGpsService {
   private watchId: number | null = null;
   private wakeLock: any = null;
+  private isTrackingActive: boolean = false; // Prevents race condition restarts
   private lastCoordinate: GeoCoordinate | null = null;
   private lastH3Index: string | null = null;
   private totalDistance: number = 0;
@@ -66,6 +67,7 @@ class RealGpsService {
       return;
     }
 
+    this.isTrackingActive = true;
     this.currentState = {
       ...this.currentState,
       status: 'requesting',
@@ -73,16 +75,8 @@ class RealGpsService {
     };
     this.notify();
 
-    // Request Screen Wake Lock
+    // Request Screen Wake Lock so phone doesn't sleep while driving on car mount
     await this.requestWakeLock();
-
-    if (typeof document !== 'undefined') {
-      document.addEventListener('visibilitychange', () => {
-        if (document.visibilityState === 'visible' && this.currentState.status === 'locked') {
-          this.requestWakeLock();
-        }
-      });
-    }
 
     const options: PositionOptions = {
       enableHighAccuracy: true,
@@ -90,22 +84,37 @@ class RealGpsService {
       timeout: 15000
     };
 
-    // First attempt an immediate single position query to lock on instantly
+    // First attempt an immediate single position query
     navigator.geolocation.getCurrentPosition(
-      (pos) => this.handleGpsUpdate(pos),
+      (pos) => {
+        if (this.isTrackingActive) {
+          this.handleGpsUpdate(pos);
+        }
+      },
       () => {},
       options
     );
 
-    // Then start continuous watch
+    // Continuous tracking
     this.watchId = navigator.geolocation.watchPosition(
-      (position) => this.handleGpsUpdate(position),
-      (error) => this.handleGpsError(error),
+      (position) => {
+        if (this.isTrackingActive) {
+          this.handleGpsUpdate(position);
+        }
+      },
+      (error) => {
+        if (this.isTrackingActive) {
+          this.handleGpsError(error);
+        }
+      },
       options
     );
   }
 
   private handleGpsUpdate(position: GeolocationPosition) {
+    // Hard guard: if user stopped tracking, discard any incoming delayed callbacks
+    if (!this.isTrackingActive) return;
+
     const rawLat = position.coords.latitude;
     const rawLng = position.coords.longitude;
     const accuracy = Math.round(position.coords.accuracy);
@@ -135,8 +144,6 @@ class RealGpsService {
     }
 
     const currentH3 = coordinateToH3(newCoord, 8);
-
-    // CRITICAL FIX: Trigger cell entry on INITIAL lock as well as on new cell entry!
     const isFirstLock = this.lastH3Index === null;
     const isNewCell = this.lastH3Index !== null && currentH3 !== this.lastH3Index;
 
@@ -164,6 +171,8 @@ class RealGpsService {
   }
 
   private handleGpsError(error: GeolocationPositionError) {
+    if (!this.isTrackingActive) return;
+
     let msg = 'Failed to acquire GPS location.';
     switch (error.code) {
       case error.PERMISSION_DENIED:
@@ -199,6 +208,8 @@ class RealGpsService {
   }
 
   public stopTracking(): void {
+    this.isTrackingActive = false; // Strictly deactivate tracking flag first
+
     if (this.watchId !== null && typeof navigator !== 'undefined') {
       navigator.geolocation.clearWatch(this.watchId);
       this.watchId = null;
@@ -212,6 +223,7 @@ class RealGpsService {
     this.currentState = {
       ...this.currentState,
       status: 'idle',
+      speedKmh: 0,
       isScreenWakeLocked: false
     };
     this.notify();

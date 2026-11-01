@@ -10,6 +10,7 @@ import { getEnrichedDataForWaypoint } from './data/heritageKnowledgeBase';
 import { coordinateToH3, calculateBearing } from './services/spatialEngine';
 import { audioService } from './services/audioNarrationService';
 import { realGpsService, RealGpsState } from './services/realGpsService';
+import { voiceCommandService, VoiceCommandState } from './services/voiceCommandService';
 import { DynamicHeritageService } from './services/dynamicHeritageService';
 import { EnrichedH3Cell, ThreadOption, SavedTripThread } from './types';
 import { Sparkles } from 'lucide-react';
@@ -30,6 +31,7 @@ export const App: React.FC = () => {
   // Audio & Modals
   const [isAudioMuted, setIsAudioMuted] = useState(false);
   const [isSpeaking, setIsSpeaking] = useState(false);
+  const [voiceState, setVoiceState] = useState<VoiceCommandState>(voiceCommandService.getState());
   const [isVoiceModalOpen, setIsVoiceModalOpen] = useState(false);
   const [isScrapbookOpen, setIsScrapbookOpen] = useState(false);
   const [, setVoiceVersion] = useState(0);
@@ -102,6 +104,8 @@ export const App: React.FC = () => {
 
   // Handle Real GPS Start/Stop
   const handleStartGps = async () => {
+    audioService.unlockMobileAudio();
+    voiceCommandService.startListening();
     await realGpsService.startTracking();
     // Immediate voice feedback unlocked by user gesture
     if (!isAudioMuted && currentCell.teaserScript) {
@@ -110,8 +114,18 @@ export const App: React.FC = () => {
   };
 
   const handleStopGps = () => {
+    voiceCommandService.stopListening();
     realGpsService.stopTracking();
     audioService.stop();
+  };
+
+  const handleToggleVoiceCommand = () => {
+    if (voiceState.isListening) {
+      voiceCommandService.stopListening();
+    } else {
+      audioService.unlockMobileAudio();
+      voiceCommandService.startListening();
+    }
   };
 
   // Simulator: derived waypoints & bearing
@@ -235,6 +249,28 @@ export const App: React.FC = () => {
     }
   };
 
+  // Subscribe to Voice Command triggers
+  useEffect(() => {
+    const unsubVoice = voiceCommandService.subscribe((state) => {
+      setVoiceState(state);
+    });
+
+    const unsubCmd = voiceCommandService.onCommand((cmd) => {
+      if (cmd === 'tell_me_more') {
+        if (currentCell.threads && currentCell.threads.length > 0) {
+          handlePullThread(currentCell.threads[0]);
+        }
+      } else if (cmd === 'stop_audio') {
+        audioService.stop();
+      }
+    });
+
+    return () => {
+      unsubVoice();
+      unsubCmd();
+    };
+  }, [currentCell]);
+
   // Telemetry values depending on active mode
   const activeSpeed = drivingMode === 'real-gps' ? gpsState.speedKmh : isPlaying ? Math.round(simWaypoint.speedLimitKmh * 0.95) : 0;
   const activeBearing = drivingMode === 'real-gps' ? gpsState.heading : simBearing;
@@ -267,6 +303,12 @@ export const App: React.FC = () => {
             gpsState={gpsState}
             onStartGps={handleStartGps}
             onStopGps={handleStopGps}
+            voiceState={voiceState}
+            onToggleVoiceCommand={handleToggleVoiceCommand}
+            audioProvider={audioService.getProvider()}
+            hasElevenApiKey={audioService.hasApiKey()}
+            audioLastError={audioService.getLastError()}
+            onOpenVoiceStudio={() => setIsVoiceModalOpen(true)}
             currentRoute={currentRoute}
             onRouteChange={handleSimulatorRouteChange}
             availableRoutes={SIMULATED_ROUTES}
