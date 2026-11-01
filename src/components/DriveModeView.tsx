@@ -23,6 +23,7 @@ import {
 import { EnrichedH3Cell, SimulatedRoute, ThreadOption } from '../types';
 import { RealGpsState } from '../services/realGpsService';
 import { VoiceCommandState } from '../services/voiceCommandService';
+import { audioService } from '../services/audioNarrationService';
 
 interface DriveModeViewProps {
   // GPS & Driving Modes
@@ -544,6 +545,8 @@ export const DriveModeView: React.FC<DriveModeViewProps> = ({
               {currentCell.threads && currentCell.threads.length > 0 ? (
                 currentCell.threads.map((thread) => {
                   const isPulled = activeThread?.id === thread.id;
+                  const isThreadPlaying = isPulled && isSpeaking;
+                  const isThreadPaused = isPulled && audioService.isPaused();
                   return (
                     <button
                       key={thread.id}
@@ -553,6 +556,11 @@ export const DriveModeView: React.FC<DriveModeViewProps> = ({
                           ? 'bg-gradient-to-r from-amber-950/40 to-slate-900 border-amber-500 text-white shadow-lg shadow-amber-500/10 ring-1 ring-amber-500'
                           : 'bg-slate-950/70 border-slate-800 text-slate-300 hover:border-slate-700 hover:bg-slate-950'
                       }`}
+                      title={
+                        isPulled
+                          ? (isThreadPlaying ? 'Selected thread playing: tap to pause' : 'Selected thread paused: tap to resume')
+                          : `Pull thread: ${thread.title}`
+                      }
                     >
                       <div className="space-y-1">
                         <div className="flex items-center gap-2">
@@ -565,7 +573,29 @@ export const DriveModeView: React.FC<DriveModeViewProps> = ({
                           }`}>
                             {thread.category}
                           </span>
-                          <span className="text-xs font-mono text-slate-500">1-Tap Listen</span>
+                          {isPulled ? (
+                            <span className={`text-[10px] font-mono px-2 py-0.5 rounded-full font-bold flex items-center gap-1 ${
+                              isThreadPlaying
+                                ? 'bg-amber-500/20 text-amber-300 border border-amber-500/30'
+                                : 'bg-slate-800 text-slate-300 border border-slate-700'
+                            }`}>
+                              {isThreadPlaying ? (
+                                <>
+                                  <Pause className="w-2.5 h-2.5 fill-current" />
+                                  <span>Tap to pause</span>
+                                </>
+                              ) : isThreadPaused ? (
+                                <>
+                                  <Play className="w-2.5 h-2.5 fill-current" />
+                                  <span>Paused (tap)</span>
+                                </>
+                              ) : (
+                                <span>✓ Selected</span>
+                              )}
+                            </span>
+                          ) : (
+                            <span className="text-xs font-mono text-slate-500">1-Tap Listen</span>
+                          )}
                           {isPulled && (
                             <span className="text-[10px] font-mono px-2 py-0.5 rounded-full bg-emerald-500/20 text-emerald-400 font-bold">
                               ✓ Saved to Scrapbook
@@ -581,7 +611,13 @@ export const DriveModeView: React.FC<DriveModeViewProps> = ({
                           ? 'bg-amber-500 text-slate-950 border-amber-400'
                           : 'bg-slate-800 border-slate-700 text-slate-400'
                       }`}>
-                        <ArrowRight className="w-4 h-4" />
+                        {isPulled && isThreadPlaying ? (
+                          <Pause className="w-4 h-4 fill-current" />
+                        ) : isPulled && isThreadPaused ? (
+                          <Play className="w-4 h-4 fill-current" />
+                        ) : (
+                          <ArrowRight className="w-4 h-4" />
+                        )}
                       </div>
                     </button>
                   );
@@ -595,16 +631,32 @@ export const DriveModeView: React.FC<DriveModeViewProps> = ({
 
             {/* Unfolded Deep Narrative Box if a thread has been pulled */}
             {activeThread && (
-              <div className="p-5 rounded-2xl bg-gradient-to-r from-amber-950/20 via-slate-950 to-slate-950 border border-amber-500/40 space-y-3 animate-fadeIn">
+              <div
+                onClick={() => onPullThread(activeThread)}
+                className="p-5 rounded-2xl bg-gradient-to-r from-amber-950/20 via-slate-950 to-slate-950 border border-amber-500/40 hover:border-amber-500/70 space-y-3 animate-fadeIn cursor-pointer transition-all"
+                title={isSpeaking ? 'Tap box to pause story' : 'Tap box to resume story'}
+              >
                 <div className="flex items-center justify-between border-b border-amber-500/20 pb-2">
                   <div className="flex items-center gap-2">
-                    <span className="w-2 h-2 rounded-full bg-amber-400 animate-pulse"></span>
+                    <span className={`w-2 h-2 rounded-full ${isSpeaking ? 'bg-amber-400 animate-pulse' : 'bg-slate-500'}`}></span>
                     <span className="text-xs font-mono text-amber-400 font-bold uppercase">
                       Unfolded Story: {activeThread.title}
                     </span>
+                    {isSpeaking ? (
+                      <span className="text-[10px] font-mono px-2 py-0.5 rounded bg-amber-500/20 text-amber-300">
+                        Broadcasting (Tap box to pause)
+                      </span>
+                    ) : audioService.isPaused() ? (
+                      <span className="text-[10px] font-mono px-2 py-0.5 rounded bg-slate-800 text-slate-300">
+                        Paused (Tap box to resume)
+                      </span>
+                    ) : null}
                   </div>
                   <button
-                    onClick={() => onPullThread(activeThread)}
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      audioService.speak(activeThread.spokenNarrative);
+                    }}
                     className="flex items-center gap-1 text-xs text-amber-300 font-mono hover:text-white"
                   >
                     <Volume2 className="w-3.5 h-3.5" />

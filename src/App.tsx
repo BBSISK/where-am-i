@@ -213,6 +213,17 @@ export const App: React.FC = () => {
   };
 
   const handlePullThread = (thread: ThreadOption) => {
+    // If user taps the ALREADY selected thread a second time: PAUSE or RESUME
+    if (activeThread?.id === thread.id) {
+      if (isSpeaking) {
+        audioService.pause();
+        return;
+      } else if (audioService.isPaused()) {
+        audioService.resume();
+        return;
+      }
+    }
+
     setActiveThread(thread);
     audioService.speak(thread.spokenNarrative);
 

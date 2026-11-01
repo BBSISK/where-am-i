@@ -41,6 +41,7 @@ class AudioNarrationService {
   
   // Audio blob cache
   private audioBlobCache: Map<string, string> = new Map();
+  private _isPaused: boolean = false;
 
   // Settings
   private provider: 'elevenlabs' | 'webspeech' = 'elevenlabs';
@@ -164,6 +165,7 @@ class AudioNarrationService {
     }
 
     this.stop();
+    this._isPaused = false;
     this.lastErrorMessage = null;
 
     if (this.provider === 'elevenlabs' && this.elevenApiKey) {
@@ -274,6 +276,7 @@ class AudioNarrationService {
   }
 
   public stop(): void {
+    this._isPaused = false;
     if (this.sharedAudioElement) {
       this.sharedAudioElement.pause();
       this.sharedAudioElement.currentTime = 0;
@@ -282,6 +285,34 @@ class AudioNarrationService {
       this.synth.cancel();
     }
     this.notify(false);
+  }
+
+  public pause(): void {
+    if (this.sharedAudioElement && !this.sharedAudioElement.paused) {
+      this.sharedAudioElement.pause();
+      this._isPaused = true;
+      this.notify(false);
+    } else if (this.synth && this.synth.speaking && !this.synth.paused) {
+      this.synth.pause();
+      this._isPaused = true;
+      this.notify(false);
+    }
+  }
+
+  public resume(): void {
+    if (this.sharedAudioElement && this._isPaused) {
+      this.sharedAudioElement.play().catch(console.warn);
+      this._isPaused = false;
+      this.notify(true);
+    } else if (this.synth && this.synth.paused) {
+      this.synth.resume();
+      this._isPaused = false;
+      this.notify(true);
+    }
+  }
+
+  public isPaused(): boolean {
+    return this._isPaused;
   }
 
   public toggleMute(): boolean {
