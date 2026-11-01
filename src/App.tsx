@@ -3,6 +3,7 @@ import { Navbar } from './components/Navbar';
 import { DriveModeView } from './components/DriveModeView';
 import { MapExplorerView } from './components/MapExplorerView';
 import { DevShowcaseView } from './components/DevShowcaseView';
+import { VoiceSettingsModal } from './components/VoiceSettingsModal';
 import { SIMULATED_ROUTES } from './data/irelandRoutes';
 import { getEnrichedDataForWaypoint } from './data/heritageKnowledgeBase';
 import { coordinateToH3, calculateBearing } from './services/spatialEngine';
@@ -18,6 +19,8 @@ export const App: React.FC = () => {
   const [playbackSpeed, setPlaybackSpeed] = useState(1);
   const [isAudioMuted, setIsAudioMuted] = useState(false);
   const [isSpeaking, setIsSpeaking] = useState(false);
+  const [isVoiceModalOpen, setIsVoiceModalOpen] = useState(false);
+  const [, setVoiceVersion] = useState(0); // Force re-render on voice change
 
   // Subscribe to audio state
   useEffect(() => {
@@ -108,6 +111,7 @@ export const App: React.FC = () => {
         onToggleMute={handleToggleMute}
         isSpeaking={isSpeaking}
         currentRouteTitle={currentRoute.title}
+        onOpenVoiceStudio={() => setIsVoiceModalOpen(true)}
       />
 
       {/* Main View Area */}
@@ -146,6 +150,13 @@ export const App: React.FC = () => {
         )}
       </main>
 
+      {/* Voice Settings Studio Modal */}
+      <VoiceSettingsModal
+        isOpen={isVoiceModalOpen}
+        onClose={() => setIsVoiceModalOpen(false)}
+        onSettingsSaved={() => setVoiceVersion((v) => v + 1)}
+      />
+
       {/* Footer / Portfolio Anchor */}
       <footer className="border-t border-slate-800 bg-slate-900/60 py-6 mt-auto">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 flex flex-col sm:flex-row items-center justify-between gap-4 text-xs font-mono text-slate-400">
@@ -155,7 +166,7 @@ export const App: React.FC = () => {
           </div>
 
           <div className="flex items-center gap-4">
-            <span className="text-slate-500">Built with Uber H3 • LangGraph • Logainm • Dúchas • React 18</span>
+            <span className="text-slate-500">Built with Uber H3 • LangGraph • ElevenLabs • Logainm • Dúchas</span>
             <div className="flex items-center gap-1 text-emerald-400">
               <span>Included in Ask Barry Portfolio</span>
               <Sparkles className="w-3.5 h-3.5" />

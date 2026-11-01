@@ -1,5 +1,6 @@
 import React from 'react';
-import { Volume2, VolumeX, Navigation, Map, Cpu } from 'lucide-react';
+import { Volume2, VolumeX, Navigation, Map, Cpu, Sparkles, Mic } from 'lucide-react';
+import { audioService } from '../services/audioNarrationService';
 
 interface NavbarProps {
   activeTab: 'drive' | 'map' | 'dev';
@@ -8,6 +9,7 @@ interface NavbarProps {
   onToggleMute: () => void;
   isSpeaking: boolean;
   currentRouteTitle: string;
+  onOpenVoiceStudio: () => void;
 }
 
 export const Navbar: React.FC<NavbarProps> = ({
@@ -16,10 +18,14 @@ export const Navbar: React.FC<NavbarProps> = ({
   isAudioMuted,
   onToggleMute,
   isSpeaking,
-  currentRouteTitle
+  currentRouteTitle,
+  onOpenVoiceStudio
 }) => {
+  const isElevenLabs = audioService.getProvider() === 'elevenlabs';
+  const voiceLabel = audioService.getVoiceLabel();
+
   return (
-    <header className="border-b border-slate-800 bg-slate-900/90 backdrop-blur-md sticky top-0 z-50">
+    <header className="border-b border-slate-800 bg-slate-900/90 backdrop-blur-md sticky top-0 z-40">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 h-16 flex items-center justify-between">
         
         {/* Brand */}
@@ -80,12 +86,30 @@ export const Navbar: React.FC<NavbarProps> = ({
           </button>
         </nav>
 
-        {/* Audio Voice Control & Status */}
-        <div className="flex items-center gap-3">
+        {/* Voice Studio Button & Audio Controls */}
+        <div className="flex items-center gap-2 sm:gap-3">
+          
+          {/* Voice Studio Selector Button */}
+          <button
+            onClick={onOpenVoiceStudio}
+            className={`flex items-center gap-2 px-3 py-1.5 rounded-xl border text-xs font-mono font-medium transition-all ${
+              isElevenLabs
+                ? 'bg-amber-500/10 border-amber-500/40 text-amber-300 hover:bg-amber-500/20'
+                : 'bg-slate-800/60 border-slate-700 text-slate-300 hover:bg-slate-800'
+            }`}
+            title="Configure ElevenLabs Emotive Voices"
+          >
+            {isElevenLabs ? <Sparkles className="w-3.5 h-3.5 text-amber-400" /> : <Mic className="w-3.5 h-3.5 text-slate-400" />}
+            <span className="hidden sm:inline truncate max-w-[140px]">{voiceLabel.split(' (')[0]}</span>
+            <span className="text-[10px] px-1.5 py-0.2 rounded bg-slate-900 border border-slate-800 text-slate-400">
+              {isElevenLabs ? 'ElevenLabs' : 'Device'}
+            </span>
+          </button>
+
           {isSpeaking && (
-            <div className="hidden md:flex items-center gap-1.5 px-3 py-1 rounded-full bg-emerald-500/10 border border-emerald-500/20 text-emerald-400 text-xs font-mono">
+            <div className="hidden lg:flex items-center gap-1.5 px-3 py-1 rounded-full bg-emerald-500/10 border border-emerald-500/20 text-emerald-400 text-xs font-mono">
               <span className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse"></span>
-              <span>Narrating...</span>
+              <span>Broadcasting</span>
             </div>
           )}
 
