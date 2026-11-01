@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { Navbar } from './components/Navbar';
 import { DriveModeView } from './components/DriveModeView';
 import { MapExplorerView } from './components/MapExplorerView';
@@ -115,15 +115,33 @@ export const App: React.FC = () => {
     };
   }, []);
 
+  // Audio teaser tracker to prevent mid-cell interruptions or duplication
+  const lastSpokenCellH3Ref = useRef<string>('');
+
+  /**
+   * Dispatches ambient audio teaser when signal is acquired or new cell entered.
+   * Prevents speech breaking up by ignoring repeated ticks within the same H3 cell.
+   */
+  const playCellTeaser = (cell: EnrichedH3Cell, force: boolean = false) => {
+    if (isAudioMuted || !cell.teaserScript) return;
+    if (cell.h3Index === 'scanning...' || cell.townland === 'Acquiring GPS fix...') return;
+    if (!force && cell.h3Index === lastSpokenCellH3Ref.current) return;
+
+    lastSpokenCellH3Ref.current = cell.h3Index;
+    audioService.speak(cell.teaserScript, { trackId: `ambient-teaser-${cell.h3Index}` });
+  };
+
   // Handle switching between Real GPS and Simulator
   const handleSetDrivingMode = (mode: 'real-gps' | 'simulator') => {
     setDrivingMode(mode);
+    audioService.stop();
+    lastSpokenCellH3Ref.current = '';
     if (mode === 'simulator') {
       const initWp = currentRoute.waypoints[currentWaypointIndex];
       const initH3 = coordinateToH3(initWp.coordinate, 8);
       setCurrentCell(getEnrichedDataForWaypoint(initWp.name, initH3, initWp.coordinate));
     } else {
-      if (gpsState.status === 'locked' && gpsState.coordinate && gpsState.h3Index) {
+      if (gpsState.coordinate && gpsState.h3Index) {
         // Keep locked cell
       } else {
         setCurrentCell(INITIAL_ACQUIRING_CELL);
@@ -137,30 +155,39 @@ export const App: React.FC = () => {
 
   // Subscribe to Real GPS state
   useEffect(() => {
-    let lastResolvedH3 = "";
-
-    const unsubGps = realGpsService.subscribe((state) => {
+    const unsubGps = realGpsService.subscribe(async (state) => {
       setGpsState(state);
-    });
-
-    const unsubCell = realGpsService.onCellEntry(async (newH3Id, coord) => {
-      if (newH3Id === lastResolvedH3) return;
-      lastResolvedH3 = newH3Id;
-      const cell = await DynamicHeritageService.resolveCell(newH3Id, coord);
-      setCurrentCell(cell);
-      setActiveThread(null);
-      if (!isAudioMuted && cell.teaserScript) {
-        audioService.speak(cell.teaserScript, { trackId: 'ambient-teaser' });
+      // Auto-start ambient audio teaser the moment satellite signal is ACQUIRED
+      if (
+        state.status === 'locked' &&
+        state.coordinate &&
+        state.h3Index &&
+        state.h3Index !== lastSpokenCellH3Ref.current
+      ) {
+        const cell = await DynamicHeritageService.resolveCell(state.h3Index, state.coordinate);
+        setCurrentCell(cell);
+        if (state.isTracking) {
+          playCellTeaser(cell);
+        }
       }
     });
 
-    // Passive immediate GPS check on load if already permitted
+    const unsubCell = realGpsService.onCellEntry(async (newH3Id, coord) => {
+      const cell = await DynamicHeritageService.resolveCell(newH3Id, coord);
+      setCurrentCell(cell);
+      setActiveThread(null);
+      const state = realGpsService.getState();
+      if (state.isTracking) {
+        playCellTeaser(cell);
+      }
+    });
+
+    // Passive immediate GPS check on load if already permitted (populates visual townland, audio waits for user drive start)
     if (typeof window !== 'undefined' && 'geolocation' in navigator) {
       navigator.geolocation.getCurrentPosition(
         async (pos) => {
           const coord = { lat: pos.coords.latitude, lng: pos.coords.longitude };
           const h3 = coordinateToH3(coord, 8);
-          lastResolvedH3 = h3;
           realGpsService.updateLocationManually(coord, Math.round(pos.coords.accuracy) || 15);
           const cell = await DynamicHeritageService.resolveCell(h3, coord);
           setCurrentCell(cell);
@@ -181,12 +208,23 @@ export const App: React.FC = () => {
     audioService.unlockMobileAudio();
     voiceCommandService.startListening();
     await realGpsService.startTracking();
+
+    // If satellite signal is ALREADY acquired / locked when user starts, auto-start teaser immediately!
+    const state = realGpsService.getState();
+    if (state.coordinate && state.h3Index) {
+      const cell = await DynamicHeritageService.resolveCell(state.h3Index, state.coordinate);
+      setCurrentCell(cell);
+      playCellTeaser(cell, true);
+    } else if (currentCell && currentCell.teaserScript && currentCell.h3Index !== 'scanning...') {
+      playCellTeaser(currentCell, true);
+    }
   };
 
   const handleStopGps = () => {
     voiceCommandService.stopListening();
     realGpsService.stopTracking();
     audioService.stop();
+    lastSpokenCellH3Ref.current = '';
   };
 
   // Simulator: derived waypoints & bearing
@@ -264,9 +302,7 @@ export const App: React.FC = () => {
   };
 
   const handleReplayAudio = () => {
-    if (currentCell.teaserScript) {
-      audioService.speak(currentCell.teaserScript);
-    }
+    playCellTeaser(currentCell, true);
   };
 
   const handleSelectWaypoint = (index: number) => {

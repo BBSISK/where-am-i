@@ -3,6 +3,7 @@ import { coordinateToH3, calculateBearing, calculateHaversineDistance } from './
 
 export interface RealGpsState {
   status: 'idle' | 'requesting' | 'locked' | 'error' | 'unsupported';
+  isTracking: boolean;
   coordinate: GeoCoordinate | null;
   accuracyMeters: number;
   speedKmh: number;
@@ -26,6 +27,7 @@ class RealGpsService {
 
   private currentState: RealGpsState = {
     status: 'idle',
+    isTracking: false,
     coordinate: null,
     accuracyMeters: 0,
     speedKmh: 0,
@@ -68,8 +70,10 @@ class RealGpsService {
     }
 
     this.isTrackingActive = true;
+    this.lastH3Index = null; // Reset so first satellite acquisition triggers cell entry & audio teaser!
     this.currentState = {
       ...this.currentState,
+      isTracking: true,
       status: 'requesting',
       errorMessage: null
     };
@@ -120,7 +124,9 @@ class RealGpsService {
     const isNewCell = this.lastH3Index !== null && currentH3 !== this.lastH3Index;
 
     this.lastCoordinate = coord;
-    this.lastH3Index = currentH3;
+    if (this.isTrackingActive) {
+      this.lastH3Index = currentH3;
+    }
 
     this.currentState = {
       ...this.currentState,
@@ -131,7 +137,7 @@ class RealGpsService {
     };
     this.notify();
 
-    if (isFirstLock || isNewCell) {
+    if (this.isTrackingActive && (isFirstLock || isNewCell)) {
       this.cellEntryListeners.forEach(fn => fn(currentH3, coord, 0));
     }
   }
@@ -177,6 +183,7 @@ class RealGpsService {
 
     this.currentState = {
       status: 'locked',
+      isTracking: true,
       coordinate: newCoord,
       accuracyMeters: accuracy,
       speedKmh,
@@ -248,6 +255,7 @@ class RealGpsService {
     this.currentState = {
       ...this.currentState,
       status: 'idle',
+      isTracking: false,
       speedKmh: 0,
       isScreenWakeLocked: false
     };

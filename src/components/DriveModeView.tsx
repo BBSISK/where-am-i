@@ -194,17 +194,15 @@ export const DriveModeView: React.FC<DriveModeViewProps> = ({
                 )}
               </div>
               <h3 className="text-base sm:text-lg font-bold text-white mt-0.5">
-                {isGpsLocked
-                  ? `${currentCell.townland} (${currentCell.county})`
-                  : gpsState.status === 'requesting'
-                  ? 'Acquiring Satellite Lock...'
-                  : 'Ready to drive in real life'}
+                {gpsState.isTracking
+                  ? (isGpsLocked ? `${currentCell.townland} (${currentCell.county}) • Live Audio Tour Active` : '🛰️ Acquiring Satellite Signal...')
+                  : (isGpsLocked ? `${currentCell.townland} (${currentCell.county}) • Ready to Drive` : 'Ready to drive in real life')}
               </h3>
             </div>
           </div>
 
           <div className="flex items-center gap-3 w-full md:w-auto justify-end">
-            {isGpsLocked ? (
+            {gpsState.isTracking ? (
               <button
                 onClick={onStopGps}
                 className="w-full sm:w-auto px-5 py-3 rounded-xl bg-rose-600/80 hover:bg-rose-600 text-white text-xs font-mono font-bold transition-all shadow-lg shadow-rose-600/20"
