@@ -160,7 +160,7 @@ describe('Spatial RAG Engine', () => {
       expect(nearMaynooth?.townland).toBe('Maynooth');
     });
 
-    it('converts an AreaKnowledgeUnit into a full EnrichedH3Cell with all 6 pillars', () => {
+    it('converts an AreaKnowledgeUnit into a full EnrichedH3Cell with all 6 pillars and council sources', () => {
       const maynooth = spatialRagService.getAreaByName('Maynooth')!;
       const enrichedCell = spatialRagService.toEnrichedCell(maynooth, 'test-h3-index', maynooth.coordinates);
 
@@ -170,7 +170,27 @@ describe('Spatial RAG Engine', () => {
       expect(enrichedCell.history?.title).toContain('Silken Thomas');
       expect(enrichedCell.waterways).toBeDefined();
       expect(enrichedCell.waterways?.name).toContain('Royal Canal');
-      expect(enrichedCell.threads.length).toBeGreaterThanOrEqual(3);
+      expect(enrichedCell.councilSource).toBeDefined();
+      expect(enrichedCell.councilSource?.councilName).toContain('Kildare County Council');
+      expect(enrichedCell.threads.length).toBeGreaterThanOrEqual(4);
+    });
+
+    it('indexes local county council and historical society sources for all N4 areas', () => {
+      const lucan = spatialRagService.getAreaByName('Lucan');
+      expect(lucan?.councilSource?.councilName).toContain('South Dublin County Council');
+      expect(lucan?.councilSource?.historicalSociety).toContain('Society for Old Lucan');
+      expect(lucan?.monuments.some(m => m.name.includes('Shackleton'))).toBe(true);
+      expect(lucan?.monuments.some(m => m.name.includes("St. Finian's"))).toBe(true);
+
+      const leixlip = spatialRagService.getAreaByName('Leixlip');
+      expect(leixlip?.councilSource?.councilName).toContain('Kildare County Council');
+      expect(leixlip?.councilSource?.historicalSociety).toContain('Leixlip History Club');
+      expect(leixlip?.monuments.some(m => m.name.includes('Aqueduct'))).toBe(true);
+
+      const maynooth = spatialRagService.getAreaByName('Maynooth');
+      expect(maynooth?.councilSource?.keyHighlights.some(h => h.includes('Nicholas Callan'))).toBe(true);
+      expect(maynooth?.monuments.some(m => m.name.includes('Silken Thomas Yew'))).toBe(true);
+      expect(maynooth?.monuments.some(m => m.name.includes('Nicholas Callan'))).toBe(true);
     });
   });
 });

@@ -19,7 +19,7 @@ export interface NationalMonument {
   id: string;
   name: string;
   type: 'Ringfort' | 'Castle' | 'Standing Stone' | 'Holy Well' | 'Cairn' | 'Crannóg' | 'Abbey';
-  era: 'Neolithic' | 'Bronze Age' | 'Early Christian' | 'Medieval' | '17th Century';
+  era: 'Neolithic' | 'Bronze Age' | 'Early Christian' | 'Medieval' | '17th Century' | '18th Century' | '19th Century' | 'Modern';
   distanceMeters: number;
   description: string;
   smrNumber: string; // Sites & Monuments Record ID
@@ -57,6 +57,14 @@ export interface WaterwayInfo {
   significance: string;
 }
 
+export interface CouncilHeritageSource {
+  councilName: string; // e.g. "South Dublin County Council (SDCC)"
+  trailName: string; // e.g. "Lucan Heritage Trail & SDCC Heritage Walks"
+  historicalSociety: string; // e.g. "Society for Old Lucan (SOL)"
+  archiveCitation: string; // e.g. "South Dublin Libraries Local Studies Collection"
+  keyHighlights: string[];
+}
+
 export interface ThreadOption {
   id: string;
   title: string;
@@ -88,6 +96,7 @@ export interface EnrichedH3Cell {
   geology: GeologicalFeature;
   history?: HistoryEvent;
   waterways?: WaterwayInfo;
+  councilSource?: CouncilHeritageSource;
   teaserScript: string; // 10-second ambient audio teaser breadcrumb
   narrativeScript: string; // Full audio script
   threads: ThreadOption[]; // Interactive threads to pull

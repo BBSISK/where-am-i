@@ -109,7 +109,7 @@ export const DriveModeView: React.FC<DriveModeViewProps> = ({
   onOpenScrapbook,
   savedThreadsCount
 }) => {
-  const [activeCardTab, setActiveCardTab] = useState<'etymology' | 'monuments' | 'folklore' | 'geology' | 'history' | 'waterways'>('etymology');
+  const [activeCardTab, setActiveCardTab] = useState<'etymology' | 'monuments' | 'folklore' | 'geology' | 'history' | 'waterways' | 'council'>('etymology');
   const isGpsLocked = gpsState.status === 'locked';
   const isAcquiring = drivingMode === 'real-gps' && !isGpsLocked && (currentCell.h3Index === 'scanning...' || currentCell.townland === 'Acquiring GPS fix...');
 
@@ -828,8 +828,25 @@ export const DriveModeView: React.FC<DriveModeViewProps> = ({
 
           </div>
 
-          {/* 6 Cultural Heritage Pillars */}
+          {/* 6 Cultural Heritage Pillars + Civic Council Trails */}
           <div className="bg-slate-900 border border-slate-800 rounded-2xl shadow-xl overflow-hidden">
+            {/* Civic & Historical Provenance Banner */}
+            {currentCell.councilSource && !isAcquiring && (
+              <div className="bg-gradient-to-r from-amber-500/15 via-slate-950 to-slate-900 border-b border-amber-500/25 px-5 py-2.5 flex flex-col sm:flex-row sm:items-center justify-between gap-2 text-xs">
+                <div className="flex items-center gap-2 text-amber-300 font-medium">
+                  <span className="text-sm">🏛️</span>
+                  <span className="font-bold">{currentCell.councilSource.trailName}</span>
+                  <span className="text-slate-400 font-mono text-[11px] hidden md:inline">
+                    • {currentCell.councilSource.councilName}
+                  </span>
+                </div>
+                <div className="flex items-center gap-1.5 text-[11px] font-mono text-emerald-400">
+                  <span className="w-1.5 h-1.5 rounded-full bg-emerald-400"></span>
+                  <span>{currentCell.councilSource.historicalSociety}</span>
+                </div>
+              </div>
+            )}
+
             <div className="flex border-b border-slate-800 bg-slate-950/40 overflow-x-auto">
               <button
                 onClick={() => setActiveCardTab('etymology')}
@@ -902,6 +919,20 @@ export const DriveModeView: React.FC<DriveModeViewProps> = ({
                 <Mountain className="w-4 h-4" />
                 <span>Geology (GSI)</span>
               </button>
+
+              {currentCell.councilSource && (
+                <button
+                  onClick={() => setActiveCardTab('council')}
+                  className={`flex items-center gap-2 px-4 py-3 text-xs sm:text-sm font-bold border-b-2 transition-all whitespace-nowrap ${
+                    activeCardTab === 'council'
+                      ? 'border-amber-500 text-amber-400 bg-amber-500/10'
+                      : 'border-transparent text-slate-400 hover:text-white'
+                  }`}
+                >
+                  <Compass className="w-4 h-4 text-amber-400" />
+                  <span>Council & Tourist Trail</span>
+                </button>
+              )}
             </div>
 
             <div className="p-6">
@@ -1042,6 +1073,43 @@ export const DriveModeView: React.FC<DriveModeViewProps> = ({
                       <p className="text-sm text-slate-300 leading-relaxed p-4 rounded-xl bg-slate-950 border border-slate-800">
                         {currentCell.geology.scientificInsight}
                       </p>
+                    </div>
+                  )}
+
+                  {activeCardTab === 'council' && currentCell.councilSource && (
+                    <div className="space-y-4">
+                      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 border-b border-slate-800 pb-3">
+                        <div>
+                          <span className="px-2 py-0.5 rounded bg-amber-500/20 text-amber-300 text-xs font-bold font-mono">
+                            Local Authority & Historical Society Trail
+                          </span>
+                          <h4 className="text-xl font-bold text-white mt-1.5">{currentCell.councilSource.trailName}</h4>
+                          <p className="text-xs font-mono text-emerald-400 mt-0.5">
+                            Local Authority: {currentCell.councilSource.councilName}
+                          </p>
+                        </div>
+                        <div className="text-left sm:text-right">
+                          <span className="text-xs font-mono text-slate-400">Historical Society</span>
+                          <p className="text-sm font-bold text-amber-400">{currentCell.councilSource.historicalSociety}</p>
+                        </div>
+                      </div>
+
+                      <div>
+                        <h5 className="text-xs font-mono text-slate-400 uppercase mb-2">Trail Waypoints & Civic Highlights</h5>
+                        <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5">
+                          {currentCell.councilSource.keyHighlights.map((hl, i) => (
+                            <div key={i} className="p-3 rounded-xl bg-slate-950 border border-slate-800 flex items-start gap-2.5">
+                              <span className="text-amber-400 font-mono font-bold text-xs mt-0.5">0{i + 1}</span>
+                              <p className="text-xs text-slate-200 leading-relaxed">{hl}</p>
+                            </div>
+                          ))}
+                        </div>
+                      </div>
+
+                      <div className="p-3.5 rounded-xl bg-slate-950/80 border border-slate-800 text-xs font-mono text-slate-400 flex flex-col sm:flex-row sm:items-center justify-between gap-1">
+                        <span>Archive & Research Citation:</span>
+                        <span className="text-slate-300 font-semibold">{currentCell.councilSource.archiveCitation}</span>
+                      </div>
                     </div>
                   )}
                 </>

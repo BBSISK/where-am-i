@@ -39,6 +39,19 @@ export const N4_CORRIDOR_AREAS: AreaKnowledgeUnit[] = [
       'Woodview',
       'Weston'
     ],
+    councilSource: {
+      councilName: 'South Dublin County Council (SDCC)',
+      trailName: 'Lucan Heritage Trail & SDCC Heritage Walks',
+      historicalSociety: 'Society for Old Lucan (SOL) & South Dublin Libraries Local Studies',
+      archiveCitation: 'SDCC Heritage Plan, SOL Field Research & Jane Wigham Shackleton Photographic Archives',
+      keyHighlights: [
+        "Oldest surviving stone bridge in County Dublin (c. 1200 King John's Bridge)",
+        'Patrick Sarsfield ancestral manor in Lucan Demesne (Italian Ambassador residence)',
+        "1224 St. Finian's Medieval Church of Esker",
+        "Shackleton's Anna Liffey Flour Mills (1860–1999) & Ernest Shackleton family",
+        '1758 Lucan Sulphur Spa & Dublin-Lucan Electric Tramway (1881–1940)'
+      ]
+    },
     etymology: {
       irishName: 'Leamhcán',
       englishName: 'Lucan',
@@ -66,7 +79,7 @@ export const N4_CORRIDOR_AREAS: AreaKnowledgeUnit[] = [
         type: 'Castle',
         era: '17th Century',
         distanceMeters: 310,
-        description: 'Palladian villa designed by Agostino Carlini (1772) incorporating the remains of the medieval tower house of Patrick Sarsfield, 1st Earl of Lucan.',
+        description: 'Palladian villa designed by Agostino Carlini (1772) incorporating the remains of the medieval tower house of Patrick Sarsfield, 1st Earl of Lucan. Official residence of the Italian Ambassador to Ireland.',
         smrNumber: 'DU017-018----'
       },
       {
@@ -77,6 +90,24 @@ export const N4_CORRIDOR_AREAS: AreaKnowledgeUnit[] = [
         distanceMeters: 450,
         description: 'Famous 1758 sulfur and iron mineral spring discovered on the Liffey banks, establishing Lucan as Georgian Dublin’s premier hydrotherapy resort.',
         smrNumber: 'DU017-042----'
+      },
+      {
+        id: 'luc-mon-04',
+        name: "St. Finian's Medieval Church & Esker Graveyard",
+        type: 'Abbey',
+        era: 'Medieval',
+        distanceMeters: 550,
+        description: '12th-century medieval parish church dedicated in 1224 by the Dean of St. Patrick’s Cathedral. Preserved ruins feature ancient Celtic and Anglo-Norman burial markers.',
+        smrNumber: 'DU017-024----'
+      },
+      {
+        id: 'luc-mon-05',
+        name: "Shackleton's Flour Mill (Anna Liffey Mill)",
+        type: 'Castle',
+        era: '17th Century',
+        distanceMeters: 480,
+        description: 'Iconic industrial river mill operated by the family of polar explorer Sir Ernest Shackleton continuously from 1860 until 1999. Documented in Jane Wigham Shackleton’s 19th-century photographic archives.',
+        smrNumber: 'DU017-083----'
       }
     ],
     folklore: {
@@ -107,7 +138,7 @@ export const N4_CORRIDOR_AREAS: AreaKnowledgeUnit[] = [
       type: 'River',
       significance: 'Lucan marks the natural confluence of the Griffeen River and the Liffey. In the 18th and 19th centuries, the rushing waters powered major flour mills, ironworks, and Ireland’s most fashionable chalybeate spa baths.'
     },
-    teaserScript: 'Crossing into Lucan along the River Liffey. Ancestral manor of Patrick Sarsfield, home to Dublin’s oldest 12th-century stone bridge, and a famous 1758 geothermal spa. Say "Tell Me More" or tap a thread to explore.',
+    teaserScript: 'Crossing into Lucan along the River Liffey. Ancestral manor of Patrick Sarsfield, home to Dublin’s oldest 12th-century stone bridge, the Shackleton mills, and a famous 1758 geothermal spa. Say "Tell Me More" or tap a thread to explore.',
     narrativeScript: 'Welcome to Lucan—in Irish, Leamhcán, meaning the place of wild elms and marshmallows. Here the Griffeen River joins the Liffey under King John’s 800-year-old stone arches, and the home of Patrick Sarsfield still overlooks the wooded riverbanks.',
     threads: [
       {
@@ -133,6 +164,22 @@ export const N4_CORRIDOR_AREAS: AreaKnowledgeUnit[] = [
         hookSnippet: 'Three pointed limestone arches that have carried Irish travelers for over eight centuries.',
         spokenNarrative: 'Spanning the Griffeen River in Lucan village stands King John’s Bridge, constructed around the year 1200. Built from coursed calp limestone with pointed Gothic arches, it is recognized as the oldest surviving stone bridge in County Dublin, surviving eight centuries of winter floods.',
         detailMarkdown: 'National Monuments Record DU017-001. A protected national antiquity maintained by South Dublin County Council.'
+      },
+      {
+        id: 'lucan-shackleton',
+        title: "Shackleton’s Mill: Polar Explorer Heritage & 19th-Century Photography",
+        category: 'monument',
+        hookSnippet: 'The 1860 Anna Liffey flour mill powered by the river, tied to Sir Ernest Shackleton.',
+        spokenNarrative: 'Along the rushing waters of the Liffey stands Shackleton’s Mill, operated for over a century by the family of legendary Antarctic explorer Sir Ernest Shackleton. The miller’s wife, Jane Wigham Shackleton, became a pioneering 19th-century photographer, capturing over a thousand glass-plate negatives of life along the river.',
+        detailMarkdown: 'South Dublin Libraries Local Studies Collection. An intact surviving example of 19th-century hydro-powered roller milling.'
+      },
+      {
+        id: 'lucan-finian',
+        title: "St. Finian's Medieval Church of Esker (1224 AD)",
+        category: 'monument',
+        hookSnippet: 'Eight centuries of monastic devotion overlooking the ancient Esker ridge.',
+        spokenNarrative: 'On the high ground of Esker overlooking Lucan lie the venerable stone ruins of St. Finian’s Church, dedicated in 1224 by the Dean of St. Patrick’s Cathedral in Dublin. For centuries it served as the mother church of the parish, surrounded by ancient Celtic grave slabs and yew trees.',
+        detailMarkdown: 'South Dublin County Council Heritage Trail & National Monuments Record DU017-024.'
       }
     ]
   },
@@ -161,6 +208,19 @@ export const N4_CORRIDOR_AREAS: AreaKnowledgeUnit[] = [
       'St. Catherine’s',
       'Wonderful Barn'
     ],
+    councilSource: {
+      councilName: 'Kildare County Council (Celbridge/Leixlip Municipal District)',
+      trailName: 'Leixlip Heritage Trail (IntoKildare & Leixlip Tidy Towns)',
+      historicalSociety: 'Leixlip History Club & County Kildare Federation of Local History Groups',
+      archiveCitation: 'Kildare County Council Heritage Plan & Waterways Ireland Industrial Heritage Inventory',
+      keyHighlights: [
+        'Arthur Guinness 1755 First Brewery on Main Street',
+        '1796 Rye Water Aqueduct (Largest 18th-century Irish civil engineering monument)',
+        'Leixlip Castle & Irish Georgian Society headquarters (1958)',
+        '1743 Wonderful Barn & Pigeon House famine relief follies',
+        'Leixlip Toll House & 1734 3-arch stone Liffey bridge'
+      ]
+    },
     etymology: {
       irishName: 'Léim an Bhradáin',
       englishName: 'Leixlip',
@@ -199,6 +259,24 @@ export const N4_CORRIDOR_AREAS: AreaKnowledgeUnit[] = [
         distanceMeters: 480,
         description: 'Remains of a 1219 monastery of Canons of Saint Victor perched on the wooded bluffs of the River Liffey.',
         smrNumber: 'KD011-025----'
+      },
+      {
+        id: 'leix-mon-04',
+        name: 'Rye Water Canal Aqueduct (1796)',
+        type: 'Castle',
+        era: '17th Century',
+        distanceMeters: 380,
+        description: 'Monumental 100-foot-high limestone aqueduct carrying the Royal Canal over the Rye Water valley. Engineered by Richard Evans, it was the largest civil engineering work in 18th-century Ireland.',
+        smrNumber: 'KD011-049----'
+      },
+      {
+        id: 'leix-mon-05',
+        name: 'Arthur Guinness 1755 Brewery Site',
+        type: 'Castle',
+        era: '18th Century',
+        distanceMeters: 110,
+        description: 'Site on Leixlip Main Street where Arthur Guinness founded his first commercial brewery in September 1755, four years before St. James’s Gate in Dublin. Marked with a bronze civic plaque.',
+        smrNumber: 'KD-CIVIC-002'
       }
     ],
     folklore: {
@@ -255,6 +333,22 @@ export const N4_CORRIDOR_AREAS: AreaKnowledgeUnit[] = [
         hookSnippet: 'The western border outpost of the 9th-century Norse Kingdom of Dublin.',
         spokenNarrative: 'Leixlip derives its name from Old Norse Lax-hlaup, meaning the Salmon Leap. Over a thousand years ago, Norse longboats rowed up the Liffey as far as this rocky gorge, establishing a fortified frontier trade post where the River Liffey met the Rye Water at the border of Celtic Leinster.',
         detailMarkdown: 'Documented in medieval Norse chronicles and Irish annals as the western boundary marker of Dyflinarskiri.'
+      },
+      {
+        id: 'leixlip-aqueduct',
+        title: 'The Rye Water Aqueduct: 100 Feet Above the River Valley',
+        category: 'waterways',
+        hookSnippet: 'The largest civil engineering monument in 18th-century Ireland, carrying the Royal Canal.',
+        spokenNarrative: 'Constructed in 1796 under engineer Richard Evans, the Rye Water Aqueduct was an engineering marvel of the Georgian world. Towering nearly one hundred feet over the river below, its massive limestone arches carried the waters of the Royal Canal and passenger fly-boats across the deep wooded ravine.',
+        detailMarkdown: 'Waterways Ireland & Kildare County Council Heritage Trail. National Monument KD011-049.'
+      },
+      {
+        id: 'leixlip-igs',
+        title: 'Desmond & Mariga Guinness: Birthplace of the Irish Georgian Society (1958)',
+        category: 'history',
+        hookSnippet: 'How Leixlip Castle saved Ireland’s Georgian architectural heritage.',
+        spokenNarrative: 'In 1958, the Honorable Desmond Guinness and his wife Mariga bought Leixlip Castle and founded the Irish Georgian Society in its ancient dining room. Together, they campaigned fiercely against the destruction of Dublin’s Georgian streetscapes, saving Castletown House, Mountjoy Square, and the Conolly Folly for future generations.',
+        detailMarkdown: 'Kildare County Council Heritage Studies & Irish Georgian Society Archives.'
       }
     ]
   },
@@ -282,6 +376,19 @@ export const N4_CORRIDOR_AREAS: AreaKnowledgeUnit[] = [
       'Moyglare',
       'Maynooth Castle'
     ],
+    councilSource: {
+      councilName: 'Kildare County Council Heritage Office',
+      trailName: 'Maynooth Heritage Trail & Tidy Towns Heritage Walk',
+      historicalSociety: 'Maynooth Local History & St. Patrick’s College Archives',
+      archiveCitation: 'Kildare County Council Heritage Plan & IEEE Milestone in Electrical Engineering Archives',
+      keyHighlights: [
+        'Silken Thomas Yew (Oldest cultivated native tree in Ireland, 750+ years)',
+        "1203 Maynooth Castle & 1535 Cannon Siege ('The Maynooth Pardon')",
+        'Rev. Nicholas Callan 1836 Induction Coil Invention (IEEE Milestone)',
+        "The Duke's Avenue (Carton Avenue 2km public ceremonial parkway)",
+        'Royal Canal 1790 stone locks & fly-boat harbour'
+      ]
+    },
     etymology: {
       irishName: 'Maigh Nuadhad',
       englishName: 'Maynooth',
@@ -296,7 +403,7 @@ export const N4_CORRIDOR_AREAS: AreaKnowledgeUnit[] = [
     monuments: [
       {
         id: 'may-mon-01',
-        name: 'Maynooth Castle',
+        name: 'Maynooth Castle Gatehouse & Keep',
         type: 'Castle',
         era: 'Medieval',
         distanceMeters: 180,
@@ -320,6 +427,33 @@ export const N4_CORRIDOR_AREAS: AreaKnowledgeUnit[] = [
         distanceMeters: 850,
         description: 'Seat of the Dukes of Leinster designed by Richard Cassels (1739) set in 1,100 acres of classical Georgian parkland.',
         smrNumber: 'KD006-004----'
+      },
+      {
+        id: 'may-mon-04',
+        name: 'The Silken Thomas Yew Tree',
+        type: 'Holy Well',
+        era: 'Medieval',
+        distanceMeters: 160,
+        description: 'Over 750 years old with a trunk girth exceeding 14 feet, documented as the oldest cultivated tree in Ireland. Legend says Silken Thomas played his lute beneath it the night before the 1535 siege.',
+        smrNumber: 'KD-TREE-001'
+      },
+      {
+        id: 'may-mon-05',
+        name: 'Rev. Nicholas Callan Science Museum & Laboratory',
+        type: 'Castle',
+        era: '18th Century',
+        distanceMeters: 310,
+        description: 'Preserved laboratory of Fr. Nicholas Callan who invented the induction coil (transformer forerunner) in 1836. Recognized globally as an IEEE Electrical Engineering Milestone.',
+        smrNumber: 'KD-IEEE-001'
+      },
+      {
+        id: 'may-mon-06',
+        name: 'Carton Avenue (The Duke’s Avenue)',
+        type: 'Castle',
+        era: '18th Century',
+        distanceMeters: 220,
+        description: 'A 2-kilometer ceremonial lime-tree public parkway connecting Maynooth Castle directly to Carton House, preserved by Kildare County Council for community walking.',
+        smrNumber: 'KD-CIVIC-003'
       }
     ],
     folklore: {
@@ -376,6 +510,22 @@ export const N4_CORRIDOR_AREAS: AreaKnowledgeUnit[] = [
         hookSnippet: 'Stone-cut 1790 canal locks and the historic 1795 national college.',
         spokenNarrative: 'Maynooth is framed by the tranquil waters of the Royal Canal, hand-dug with picks and shovels in the 1790s to connect Dublin to the Shannon. Across the bridge rise the soaring limestone cloisters of St. Patrick’s College, founded in 1795, which grew into the largest Catholic seminary in the world, educating generations of Irish scholars.',
         detailMarkdown: 'The Royal Canal Greenway now offers continuous walking and cycling from Dublin right through Maynooth.'
+      },
+      {
+        id: 'maynooth-callan',
+        title: 'Rev. Nicholas Callan: The Priest Who Invented the Induction Coil (1836)',
+        category: 'history',
+        hookSnippet: 'How a Maynooth professor invented the electrical transformer that powers modern engines.',
+        spokenNarrative: 'In 1836, Father Nicholas Callan, Professor of Natural Philosophy at Maynooth College, invented the world’s first induction coil. By wrapping miles of insulated copper wire around an iron core, Callan produced high-voltage sparks that could generate hundreds of thousands of volts, directly laying the foundation for modern power transformers and automotive spark plugs.',
+        detailMarkdown: 'IEEE International Milestone in Electrical Engineering. Historic apparatus displayed in the National Science Museum at Maynooth.'
+      },
+      {
+        id: 'maynooth-silken-yew',
+        title: 'The Silken Thomas Yew: 750 Years of Rebellion & Lute Song',
+        category: 'monument',
+        hookSnippet: 'The oldest cultivated tree in Ireland, under which Silken Thomas played his lute in 1535.',
+        spokenNarrative: 'Standing just outside Maynooth Castle gate is the Silken Thomas Yew, recognized as the oldest cultivated tree in Ireland with a trunk girth exceeding fourteen feet. According to local lore, Lord Thomas FitzGerald sat beneath its heavy branches playing his lute on the eve of his 1535 rebellion before marching against King Henry’s army.',
+        detailMarkdown: 'Protected Ancient Heritage Tree maintained by St. Patrick’s College and Kildare County Council.'
       }
     ]
   }

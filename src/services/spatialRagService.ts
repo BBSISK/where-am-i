@@ -1,4 +1,4 @@
-import { GeoCoordinate, EnrichedH3Cell, ThreadOption, NationalMonument, FolkloreStory, GeologicalFeature, EtymologyInfo, HistoryEvent, WaterwayInfo } from '../types';
+import { GeoCoordinate, EnrichedH3Cell, ThreadOption, NationalMonument, FolkloreStory, GeologicalFeature, EtymologyInfo, HistoryEvent, WaterwayInfo, CouncilHeritageSource } from '../types';
 import { coordinateToH3, getCorridorNeighbors, calculateHaversineDistance } from './spatialEngine';
 import { N4_CORRIDOR_AREAS } from '../data/n4CorridorData';
 
@@ -28,6 +28,7 @@ export interface AreaKnowledgeUnit {
   coordinates: GeoCoordinate;
   h3Indices: string[]; // List of H3 Res 8 cells covering this area
   aliases?: string[]; // Townland sub-districts and neighborhood aliases
+  councilSource?: CouncilHeritageSource; // County Council & Local Historical Society Sources
   etymology: EtymologyInfo;
   monuments: NationalMonument[];
   folklore: FolkloreStory;
@@ -132,6 +133,16 @@ class SpatialRagService {
           summary: area.waterways.significance,
           content: `${area.waterways.name} is a ${area.waterways.type}. ${area.waterways.significance}`,
           sourceCitation: 'Waterways Ireland & Historical Hydrology',
+          metadata: { townland: area.townland, county: area.county, parish: area.parish, coordinates: area.coordinates }
+        }] : []),
+        ...(area.councilSource ? [{
+          chunkId: `${area.areaId}-council`,
+          h3Index: h3,
+          category: 'history' as const,
+          title: `Local Authority & Heritage Trail: ${area.councilSource.trailName}`,
+          summary: `${area.councilSource.councilName} • ${area.councilSource.historicalSociety}`,
+          content: `${area.councilSource.trailName} curated by ${area.councilSource.councilName} and ${area.councilSource.historicalSociety}. Archives: ${area.councilSource.archiveCitation}. Highlights: ${area.councilSource.keyHighlights.join(', ')}.`,
+          sourceCitation: `${area.councilSource.councilName} & ${area.councilSource.historicalSociety}`,
           metadata: { townland: area.townland, county: area.county, parish: area.parish, coordinates: area.coordinates }
         }] : []),
         ...area.threads.map((t, idx) => ({
@@ -253,6 +264,7 @@ class SpatialRagService {
       geology: area.geology,
       history: area.history,
       waterways: area.waterways,
+      councilSource: area.councilSource,
       teaserScript: area.teaserScript,
       narrativeScript: area.narrativeScript,
       threads: area.threads,

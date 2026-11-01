@@ -17,6 +17,7 @@ N4_CORRIDOR_AREAS.forEach((area) => {
     geology: area.geology,
     history: area.history,
     waterways: area.waterways,
+    councilSource: area.councilSource,
     teaserScript: area.teaserScript,
     narrativeScript: area.narrativeScript,
     threads: area.threads,
