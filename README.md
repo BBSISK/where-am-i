@@ -1,6 +1,7 @@
 # Where Am I? (Anseo) 🇮🇪
 ### *Éire Spatial Heritage & Knowledge Engine*
 
+[![CI/CD Pipeline](https://github.com/BBSISK/where-am-i/actions/workflows/ci.yml/badge.svg)](https://github.com/BBSISK/where-am-i/actions/workflows/ci.yml)
 [![TypeScript](https://img.shields.io/badge/TypeScript-5.7-blue.svg?logo=typescript)](https://www.typescriptlang.org/)
 [![React](https://img.shields.io/badge/React-18.3-61dafb.svg?logo=react)](https://react.dev/)
 [![Uber H3](https://img.shields.io/badge/Spatial_Index-Uber_H3_Res_8-000000.svg?logo=uber)](https://h3geo.org/)
