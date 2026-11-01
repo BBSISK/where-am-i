@@ -302,6 +302,8 @@ npm run build
 
 ## 📜 Cultural & Data Citations
 
+> For the exhaustive provenance breakdown, archive accession numbers, excavation license references, SMR catalog numbers, and fair use disclosures, see [**DATA_SOURCES.md**](DATA_SOURCES.md).
+
 * **Logainm.ie**: The Placenames Database of Ireland, developed by Fiontar & Scoil na Gaeilge (DCU) and the Department of Tourism, Culture, Arts, Gaeltacht, Sport and Media.
 * **National Monuments Service (ASI)**: Archaeological Survey of Ireland, Department of Housing, Local Government and Heritage.
 * **National Inventory of Architectural Heritage (NIAH)**: Architectural Heritage Protection, Department of Housing, Local Government and Heritage.
