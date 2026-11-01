@@ -51,7 +51,7 @@ interface DriveModeViewProps {
 
   // Voice & Audio Status
   voiceState: VoiceCommandState;
-  hasElevenApiKey: boolean;
+  serverVoiceAvailable: boolean;
   audioLastError: string | null;
   onOpenVoiceStudio: () => void;
   audioPlaybackState?: 'idle' | 'loading' | 'playing' | 'paused';
@@ -93,7 +93,7 @@ export const DriveModeView: React.FC<DriveModeViewProps> = ({
   onStartGps,
   onStopGps,
   voiceState,
-  hasElevenApiKey,
+  serverVoiceAvailable,
   audioLastError,
   onOpenVoiceStudio,
   audioPlaybackState = 'idle',
@@ -430,7 +430,7 @@ export const DriveModeView: React.FC<DriveModeViewProps> = ({
               Open Voice Studio
             </button>
           </div>
-        ) : hasElevenApiKey ? (
+        ) : serverVoiceAvailable ? (
           <div className="px-3.5 py-2.5 rounded-2xl bg-emerald-500/10 border border-emerald-500/20 text-emerald-300 text-xs flex flex-col sm:flex-row items-start sm:items-center justify-between gap-2.5 font-mono">
             <div className="flex items-center gap-2 flex-wrap">
               <span className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse"></span>

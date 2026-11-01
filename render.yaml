@@ -13,7 +13,8 @@ services:
         name: Cache-Control
         value: public, max-age=0, must-revalidate
     envVars:
-      - key: VITE_ELEVENLABS_API_KEY
+      # Public URL of our TTS server (Phase 2). Not a secret. The ElevenLabs key lives ONLY on that server.
+      - key: VITE_TTS_ENDPOINT
         sync: false
       - key: ELEVENLABS_API_KEY
         sync: false

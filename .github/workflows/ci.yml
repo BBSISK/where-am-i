@@ -55,6 +55,14 @@ jobs:
       - name: Type Check & Build
         run: npm run build
 
+      - name: Secret guard (no API keys or direct ElevenLabs calls in the public bundle)
+        run: |
+          if grep -rEq "sk_[A-Za-z0-9]{20,}|xi-api-key|api\.elevenlabs\.io" dist/; then
+            echo "::error::Secret or direct ElevenLabs call found in dist/. Keys belong on the server only."
+            exit 1
+          fi
+          echo "No secrets in bundle."
+
       - name: Upload GitHub Pages Artifact
         if: github.ref == 'refs/heads/main'
         uses: actions/upload-pages-artifact@v3

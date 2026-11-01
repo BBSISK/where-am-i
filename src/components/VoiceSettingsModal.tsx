@@ -2,13 +2,10 @@ import React, { useState, useEffect } from 'react';
 import {
   X,
   Sparkles,
-  Key,
   Check,
   Play,
   Square,
-  AlertCircle,
-  RefreshCw,
-  Sliders
+  AlertCircle
 } from 'lucide-react';
 import { audioService, ELEVENLABS_VOICE_PRESETS } from '../services/audioNarrationService';
 
@@ -23,12 +20,9 @@ export const VoiceSettingsModal: React.FC<VoiceSettingsModalProps> = ({
   onClose,
   onSettingsSaved
 }) => {
+  const serverVoice = audioService.isServerVoiceAvailable();
   const [provider, setProvider] = useState<'elevenlabs' | 'webspeech'>(audioService.getProvider());
-  const [apiKey, setApiKey] = useState(audioService.getApiKey());
   const [voiceId, setVoiceId] = useState(audioService.getVoiceId());
-  const [customVoiceId, setCustomVoiceId] = useState('');
-  const [userVoices, setUserVoices] = useState<Array<{ id: string; name: string; category?: string }>>([]);
-  const [isLoadingVoices, setIsLoadingVoices] = useState(false);
   const [isTesting, setIsTesting] = useState(false);
   const [testError, setTestError] = useState<string | null>(null);
   const [testSuccess, setTestSuccess] = useState(false);
@@ -38,15 +32,10 @@ export const VoiceSettingsModal: React.FC<VoiceSettingsModalProps> = ({
 
   useEffect(() => {
     if (isOpen) {
-      setApiKey(audioService.getApiKey());
       setVoiceId(audioService.getVoiceId());
       setProvider(audioService.getProvider());
       setTestError(null);
       setTestSuccess(false);
-
-      if (audioService.hasApiKey()) {
-        loadUserVoices(audioService.getApiKey());
-      }
 
       setWebVoices(audioService.getAvailableWebVoices());
     }
@@ -54,21 +43,8 @@ export const VoiceSettingsModal: React.FC<VoiceSettingsModalProps> = ({
 
   if (!isOpen) return null;
 
-  const loadUserVoices = async (key: string) => {
-    if (!key || key.length < 5) return;
-    setIsLoadingVoices(true);
-    try {
-      const voices = await audioService.fetchUserVoices(key);
-      setUserVoices(voices);
-    } finally {
-      setIsLoadingVoices(false);
-    }
-  };
-
   const handleSave = () => {
-    const finalVoice = customVoiceId.trim() || voiceId;
-    audioService.setApiKey(apiKey);
-    audioService.setVoiceId(finalVoice);
+    audioService.setVoiceId(voiceId);
     audioService.setProvider(provider);
     onSettingsSaved();
     onClose();
@@ -79,12 +55,8 @@ export const VoiceSettingsModal: React.FC<VoiceSettingsModalProps> = ({
     setTestSuccess(false);
     setIsTesting(true);
 
-    const activeKey = apiKey.trim();
-    const finalVoice = customVoiceId.trim() || voiceId;
-
     // Apply temporarily for test
-    audioService.setApiKey(activeKey);
-    audioService.setVoiceId(finalVoice);
+    audioService.setVoiceId(voiceId);
     audioService.setProvider(provider);
 
     const sampleText =
@@ -152,7 +124,7 @@ export const VoiceSettingsModal: React.FC<VoiceSettingsModalProps> = ({
             
             {/* ElevenLabs Card */}
             <div
-              onClick={() => setProvider('elevenlabs')}
+              onClick={() => serverVoice && setProvider('elevenlabs')}
               className={`p-4 rounded-2xl border cursor-pointer transition-all ${
                 provider === 'elevenlabs'
                   ? 'bg-amber-500/10 border-amber-500 text-white shadow-lg shadow-amber-500/10'
@@ -163,13 +135,15 @@ export const VoiceSettingsModal: React.FC<VoiceSettingsModalProps> = ({
                 <span className="font-bold text-sm text-amber-400 flex items-center gap-2">
                   <span>ElevenLabs AI Voice</span>
                   <span className="text-[10px] px-2 py-0.5 rounded-full bg-amber-500/20 text-amber-300 font-mono">
-                    Recommended
+                    {serverVoice ? 'Recommended' : 'Coming soon'}
                   </span>
                 </span>
                 {provider === 'elevenlabs' && <Check className="w-4 h-4 text-amber-400" />}
               </div>
               <p className="text-xs text-slate-300 mt-2 leading-relaxed">
-                Hyper-realistic, emotive storyteller and broadcaster voices.
+                {serverVoice
+                  ? 'Natural storyteller voices, served securely from our own server.'
+                  : 'Not available yet: server voices arrive with our secure audio server.'}
               </p>
             </div>
 
@@ -203,64 +177,6 @@ export const VoiceSettingsModal: React.FC<VoiceSettingsModalProps> = ({
         {provider === 'elevenlabs' && (
           <div className="space-y-4 pt-2 border-t border-slate-800/80">
             
-            {/* API Key Input */}
-            <div className="space-y-1.5">
-              <div className="flex items-center justify-between">
-                <label className="text-xs font-mono text-slate-300 flex items-center gap-1.5">
-                  <Key className="w-3.5 h-3.5 text-amber-400" />
-                  <span>ElevenLabs API Key</span>
-                </label>
-                {audioService.isEnvKeyConfigured() && (
-                  <span className="text-[10px] font-mono text-emerald-400">Render Env Configured</span>
-                )}
-              </div>
-              <div className="flex gap-2">
-                <input
-                  type="password"
-                  placeholder="sk_..."
-                  value={apiKey}
-                  onChange={(e) => setApiKey(e.target.value)}
-                  className="flex-1 bg-slate-950 border border-slate-800 rounded-xl px-3.5 py-2.5 text-sm text-white font-mono placeholder:text-slate-600 focus:outline-none focus:ring-2 focus:ring-amber-500 focus:border-transparent"
-                />
-                <button
-                  type="button"
-                  onClick={() => loadUserVoices(apiKey)}
-                  disabled={isLoadingVoices || !apiKey}
-                  className="px-3 py-2 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-300 text-xs font-mono flex items-center gap-1.5 transition-all"
-                  title="Fetch voices from your ElevenLabs account"
-                >
-                  <RefreshCw className={`w-3.5 h-3.5 ${isLoadingVoices ? 'animate-spin' : ''}`} />
-                  <span>Discover</span>
-                </button>
-              </div>
-              <p className="text-[11px] text-slate-500">
-                Key is stored safely in your browser. Get a key at <a href="https://elevenlabs.io" target="_blank" rel="noreferrer" className="text-amber-400 underline">elevenlabs.io</a>.
-              </p>
-            </div>
-
-            {/* User Account Voices (if discovered) */}
-            {userVoices.length > 0 && (
-              <div className="space-y-1.5 p-3 rounded-2xl bg-amber-500/10 border border-amber-500/20">
-                <span className="text-xs font-mono text-amber-300 font-bold block">
-                  ✨ Voices in Your ElevenLabs Account ({userVoices.length})
-                </span>
-                <select
-                  value={voiceId}
-                  onChange={(e) => {
-                    setVoiceId(e.target.value);
-                    setCustomVoiceId('');
-                  }}
-                  className="w-full bg-slate-950 border border-slate-800 rounded-xl px-3 py-2 text-xs text-white font-mono focus:ring-2 focus:ring-amber-500 focus:outline-none"
-                >
-                  {userVoices.map((v) => (
-                    <option key={v.id} value={v.id}>
-                      {v.name} ({v.category || 'Custom'})
-                    </option>
-                  ))}
-                </select>
-              </div>
-            )}
-
             {/* Guaranteed Official Premade Voices */}
             <div className="space-y-2">
               <label className="text-xs font-mono text-slate-400 uppercase tracking-wider block">
@@ -272,10 +188,9 @@ export const VoiceSettingsModal: React.FC<VoiceSettingsModalProps> = ({
                     key={p.id}
                     onClick={() => {
                       setVoiceId(p.id);
-                      setCustomVoiceId('');
                     }}
                     className={`p-3 rounded-xl border cursor-pointer transition-all flex items-center justify-between ${
-                      voiceId === p.id && !customVoiceId
+                      voiceId === p.id
                         ? 'bg-slate-950 border-amber-500 text-white ring-1 ring-amber-500/50'
                         : 'bg-slate-950/40 border-slate-800 text-slate-400 hover:text-white hover:border-slate-700'
                     }`}
@@ -295,27 +210,12 @@ export const VoiceSettingsModal: React.FC<VoiceSettingsModalProps> = ({
                       <p className="text-xs text-slate-400 mt-1">{p.description}</p>
                     </div>
 
-                    {voiceId === p.id && !customVoiceId && (
+                    {voiceId === p.id && (
                       <Check className="w-4 h-4 text-amber-400 shrink-0 ml-2" />
                     )}
                   </div>
                 ))}
               </div>
-            </div>
-
-            {/* Custom Voice ID entry */}
-            <div className="space-y-1">
-              <label className="text-xs font-mono text-slate-400 flex items-center gap-1.5">
-                <Sliders className="w-3 h-3 text-slate-400" />
-                <span>Custom Voice ID (Optional)</span>
-              </label>
-              <input
-                type="text"
-                placeholder="e.g. 21m00Tcm4TlvDq8ikWAM or cloned Irish voice ID"
-                value={customVoiceId}
-                onChange={(e) => setCustomVoiceId(e.target.value)}
-                className="w-full bg-slate-950 border border-slate-800 rounded-xl px-3 py-2 text-xs text-white font-mono placeholder:text-slate-600 focus:outline-none focus:ring-1 focus:ring-amber-500"
-              />
             </div>
 
           </div>

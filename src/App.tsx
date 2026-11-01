@@ -450,7 +450,7 @@ export const App: React.FC = () => {
             onStartGps={handleStartGps}
             onStopGps={handleStopGps}
             voiceState={voiceState}
-            hasElevenApiKey={audioService.hasApiKey()}
+            serverVoiceAvailable={audioService.isServerVoiceAvailable()}
             audioLastError={audioService.getLastError()}
             onOpenVoiceStudio={() => setIsVoiceModalOpen(true)}
             selectedVoiceId={audioService.getVoiceId()}

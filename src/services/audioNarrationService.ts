@@ -73,7 +73,8 @@ class AudioNarrationService {
 
   // Settings
   private provider: 'elevenlabs' | 'webspeech' = 'elevenlabs';
-  private elevenApiKey: string = '';
+  // Public URL of our own TTS server (Phase 2). NOT a secret: the ElevenLabs key lives only on that server.
+  private ttsEndpoint: string = '';
   // Default to George (official male premade voice)
   private selectedVoiceId: string = ELEVENLABS_VOICE_PRESETS[0].id;
   private modelId: string = 'eleven_turbo_v2_5';
@@ -81,9 +82,9 @@ class AudioNarrationService {
 
   constructor() {
     if (typeof window !== 'undefined') {
-      const envKey = (import.meta as any).env?.VITE_ELEVENLABS_API_KEY;
-      const localKey = localStorage.getItem('elevenlabs_api_key');
-      this.elevenApiKey = (envKey || localKey || '').trim().replace(/^["']|["']$/g, '');
+      // Secrets never live in the browser. Remove any key a user pasted in an older version.
+      try { localStorage.removeItem('elevenlabs_api_key'); } catch {}
+      this.ttsEndpoint = String((import.meta as any).env?.VITE_TTS_ENDPOINT || '').trim().replace(/\/+$/, '');
       
       const savedVoiceId = localStorage.getItem('elevenlabs_voice_id');
       // Default to Callum (official premade guaranteed on Free and Paid tiers)
@@ -94,11 +95,12 @@ class AudioNarrationService {
         this.selectedVoiceId = savedVoiceId;
       }
 
-      if (this.elevenApiKey) {
-        this.provider = 'elevenlabs';
-      } else {
+      if (this.ttsEndpoint) {
         const savedProvider = localStorage.getItem('audio_provider');
-        this.provider = savedProvider === 'elevenlabs' ? 'elevenlabs' : 'webspeech';
+        this.provider = savedProvider === 'webspeech' ? 'webspeech' : 'elevenlabs';
+      } else {
+        // No server voice configured yet: use the device voice.
+        this.provider = 'webspeech';
       }
 
       // Pre-instantiate single shared audio element for mobile Safari compatibility
@@ -114,35 +116,9 @@ class AudioNarrationService {
     }
   }
 
-  public isEnvKeyConfigured(): boolean {
-    return Boolean((import.meta as any).env?.VITE_ELEVENLABS_API_KEY);
-  }
-
-  public hasApiKey(): boolean {
-    return Boolean(this.elevenApiKey && this.elevenApiKey.length > 5);
-  }
-
-  /**
-   * Discovers the user's available custom and premade voices directly from ElevenLabs.
-   */
-  public async fetchUserVoices(key?: string): Promise<Array<{ id: string; name: string; category?: string }>> {
-    const k = (key || this.elevenApiKey || '').trim();
-    if (!k || k.length < 5) return [];
-
-    try {
-      const resp = await fetch('https://api.elevenlabs.io/v1/voices', {
-        headers: { 'xi-api-key': k }
-      });
-      if (!resp.ok) return [];
-      const data = await resp.json();
-      return (data.voices || []).map((v: any) => ({
-        id: v.voice_id,
-        name: v.name,
-        category: v.category || (v.labels?.accent ? `${v.labels.accent}` : 'Voice')
-      }));
-    } catch {
-      return [];
-    }
+  /** True when our own TTS server is configured (ElevenLabs voices are served through it). */
+  public isServerVoiceAvailable(): boolean {
+    return Boolean(this.ttsEndpoint);
   }
 
   /**
@@ -248,22 +224,8 @@ class AudioNarrationService {
     this.stateListeners.forEach((fn) => fn(this.playbackState, this.getCurrentTrackId()));
   }
 
-  public setApiKey(key: string) {
-    this.elevenApiKey = key.trim();
-    if (typeof window !== 'undefined') {
-      localStorage.setItem('elevenlabs_api_key', this.elevenApiKey);
-    }
-    if (this.elevenApiKey) {
-      this.setProvider('elevenlabs');
-    }
-  }
-
-  public getApiKey(): string {
-    return this.elevenApiKey;
-  }
-
   public setProvider(provider: 'elevenlabs' | 'webspeech') {
-    this.provider = provider;
+    this.provider = provider === 'elevenlabs' && !this.isServerVoiceAvailable() ? 'webspeech' : provider;
     if (typeof window !== 'undefined') {
       localStorage.setItem('audio_provider', provider);
     }
@@ -356,7 +318,7 @@ class AudioNarrationService {
     this.playbackState = 'loading';
 
     // Route exclusively to the configured provider:
-    if (this.provider === 'elevenlabs' && this.hasApiKey()) {
+    if (this.provider === 'elevenlabs' && this.isServerVoiceAvailable()) {
       try {
         await this.speakWithElevenLabs(sessionId, text, () => {
           if (this.currentSessionId === sessionId) {
@@ -397,24 +359,12 @@ class AudioNarrationService {
     if (!audioUrl) {
       this.abortController = new AbortController();
 
-      const response = await fetch(`https://api.elevenlabs.io/v1/text-to-speech/${this.selectedVoiceId}`, {
+      // Phase 2: our server holds the ElevenLabs key, validates the text and caches the audio.
+      const response = await fetch(`${this.ttsEndpoint}/tts`, {
         method: 'POST',
         signal: this.abortController.signal,
-        headers: {
-          'xi-api-key': this.elevenApiKey,
-          'Content-Type': 'application/json',
-          'Accept': 'audio/mpeg'
-        },
-        body: JSON.stringify({
-          text,
-          model_id: this.modelId,
-          voice_settings: {
-            stability: 0.5,
-            similarity_boost: 0.8,
-            style: 0.25,
-            use_speaker_boost: true
-          }
-        })
+        headers: { 'Content-Type': 'application/json', 'Accept': 'audio/mpeg' },
+        body: JSON.stringify({ text, voiceId: this.selectedVoiceId, modelId: this.modelId })
       });
 
       // If user stopped while fetching, abort immediately
@@ -423,35 +373,11 @@ class AudioNarrationService {
       }
 
       if (!response.ok) {
-        const errorText = await response.text();
-        const isVoiceAccessError =
-          response.status === 400 || response.status === 403 || response.status === 404;
-
-        // If the selected voice triggers a 400 (e.g. Free user not allowed to use community library voices),
-        // 403 (forbidden), or 404 (not in library), automatically switch to Callum or George (guaranteed premades)
-        if (
-          isVoiceAccessError &&
-          this.selectedVoiceId !== 'N2lVS1w4EtoT3dr4eOWO' &&
-          this.selectedVoiceId !== 'JBFqnCBsd6RMkjVDRZzb'
-        ) {
-          console.warn(`Voice ${this.selectedVoiceId} returned ${response.status} (${errorText}). Auto-recovering to official premade Celtic voice (Callum)...`);
-          this.selectedVoiceId = 'N2lVS1w4EtoT3dr4eOWO';
-          if (typeof window !== 'undefined') {
-            localStorage.setItem('elevenlabs_voice_id', this.selectedVoiceId);
-          }
-          return this.speakWithElevenLabs(sessionId, text, onEnd);
-        }
-
-        // If even premades fail (e.g. monthly quota exhausted 401/429), fall back gracefully to native Web Speech
-        // so the driver NEVER suffers silence
-        if (response.status === 401 || response.status === 429 || isVoiceAccessError) {
-          console.warn(`ElevenLabs error (${response.status}): ${errorText}. Falling back to device speech.`);
-          this.lastErrorMessage = `ElevenLabs: ${response.status === 429 ? 'Quota exceeded' : response.status === 400 ? 'Free tier: using device speech' : 'Audio notice'}`;
-          this.speakWithWebSpeech(sessionId, text, onEnd);
-          return;
-        }
-
-        throw new Error(`ElevenLabs (${response.status}): ${errorText}`);
+        // Make the fallback visible to the driver instead of failing silently.
+        this.lastErrorMessage = `Server voice unavailable (HTTP ${response.status}), using device voice`;
+        console.warn(this.lastErrorMessage);
+        this.speakWithWebSpeech(sessionId, text, onEnd);
+        return;
       }
 
       const blob = await response.blob();
@@ -675,7 +601,7 @@ class AudioNarrationService {
   }
 
   public getVoiceLabel(): string {
-    if (this.provider === 'elevenlabs' && this.hasApiKey()) {
+    if (this.provider === 'elevenlabs' && this.isServerVoiceAvailable()) {
       const preset = ELEVENLABS_VOICE_PRESETS.find(p => p.id === this.selectedVoiceId);
       return preset ? `${preset.name} (ElevenLabs)` : `Custom ElevenLabs (${this.selectedVoiceId.slice(0, 6)}…)`;
     }
