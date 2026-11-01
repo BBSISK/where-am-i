@@ -44,6 +44,25 @@ export interface GeologicalFeature {
   scientificInsight: string;
 }
 
+export interface ThreadOption {
+  id: string;
+  title: string;
+  category: 'folklore' | 'monument' | 'etymology' | 'geology';
+  hookSnippet: string;
+  spokenNarrative: string;
+  detailMarkdown: string;
+}
+
+export interface SavedTripThread {
+  id: string;
+  timestamp: string;
+  h3Index: string;
+  townland: string;
+  threadTitle: string;
+  category: 'folklore' | 'monument' | 'etymology' | 'geology';
+  spokenNarrative: string;
+}
+
 export interface EnrichedH3Cell {
   h3Index: string;
   center: GeoCoordinate;
@@ -54,7 +73,9 @@ export interface EnrichedH3Cell {
   monuments: NationalMonument[];
   folklore: FolkloreStory;
   geology: GeologicalFeature;
-  narrativeScript: string; // Audio script (30-45s)
+  teaserScript: string; // 10-second ambient audio teaser breadcrumb
+  narrativeScript: string; // Full audio script
+  threads: ThreadOption[]; // Interactive threads to pull
   keyHighlights: string[]; // 3 punchy bullet points
   curatedByAgent: boolean;
   enrichmentLatencyMs: number;
@@ -88,4 +109,3 @@ export interface AgentTraceStep {
   tokensUsed: number;
   artifactsProduced: string[];
 }
-

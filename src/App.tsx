@@ -4,11 +4,12 @@ import { DriveModeView } from './components/DriveModeView';
 import { MapExplorerView } from './components/MapExplorerView';
 import { DevShowcaseView } from './components/DevShowcaseView';
 import { VoiceSettingsModal } from './components/VoiceSettingsModal';
+import { TripScrapbookModal } from './components/TripScrapbookModal';
 import { SIMULATED_ROUTES } from './data/irelandRoutes';
 import { getEnrichedDataForWaypoint } from './data/heritageKnowledgeBase';
 import { coordinateToH3, calculateBearing } from './services/spatialEngine';
 import { audioService } from './services/audioNarrationService';
-import { EnrichedH3Cell } from './types';
+import { EnrichedH3Cell, ThreadOption, SavedTripThread } from './types';
 import { Sparkles } from 'lucide-react';
 
 export const App: React.FC = () => {
@@ -20,7 +21,26 @@ export const App: React.FC = () => {
   const [isAudioMuted, setIsAudioMuted] = useState(false);
   const [isSpeaking, setIsSpeaking] = useState(false);
   const [isVoiceModalOpen, setIsVoiceModalOpen] = useState(false);
-  const [, setVoiceVersion] = useState(0); // Force re-render on voice change
+  const [isScrapbookOpen, setIsScrapbookOpen] = useState(false);
+  const [, setVoiceVersion] = useState(0);
+
+  // Active pulled thread state
+  const [activeThread, setActiveThread] = useState<ThreadOption | null>(null);
+  
+  // Trip Scrapbook state (persisted to localStorage)
+  const [savedThreads, setSavedThreads] = useState<SavedTripThread[]>(() => {
+    if (typeof window !== 'undefined') {
+      const saved = localStorage.getItem('whereami_saved_threads');
+      if (saved) {
+        try {
+          return JSON.parse(saved);
+        } catch (e) {
+          return [];
+        }
+      }
+    }
+    return [];
+  });
 
   // Subscribe to audio state
   useEffect(() => {
@@ -40,10 +60,11 @@ export const App: React.FC = () => {
   const currentCell: EnrichedH3Cell = getEnrichedDataForWaypoint(currentWaypoint.name, currentH3Index);
   const bearing = calculateBearing(currentWaypoint.coordinate, nextWaypoint.coordinate);
 
-  // Trigger narration when entering a new waypoint
+  // When changing waypoint during active play, reset active thread and speak teaser
   useEffect(() => {
-    if (!isAudioMuted && currentCell.narrativeScript) {
-      audioService.speak(currentCell.narrativeScript);
+    setActiveThread(null);
+    if (!isAudioMuted && isPlaying && currentCell.teaserScript) {
+      audioService.speak(currentCell.teaserScript);
     }
   }, [currentWaypointIndex, currentRoute.id]);
 
@@ -51,12 +72,12 @@ export const App: React.FC = () => {
   useEffect(() => {
     if (!isPlaying) return;
 
-    const intervalTime = 7000 / playbackSpeed;
+    const intervalTime = 8000 / playbackSpeed;
     const timer = setInterval(() => {
       setCurrentWaypointIndex((prev) => {
         if (prev + 1 >= currentRoute.waypoints.length) {
           setIsPlaying(false);
-          return 0; // Loop or stop
+          return 0;
         }
         return prev + 1;
       });
@@ -71,6 +92,7 @@ export const App: React.FC = () => {
       audioService.stop();
       setCurrentRoute(found);
       setCurrentWaypointIndex(0);
+      setActiveThread(null);
       setIsPlaying(false);
     }
   };
@@ -79,9 +101,9 @@ export const App: React.FC = () => {
     const nextState = !isPlaying;
     setIsPlaying(nextState);
     if (nextState) {
-      // Starting drive: immediately trigger speech for the first location (user gesture unlocked)
-      if (!isAudioMuted && currentCell.narrativeScript) {
-        audioService.speak(currentCell.narrativeScript);
+      // Starting drive: immediately trigger speech for the first location teaser
+      if (!isAudioMuted && currentCell.teaserScript) {
+        audioService.speak(currentCell.teaserScript);
       }
     } else {
       audioService.stop();
@@ -91,6 +113,7 @@ export const App: React.FC = () => {
   const handleReset = () => {
     audioService.stop();
     setCurrentWaypointIndex(0);
+    setActiveThread(null);
     setIsPlaying(false);
   };
 
@@ -100,19 +123,52 @@ export const App: React.FC = () => {
   };
 
   const handleReplayAudio = () => {
-    if (currentCell.narrativeScript) {
-      audioService.speak(currentCell.narrativeScript);
+    if (currentCell.teaserScript) {
+      audioService.speak(currentCell.teaserScript);
     }
   };
 
   const handleSelectWaypoint = (index: number) => {
     audioService.stop();
     setCurrentWaypointIndex(index);
+    setActiveThread(null);
     const wp = currentRoute.waypoints[index];
     const h3Idx = coordinateToH3(wp.coordinate, 8);
     const cell = getEnrichedDataForWaypoint(wp.name, h3Idx);
-    if (!isAudioMuted && cell.narrativeScript) {
-      audioService.speak(cell.narrativeScript);
+    if (!isAudioMuted && cell.teaserScript) {
+      audioService.speak(cell.teaserScript);
+    }
+  };
+
+  // Pull on a Thread Handler
+  const handlePullThread = (thread: ThreadOption) => {
+    setActiveThread(thread);
+    audioService.speak(thread.spokenNarrative);
+
+    // Save thread to scrapbook if not already present
+    setSavedThreads((prev) => {
+      if (prev.some((t) => t.id === thread.id)) return prev;
+      const newEntry: SavedTripThread = {
+        id: thread.id,
+        timestamp: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
+        h3Index: currentH3Index,
+        townland: currentCell.townland,
+        threadTitle: thread.title,
+        category: thread.category,
+        spokenNarrative: thread.spokenNarrative
+      };
+      const updated = [newEntry, ...prev];
+      if (typeof window !== 'undefined') {
+        localStorage.setItem('whereami_saved_threads', JSON.stringify(updated));
+      }
+      return updated;
+    });
+  };
+
+  const handleClearScrapbook = () => {
+    setSavedThreads([]);
+    if (typeof window !== 'undefined') {
+      localStorage.removeItem('whereami_saved_threads');
     }
   };
 
@@ -148,6 +204,10 @@ export const App: React.FC = () => {
             onReplayAudio={handleReplayAudio}
             bearing={bearing}
             onSelectWaypoint={handleSelectWaypoint}
+            onPullThread={handlePullThread}
+            activeThread={activeThread}
+            onOpenScrapbook={() => setIsScrapbookOpen(true)}
+            savedThreadsCount={savedThreads.length}
           />
         )}
 
@@ -170,6 +230,14 @@ export const App: React.FC = () => {
         isOpen={isVoiceModalOpen}
         onClose={() => setIsVoiceModalOpen(false)}
         onSettingsSaved={() => setVoiceVersion((v) => v + 1)}
+      />
+
+      {/* Trip Scrapbook Modal */}
+      <TripScrapbookModal
+        isOpen={isScrapbookOpen}
+        onClose={() => setIsScrapbookOpen(false)}
+        savedThreads={savedThreads}
+        onClearScrapbook={handleClearScrapbook}
       />
 
       {/* Footer / Portfolio Anchor */}
