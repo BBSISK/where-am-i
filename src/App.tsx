@@ -121,7 +121,7 @@ export const App: React.FC = () => {
     if (mode === 'simulator') {
       const initWp = currentRoute.waypoints[currentWaypointIndex];
       const initH3 = coordinateToH3(initWp.coordinate, 8);
-      setCurrentCell(getEnrichedDataForWaypoint(initWp.name, initH3));
+      setCurrentCell(getEnrichedDataForWaypoint(initWp.name, initH3, initWp.coordinate));
     } else {
       if (gpsState.status === 'locked' && gpsState.coordinate && gpsState.h3Index) {
         // Keep locked cell
@@ -197,7 +197,7 @@ export const App: React.FC = () => {
   useEffect(() => {
     if (drivingMode === 'simulator') {
       const h3Idx = coordinateToH3(simWaypoint.coordinate, 8);
-      const cell = getEnrichedDataForWaypoint(simWaypoint.name, h3Idx);
+      const cell = getEnrichedDataForWaypoint(simWaypoint.name, h3Idx, simWaypoint.coordinate);
       setCurrentCell(cell);
       setActiveThread(null);
       if (!isAudioMuted && isPlaying && cell.teaserScript) {

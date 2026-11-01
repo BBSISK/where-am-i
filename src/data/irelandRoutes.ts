@@ -2,6 +2,34 @@ import { SimulatedRoute } from '../types';
 
 export const SIMULATED_ROUTES: SimulatedRoute[] = [
   {
+    id: 'route-n4-liffey',
+    title: 'The N4 Corridor: Lucan → Leixlip → Maynooth',
+    region: 'Dublin / Kildare (The Royal Liffey & The Pale Frontier)',
+    description: 'Follows the historic N4/M4 corridor along the River Liffey and Royal Canal, past Patrick Sarsfield’s ancestral stronghold, Arthur Guinness’s 1755 genesis brewery, and the great medieval fortress of the FitzGerald Earls.',
+    distanceKm: 22,
+    estimatedDriveTime: '25 mins',
+    waypoints: [
+      {
+        coordinate: { lat: 53.3575, lng: -6.4485 },
+        name: 'Lucan (Leamhcán - Sarsfield Castle & Griffeen Bridge)',
+        roadName: 'N4 Lucan Bypass',
+        speedLimitKmh: 80
+      },
+      {
+        coordinate: { lat: 53.3639, lng: -6.4950 },
+        name: 'Leixlip (Léim an Bhradáin - Norse Salmon Leap & Guinness 1755 Brewery)',
+        roadName: 'R148 / N4 Leixlip Interchange',
+        speedLimitKmh: 60
+      },
+      {
+        coordinate: { lat: 53.3813, lng: -6.5918 },
+        name: 'Maynooth (Maigh Nuadhad - FitzGerald Castle & Royal Canal)',
+        roadName: 'M4 Maynooth Junction 7',
+        speedLimitKmh: 80
+      }
+    ]
+  },
+  {
     id: 'route-connemara-n59',
     title: 'The Wild Atlantic Way: Galway to Connemara',
     region: 'County Galway / Connemara',

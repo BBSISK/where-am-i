@@ -1,10 +1,11 @@
-import { GeoCoordinate, EnrichedH3Cell, ThreadOption, NationalMonument, FolkloreStory, GeologicalFeature, EtymologyInfo } from '../types';
-import { coordinateToH3, getCorridorNeighbors } from './spatialEngine';
+import { GeoCoordinate, EnrichedH3Cell, ThreadOption, NationalMonument, FolkloreStory, GeologicalFeature, EtymologyInfo, HistoryEvent, WaterwayInfo } from '../types';
+import { coordinateToH3, getCorridorNeighbors, calculateHaversineDistance } from './spatialEngine';
+import { N4_CORRIDOR_AREAS } from '../data/n4CorridorData';
 
 export interface AreaKnowledgeChunk {
   chunkId: string;
   h3Index: string;
-  category: 'etymology' | 'monument' | 'folklore' | 'geology' | 'thread';
+  category: 'etymology' | 'monument' | 'folklore' | 'geology' | 'history' | 'waterways' | 'thread';
   title: string;
   summary: string;
   content: string;
@@ -30,6 +31,8 @@ export interface AreaKnowledgeUnit {
   monuments: NationalMonument[];
   folklore: FolkloreStory;
   geology: GeologicalFeature;
+  history?: HistoryEvent;
+  waterways?: WaterwayInfo;
   teaserScript: string;
   narrativeScript: string;
   threads: ThreadOption[];
@@ -43,23 +46,32 @@ export interface AreaKnowledgeUnit {
 class SpatialRagService {
   private h3ToAreaMap: Map<string, AreaKnowledgeUnit> = new Map();
   private chunkIndex: Map<string, AreaKnowledgeChunk[]> = new Map();
+  private registeredAreas: AreaKnowledgeUnit[] = [];
 
   constructor() {
-    // Initialized ready for modular area ingestion
+    // Ingest the N4 Heritage Corridor on boot
+    N4_CORRIDOR_AREAS.forEach((area) => {
+      this.registerArea(area);
+    });
   }
 
   /**
    * Ingests a structured Area Knowledge Unit into the spatial RAG index.
    */
   public registerArea(area: AreaKnowledgeUnit): void {
-    // Index by primary H3 cell of coordinates
+    if (!this.registeredAreas.some(a => a.areaId === area.areaId)) {
+      this.registeredAreas.push(area);
+    }
+
+    // Index by primary H3 cell and 1-ring corridor neighbors (~1km buffer around townland center)
     const primaryH3 = coordinateToH3(area.coordinates, 8);
-    const allCells = new Set([primaryH3, ...(area.h3Indices || [])]);
+    const nearbyCells = getCorridorNeighbors(primaryH3, 1);
+    const allCells = new Set([primaryH3, ...nearbyCells, ...(area.h3Indices || [])]);
 
     allCells.forEach((h3) => {
       this.h3ToAreaMap.set(h3, area);
 
-      // Break down into searchable RAG chunks
+      // Break down into searchable RAG chunks across all 6 cultural pillars
       const chunks: AreaKnowledgeChunk[] = [
         {
           chunkId: `${area.areaId}-etym`,
@@ -101,6 +113,26 @@ class SpatialRagService {
           sourceCitation: 'Geological Survey of Ireland (GSI)',
           metadata: { townland: area.townland, county: area.county, parish: area.parish, coordinates: area.coordinates }
         },
+        ...(area.history ? [{
+          chunkId: `${area.areaId}-hist`,
+          h3Index: h3,
+          category: 'history' as const,
+          title: `Historic Event & Clans: ${area.history.title}`,
+          summary: `${area.history.era} - ${area.history.figure}`,
+          content: `${area.history.title} (${area.history.era}). Figure: ${area.history.figure}. ${area.history.narrative}`,
+          sourceCitation: 'Irish Historical Studies & Annals',
+          metadata: { townland: area.townland, county: area.county, parish: area.parish, coordinates: area.coordinates }
+        }] : []),
+        ...(area.waterways ? [{
+          chunkId: `${area.areaId}-water`,
+          h3Index: h3,
+          category: 'waterways' as const,
+          title: `Waterway & Canal Heritage: ${area.waterways.name} (${area.waterways.type})`,
+          summary: area.waterways.significance,
+          content: `${area.waterways.name} is a ${area.waterways.type}. ${area.waterways.significance}`,
+          sourceCitation: 'Waterways Ireland & Historical Hydrology',
+          metadata: { townland: area.townland, county: area.county, parish: area.parish, coordinates: area.coordinates }
+        }] : []),
         ...area.threads.map((t, idx) => ({
           chunkId: `${area.areaId}-thread-${t.id}`,
           h3Index: h3,
@@ -155,10 +187,52 @@ class SpatialRagService {
 
   /**
    * Resolves the primary Area Knowledge Unit for a coordinate, or null if uncurated.
+   * Employs spatial index with Haversine corridor proximity fallback (< 4000m).
    */
   public resolveArea(coord: GeoCoordinate): AreaKnowledgeUnit | null {
     const currentH3 = coordinateToH3(coord, 8);
-    return this.h3ToAreaMap.get(currentH3) || null;
+    const directHit = this.h3ToAreaMap.get(currentH3);
+    if (directHit) return directHit;
+
+    // Check registered areas by physical distance along the highway corridor
+    let closestArea: AreaKnowledgeUnit | null = null;
+    let minDistance = 4000; // 4km corridor threshold
+
+    for (const area of this.registeredAreas) {
+      const dist = calculateHaversineDistance(coord, area.coordinates);
+      if (dist < minDistance) {
+        minDistance = dist;
+        closestArea = area;
+      }
+    }
+
+    if (closestArea) {
+      // Cache this cell to prevent future distance calculations
+      this.h3ToAreaMap.set(currentH3, closestArea);
+      return closestArea;
+    }
+
+    return null;
+  }
+
+  /**
+   * Retrieves an Area Knowledge Unit by townland or Irish name.
+   */
+  public getAreaByName(name: string): AreaKnowledgeUnit | null {
+    const query = name.toLowerCase().trim();
+    return this.registeredAreas.find(area =>
+      query.includes(area.townland.toLowerCase()) ||
+      area.townland.toLowerCase().includes(query) ||
+      query.includes(area.irishName.toLowerCase()) ||
+      area.irishName.toLowerCase().includes(query)
+    ) || null;
+  }
+
+  /**
+   * Returns all currently registered Area Knowledge Units.
+   */
+  public getAllAreas(): AreaKnowledgeUnit[] {
+    return this.registeredAreas;
   }
 
   /**
@@ -175,13 +249,15 @@ class SpatialRagService {
       monuments: area.monuments,
       folklore: area.folklore,
       geology: area.geology,
+      history: area.history,
+      waterways: area.waterways,
       teaserScript: area.teaserScript,
       narrativeScript: area.narrativeScript,
       threads: area.threads,
       keyHighlights: [
         `Irish name: ${area.irishName} (${area.phonetic})`,
-        `${area.monuments.length} recorded monument site(s)`,
-        `1937 National Folklore Archive records: "${area.folklore.title}"`
+        `${area.monuments.length} recorded national monument site(s)`,
+        `1937 National Folklore Archive: "${area.folklore.title}"`
       ],
       curatedByAgent: true,
       enrichmentLatencyMs: 2, // Sub-millisecond in-memory lookup
@@ -191,3 +267,4 @@ class SpatialRagService {
 }
 
 export const spatialRagService = new SpatialRagService();
+

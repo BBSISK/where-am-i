@@ -1,4 +1,5 @@
-import { EnrichedH3Cell } from '../types';
+import { EnrichedH3Cell, GeoCoordinate } from '../types';
+import { spatialRagService } from '../services/spatialRagService';
 
 export const HERITAGE_KNOWLEDGE_STORE: Record<string, Partial<EnrichedH3Cell>> = {
   // --- Connemara & Galway ---
@@ -605,18 +606,34 @@ export const HERITAGE_KNOWLEDGE_STORE: Record<string, Partial<EnrichedH3Cell>> =
 
 /**
  * Returns enriched metadata for a given waypoint name or coordinates.
+ * Priority: Spatial RAG Index (Lucan/Leixlip/Maynooth N4 corridor) -> Curated Store -> Default
  */
-export function getEnrichedDataForWaypoint(name: string, h3Index: string): EnrichedH3Cell {
+export function getEnrichedDataForWaypoint(name: string, h3Index: string, coord?: GeoCoordinate): EnrichedH3Cell {
+  // 1. Check Spatial RAG by GPS coordinate if provided
+  if (coord) {
+    const ragArea = spatialRagService.resolveArea(coord);
+    if (ragArea) {
+      return spatialRagService.toEnrichedCell(ragArea, h3Index, coord);
+    }
+  }
+
+  // 2. Check Spatial RAG by area / townland name
+  const ragAreaByName = spatialRagService.getAreaByName(name);
+  if (ragAreaByName) {
+    return spatialRagService.toEnrichedCell(ragAreaByName, h3Index, coord || ragAreaByName.coordinates);
+  }
+
+  // 3. Fallback to curated store
   const matchedKey = Object.keys(HERITAGE_KNOWLEDGE_STORE).find(k => name.includes(k) || k.includes(name));
   const fallback = HERITAGE_KNOWLEDGE_STORE['Galway City']!;
   const base = matchedKey ? HERITAGE_KNOWLEDGE_STORE[matchedKey]! : fallback;
 
   return {
     h3Index,
-    center: { lat: 53.27, lng: -9.05 },
-    townland: base.townland || 'Baile an Tobair',
-    parish: base.parish || 'Paróiste Áitiúil',
-    county: base.county || 'Éire',
+    center: coord || { lat: 53.3575, lng: -6.4485 },
+    townland: base.townland || 'Leamhcán (Lucan)',
+    parish: base.parish || 'Paróiste Leamhcáin',
+    county: base.county || 'Dublin',
     etymology: base.etymology || fallback.etymology!,
     monuments: base.monuments || fallback.monuments!,
     folklore: base.folklore || fallback.folklore!,
@@ -624,7 +641,7 @@ export function getEnrichedDataForWaypoint(name: string, h3Index: string): Enric
     teaserScript: base.teaserScript || 'You have entered an historic Irish townland. Tap a thread to explore the local lore.',
     narrativeScript: base.narrativeScript || 'You have entered an historic Irish townland steeped in oral folklore and ancient stone monuments.',
     threads: base.threads || fallback.threads || [],
-    keyHighlights: base.keyHighlights || ['Ancient townland recorded in the Down Survey', 'Early Christian holy well cures', 'Glacial esker formations'],
+    keyHighlights: base.keyHighlights || ['Ancient townland along the River Liffey', 'National monuments and ancient bridges', 'Living Irish folklore'],
     curatedByAgent: true,
     enrichmentLatencyMs: base.enrichmentLatencyMs || 280,
     tokensConsumed: base.tokensConsumed || 490

@@ -9,6 +9,8 @@ import {
   Castle,
   Sparkles,
   Mountain,
+  Landmark,
+  Waves,
   Volume2,
   ChevronRight,
   Bookmark,
@@ -83,7 +85,7 @@ export const DriveModeView: React.FC<DriveModeViewProps> = ({
   audioPlaybackState = 'idle',
   currentTrackId = null,
   onToggleVoiceListening,
-  selectedVoiceId = '2WvAXMgrakBkapSmnlv7',
+  selectedVoiceId = 'N2lVS1w4EtoT3dr4eOWO',
   onSelectVoice,
   onPullNextThread,
   currentRoute,
@@ -107,7 +109,7 @@ export const DriveModeView: React.FC<DriveModeViewProps> = ({
   onOpenScrapbook,
   savedThreadsCount
 }) => {
-  const [activeCardTab, setActiveCardTab] = useState<'etymology' | 'monuments' | 'folklore' | 'geology'>('etymology');
+  const [activeCardTab, setActiveCardTab] = useState<'etymology' | 'monuments' | 'folklore' | 'geology' | 'history' | 'waterways'>('etymology');
   const isGpsLocked = gpsState.status === 'locked';
 
   return (
@@ -391,25 +393,13 @@ export const DriveModeView: React.FC<DriveModeViewProps> = ({
               <span className="text-[10px] text-slate-400">Quick Try:</span>
               <button
                 type="button"
-                onClick={() => onSelectVoice?.('2WvAXMgrakBkapSmnlv7')}
-                className={`text-[10px] px-2 py-0.5 rounded border transition-all cursor-pointer ${
-                  selectedVoiceId === '2WvAXMgrakBkapSmnlv7'
-                    ? 'bg-amber-500/30 text-amber-300 border-amber-500 font-bold'
-                    : 'bg-slate-800 text-slate-400 border-slate-700 hover:text-white'
-                }`}
-                title="Flynn: Crisp authentic Dublin / Leinster Irish narrator"
-              >
-                🇮🇪 Flynn (Irish)
-              </button>
-              <button
-                type="button"
                 onClick={() => onSelectVoice?.('N2lVS1w4EtoT3dr4eOWO')}
                 className={`text-[10px] px-2 py-0.5 rounded border transition-all cursor-pointer ${
                   selectedVoiceId === 'N2lVS1w4EtoT3dr4eOWO'
                     ? 'bg-amber-500/30 text-amber-300 border-amber-500 font-bold'
                     : 'bg-slate-800 text-slate-400 border-slate-700 hover:text-white'
                 }`}
-                title="Callum: Rich, husky Celtic folklore storyteller"
+                title="Callum: Rich, husky Celtic folklore storyteller (Universal Premade - Free & Paid)"
               >
                 ☘️ Callum (Celtic)
               </button>
@@ -421,9 +411,21 @@ export const DriveModeView: React.FC<DriveModeViewProps> = ({
                     ? 'bg-amber-500/30 text-amber-300 border-amber-500 font-bold'
                     : 'bg-slate-800 text-slate-400 border-slate-700 hover:text-white'
                 }`}
-                title="George: British / Celtic heritage narrator"
+                title="George: British / Celtic heritage narrator (Universal Premade - Free & Paid)"
               >
                 🎙️ George (UK/Celtic)
+              </button>
+              <button
+                type="button"
+                onClick={() => onSelectVoice?.('2WvAXMgrakBkapSmnlv7')}
+                className={`text-[10px] px-2 py-0.5 rounded border transition-all cursor-pointer ${
+                  selectedVoiceId === '2WvAXMgrakBkapSmnlv7'
+                    ? 'bg-amber-500/30 text-amber-300 border-amber-500 font-bold'
+                    : 'bg-slate-800 text-slate-400 border-slate-700 hover:text-white'
+                }`}
+                title="Flynn: Authentic Irish male narrator (Requires Paid ElevenLabs Tier)"
+              >
+                🇮🇪 Flynn (Paid Tier)
               </button>
               <button
                 type="button"
@@ -825,7 +827,7 @@ export const DriveModeView: React.FC<DriveModeViewProps> = ({
 
           </div>
 
-          {/* 4 Cultural Tabs */}
+          {/* 6 Cultural Heritage Pillars */}
           <div className="bg-slate-900 border border-slate-800 rounded-2xl shadow-xl overflow-hidden">
             <div className="flex border-b border-slate-800 bg-slate-950/40 overflow-x-auto">
               <button
@@ -862,6 +864,30 @@ export const DriveModeView: React.FC<DriveModeViewProps> = ({
               >
                 <Sparkles className="w-4 h-4" />
                 <span>Folklore & Legends (Dúchas)</span>
+              </button>
+
+              <button
+                onClick={() => setActiveCardTab('history')}
+                className={`flex items-center gap-2 px-4 py-3 text-xs sm:text-sm font-bold border-b-2 transition-all whitespace-nowrap ${
+                  activeCardTab === 'history'
+                    ? 'border-emerald-500 text-emerald-400 bg-emerald-500/5'
+                    : 'border-transparent text-slate-400 hover:text-white'
+                }`}
+              >
+                <Landmark className="w-4 h-4" />
+                <span>History & Rebellions</span>
+              </button>
+
+              <button
+                onClick={() => setActiveCardTab('waterways')}
+                className={`flex items-center gap-2 px-4 py-3 text-xs sm:text-sm font-bold border-b-2 transition-all whitespace-nowrap ${
+                  activeCardTab === 'waterways'
+                    ? 'border-emerald-500 text-emerald-400 bg-emerald-500/5'
+                    : 'border-transparent text-slate-400 hover:text-white'
+                }`}
+              >
+                <Waves className="w-4 h-4" />
+                <span>Waterways & Spas</span>
               </button>
 
               <button
@@ -949,6 +975,63 @@ export const DriveModeView: React.FC<DriveModeViewProps> = ({
                       <blockquote className="p-4 rounded-xl bg-slate-950 border-l-4 border-amber-500 text-sm text-slate-300 italic leading-relaxed">
                         "{currentCell.folklore.storySnippet}"
                       </blockquote>
+                      <div className="flex items-center justify-between text-xs font-mono text-slate-400 pt-1">
+                        <span>Informant: {currentCell.folklore.informant}</span>
+                        <span>{currentCell.folklore.duchasVolumeId}</span>
+                      </div>
+                    </div>
+                  )}
+
+                  {activeCardTab === 'history' && (
+                    <div className="space-y-4">
+                      {currentCell.history ? (
+                        <>
+                          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 border-b border-slate-800 pb-3">
+                            <div>
+                              <span className="px-2 py-0.5 rounded bg-amber-500/10 text-amber-400 text-xs font-bold font-mono">
+                                {currentCell.history.era}
+                              </span>
+                              <h4 className="text-xl font-bold text-white mt-1.5">{currentCell.history.title}</h4>
+                            </div>
+                            <div className="text-left sm:text-right">
+                              <span className="text-xs font-mono text-slate-400">Historical Figure</span>
+                              <p className="text-sm font-bold text-emerald-400">{currentCell.history.figure}</p>
+                            </div>
+                          </div>
+                          <p className="text-sm text-slate-200 leading-relaxed bg-slate-950/70 p-4 rounded-xl border border-slate-800 font-serif">
+                            {currentCell.history.narrative}
+                          </p>
+                        </>
+                      ) : (
+                        <div className="p-4 rounded-xl bg-slate-950 border border-slate-800 text-xs text-slate-400">
+                          Historical clan chronicles and battle records are being indexed for this territory.
+                        </div>
+                      )}
+                    </div>
+                  )}
+
+                  {activeCardTab === 'waterways' && (
+                    <div className="space-y-4">
+                      {currentCell.waterways ? (
+                        <>
+                          <div className="flex items-center justify-between border-b border-slate-800 pb-3">
+                            <div>
+                              <span className="px-2 py-0.5 rounded bg-cyan-500/10 text-cyan-400 text-xs font-bold font-mono">
+                                {currentCell.waterways.type}
+                              </span>
+                              <h4 className="text-xl font-bold text-white mt-1.5">{currentCell.waterways.name}</h4>
+                            </div>
+                            <Waves className="w-6 h-6 text-cyan-400 opacity-60" />
+                          </div>
+                          <p className="text-sm text-slate-300 leading-relaxed bg-slate-950/70 p-4 rounded-xl border border-slate-800">
+                            {currentCell.waterways.significance}
+                          </p>
+                        </>
+                      ) : (
+                        <div className="p-4 rounded-xl bg-slate-950 border border-slate-800 text-xs text-slate-400">
+                          Hydrological, canal, and natural spring records are being indexed for this territory.
+                        </div>
+                      )}
                     </div>
                   )}
 

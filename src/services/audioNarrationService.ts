@@ -8,37 +8,37 @@ export interface ElevenLabsVoicePreset {
 
 export const ELEVENLABS_VOICE_PRESETS: ElevenLabsVoicePreset[] = [
   {
-    id: '2WvAXMgrakBkapSmnlv7',
-    name: 'Flynn (Authentic Irish Male Narrator)',
-    description: 'Crisp, natural and authentic Irish male cadence (Dublin / Leinster tone)',
-    accent: 'Irish (Male)',
-    isGuaranteedPremade: true
-  },
-  {
     id: 'N2lVS1w4EtoT3dr4eOWO',
     name: 'Callum (Husky Celtic Storyteller)',
-    description: 'Rich, gravelly Celtic storyteller voice ideal for folklore and myth (official premade)',
+    description: 'Rich, gravelly Celtic storyteller voice ideal for folklore and myth (official premade - Free & Paid tiers)',
     accent: 'Celtic / Transatlantic (Male)',
     isGuaranteedPremade: true
   },
   {
     id: 'JBFqnCBsd6RMkjVDRZzb',
     name: 'George (Warm Celtic & British Heritage)',
-    description: 'Warm, captivating British / Celtic heritage male narrator (official premade)',
+    description: 'Warm, captivating British / Celtic heritage male narrator (official premade - Free & Paid tiers)',
     accent: 'Warm Celtic / UK (Male)',
     isGuaranteedPremade: true
   },
   {
+    id: '2WvAXMgrakBkapSmnlv7',
+    name: 'Flynn (Authentic Irish Male Narrator)',
+    description: 'Crisp, natural Dublin / Leinster Irish male cadence (requires ElevenLabs paid subscription)',
+    accent: 'Irish (Male - Paid Tier)',
+    isGuaranteedPremade: false
+  },
+  {
     id: 'pNInz6obpgDQGcFmaJgB',
     name: 'Adam (Deep Expressive Storyteller)',
-    description: 'Dynamic, deep and narrative-rich male voice for dramatic folklore passages',
+    description: 'Dynamic, deep and narrative-rich male voice for dramatic folklore passages (official premade - Free & Paid tiers)',
     accent: 'Deep Storyteller (Male)',
     isGuaranteedPremade: true
   },
   {
     id: 'D38z5RcWu1voky8WS1ja',
     name: 'Fin (West of Ireland Storyteller)',
-    description: 'Authentic Connemara & Western Irish storytelling cadence (requires library voice)',
+    description: 'Authentic Connemara storytelling cadence (requires voice in your ElevenLabs library)',
     accent: 'Irish (West)',
     isGuaranteedPremade: false
   }
@@ -86,9 +86,10 @@ class AudioNarrationService {
       this.elevenApiKey = (envKey || localKey || '').trim().replace(/^["']|["']$/g, '');
       
       const savedVoiceId = localStorage.getItem('elevenlabs_voice_id');
-      // Default to Flynn (Authentic Irish Male) or saved preference
-      if (!savedVoiceId || savedVoiceId === 'D38z5RcWu1voky8WS1ja') {
-        this.selectedVoiceId = ELEVENLABS_VOICE_PRESETS[0].id; // Flynn (2WvAXMgrakBkapSmnlv7)
+      // Default to Callum (official premade guaranteed on Free and Paid tiers)
+      // Reset any saved community voices (Flynn/Fin) that cause HTTP 400 on Free accounts
+      if (!savedVoiceId || savedVoiceId === '2WvAXMgrakBkapSmnlv7' || savedVoiceId === 'D38z5RcWu1voky8WS1ja') {
+        this.selectedVoiceId = ELEVENLABS_VOICE_PRESETS[0].id; // Callum (N2lVS1w4EtoT3dr4eOWO)
       } else {
         this.selectedVoiceId = savedVoiceId;
       }
@@ -423,20 +424,33 @@ class AudioNarrationService {
 
       if (!response.ok) {
         const errorText = await response.text();
-        // If the voice ID returned 404 (e.g. community voice not in this account's library),
-        // automatically fallback to Callum or George (guaranteed premades available to all accounts)
+        const isVoiceAccessError =
+          response.status === 400 || response.status === 403 || response.status === 404;
+
+        // If the selected voice triggers a 400 (e.g. Free user not allowed to use community library voices),
+        // 403 (forbidden), or 404 (not in library), automatically switch to Callum or George (guaranteed premades)
         if (
-          response.status === 404 &&
+          isVoiceAccessError &&
           this.selectedVoiceId !== 'N2lVS1w4EtoT3dr4eOWO' &&
           this.selectedVoiceId !== 'JBFqnCBsd6RMkjVDRZzb'
         ) {
-          console.warn(`Voice ${this.selectedVoiceId} returned 404, falling back to guaranteed premade Celtic voice (Callum)...`);
+          console.warn(`Voice ${this.selectedVoiceId} returned ${response.status} (${errorText}). Auto-recovering to official premade Celtic voice (Callum)...`);
           this.selectedVoiceId = 'N2lVS1w4EtoT3dr4eOWO';
           if (typeof window !== 'undefined') {
             localStorage.setItem('elevenlabs_voice_id', this.selectedVoiceId);
           }
           return this.speakWithElevenLabs(sessionId, text, onEnd);
         }
+
+        // If even premades fail (e.g. monthly quota exhausted 401/429), fall back gracefully to native Web Speech
+        // so the driver NEVER suffers silence
+        if (response.status === 401 || response.status === 429 || isVoiceAccessError) {
+          console.warn(`ElevenLabs error (${response.status}): ${errorText}. Falling back to device speech.`);
+          this.lastErrorMessage = `ElevenLabs: ${response.status === 429 ? 'Quota exceeded' : response.status === 400 ? 'Free tier: using device speech' : 'Audio notice'}`;
+          this.speakWithWebSpeech(sessionId, text, onEnd);
+          return;
+        }
+
         throw new Error(`ElevenLabs (${response.status}): ${errorText}`);
       }
 

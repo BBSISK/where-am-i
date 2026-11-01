@@ -44,10 +44,23 @@ export interface GeologicalFeature {
   scientificInsight: string;
 }
 
+export interface HistoryEvent {
+  title: string;
+  era: string;
+  figure: string;
+  narrative: string;
+}
+
+export interface WaterwayInfo {
+  name: string;
+  type: 'River' | 'Canal' | 'Spa Spring' | 'Estuary' | 'Lake';
+  significance: string;
+}
+
 export interface ThreadOption {
   id: string;
   title: string;
-  category: 'folklore' | 'monument' | 'etymology' | 'geology';
+  category: 'folklore' | 'monument' | 'etymology' | 'geology' | 'history' | 'waterways';
   hookSnippet: string;
   spokenNarrative: string;
   detailMarkdown: string;
@@ -59,7 +72,7 @@ export interface SavedTripThread {
   h3Index: string;
   townland: string;
   threadTitle: string;
-  category: 'folklore' | 'monument' | 'etymology' | 'geology';
+  category: 'folklore' | 'monument' | 'etymology' | 'geology' | 'history' | 'waterways';
   spokenNarrative: string;
 }
 
@@ -73,6 +86,8 @@ export interface EnrichedH3Cell {
   monuments: NationalMonument[];
   folklore: FolkloreStory;
   geology: GeologicalFeature;
+  history?: HistoryEvent;
+  waterways?: WaterwayInfo;
   teaserScript: string; // 10-second ambient audio teaser breadcrumb
   narrativeScript: string; // Full audio script
   threads: ThreadOption[]; // Interactive threads to pull
