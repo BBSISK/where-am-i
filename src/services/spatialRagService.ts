@@ -1,11 +1,11 @@
-import { GeoCoordinate, EnrichedH3Cell, ThreadOption, NationalMonument, FolkloreStory, GeologicalFeature, EtymologyInfo, HistoryEvent, WaterwayInfo, CouncilHeritageSource, CensusDemographics, ArtReference, CommunityDiasporaLink, CsoModernMetrics, FamousFigure } from '../types';
+import { GeoCoordinate, EnrichedH3Cell, ThreadOption, NationalMonument, FolkloreStory, GeologicalFeature, EtymologyInfo, HistoryEvent, WaterwayInfo, CouncilHeritageSource, CensusDemographics, ArtReference, CommunityDiasporaLink, CsoModernMetrics, FamousFigure, NiahBuiltHeritage, BiodiversityEcology, MilitaryWitnessStatement, MotorwayArchaeology, LiteraryAndMusicRecord, ClimateAndSportHeritage } from '../types';
 import { coordinateToH3, getCorridorNeighbors, calculateHaversineDistance } from './spatialEngine';
 import { N4_CORRIDOR_AREAS } from '../data/n4CorridorData';
 
 export interface AreaKnowledgeChunk {
   chunkId: string;
   h3Index: string;
-  category: 'etymology' | 'monument' | 'folklore' | 'geology' | 'history' | 'waterways' | 'thread' | 'art' | 'diaspora' | 'cso-modern' | 'figure';
+  category: 'etymology' | 'monument' | 'folklore' | 'geology' | 'history' | 'waterways' | 'thread' | 'art' | 'diaspora' | 'cso-modern' | 'figure' | 'architecture' | 'ecology' | 'military' | 'excavation' | 'literature' | 'music' | 'climate';
   title: string;
   summary: string;
   content: string;
@@ -34,6 +34,12 @@ export interface AreaKnowledgeUnit {
   communityLinks?: CommunityDiasporaLink[]; // International community & diaspora links (e.g. Parco Italia)
   csoModern?: CsoModernMetrics; // Central Statistics Office (CSO) 2022 Census & tech corridor data
   famousFigures?: FamousFigure[]; // Renowned historical & contemporary figures
+  niahHeritage?: NiahBuiltHeritage[]; // National Inventory of Architectural Heritage (post-1700 built fabric)
+  biodiversity?: BiodiversityEcology; // National Biodiversity Data Centre & SAC ecology
+  militaryWitnesses?: MilitaryWitnessStatement[]; // Bureau of Military History 1913-1921 witness statements
+  motorwayArchaeology?: MotorwayArchaeology[]; // TII Motorway rescue archaeology & Museum artifacts
+  literaryAndMusic?: LiteraryAndMusicRecord; // James Joyce, Jonathan Swift, and ITMA traditional music
+  climateAndSport?: ClimateAndSportHeritage; // Met Éireann climate extremes & GAA/Equine traditions
   etymology: EtymologyInfo;
   monuments: NationalMonument[];
   folklore: FolkloreStory;
@@ -200,6 +206,71 @@ class SpatialRagService {
           sourceCitation: 'Dictionary of Irish Biography & National Cultural Heritage',
           metadata: { townland: area.townland, county: area.county, parish: area.parish, coordinates: area.coordinates }
         })) || []),
+        ...(area.niahHeritage?.map((niah) => {
+          const buildingName = niah.buildingName || niah.name || 'Historic Structure';
+          const dateStr = niah.datePeriod || niah.yearBuilt || 'Historical';
+          const cat = niah.category || niah.architecturalStyle || niah.originalUse || 'Built Heritage';
+          return {
+            chunkId: `${area.areaId}-niah-${niah.regNumber}`,
+            h3Index: h3,
+            category: 'architecture' as const,
+            title: `NIAH Built Heritage: ${buildingName} (${dateStr})`,
+            summary: `Reg: ${niah.regNumber} • Rating: ${niah.rating} • Type: ${cat}`,
+            content: `${buildingName} [NIAH Reg: ${niah.regNumber}]: Date/Period: ${dateStr}. Rating: ${niah.rating}. Type: ${cat}. Description: ${niah.description} ${niah.appraisal || ''}`.trim(),
+            sourceCitation: `National Inventory of Architectural Heritage (NIAH Reg. ${niah.regNumber})`,
+            metadata: { townland: area.townland, county: area.county, parish: area.parish, coordinates: area.coordinates }
+          };
+        }) || []),
+        ...(area.biodiversity ? [{
+          chunkId: `${area.areaId}-bio`,
+          h3Index: h3,
+          category: 'ecology' as const,
+          title: `Ecology & Biodiversity: ${area.biodiversity.sacOrSpa || area.biodiversity.sacName || `${area.townland} Habitat Network`}`,
+          summary: `Designation: ${area.biodiversity.designationType || 'Protected Habitat'} • Species: ${area.biodiversity.indicatorSpecies.map(s => s.commonName).slice(0, 3).join(', ')}`,
+          content: `National Biodiversity Data Centre (NBDC) & NPWS: ${area.biodiversity.sacOrSpa || area.biodiversity.sacName || 'Local Protected Area'}. Designation: ${area.biodiversity.designationType || 'Protected Habitat'}. Indicator Species: ${area.biodiversity.indicatorSpecies.map(s => `${s.commonName} (${s.scientificName}) - ${s.status}`).join('; ')}. Conservation: ${area.biodiversity.conservationNotes}`,
+          sourceCitation: 'National Biodiversity Data Centre (NBDC) & National Parks & Wildlife Service (NPWS)',
+          metadata: { townland: area.townland, county: area.county, parish: area.parish, coordinates: area.coordinates }
+        }] : []),
+        ...(area.militaryWitnesses?.map((bmh, bIdx) => ({
+          chunkId: `${area.areaId}-bmh-${bIdx}`,
+          h3Index: h3,
+          category: 'military' as const,
+          title: `Revolutionary Eyewitness Statement: ${bmh.witnessName} (${bmh.bureauRef})`,
+          summary: `${bmh.period} • ${bmh.unitOrBrigade}`,
+          content: `${bmh.witnessName} [${bmh.bureauRef}], ${bmh.unitOrBrigade} (${bmh.period}): "${bmh.eyewitnessExcerpt}". Summary: ${bmh.summary}. Context: ${bmh.historicalContext}`,
+          sourceCitation: `Bureau of Military History 1913–1921 (${bmh.bureauRef})`,
+          metadata: { townland: area.townland, county: area.county, parish: area.parish, coordinates: area.coordinates }
+        })) || []),
+        ...(area.motorwayArchaeology?.map((arch, aIdx) => ({
+          chunkId: `${area.areaId}-arch-${aIdx}`,
+          h3Index: h3,
+          category: 'excavation' as const,
+          title: `Motorway & Subsurface Archaeology: ${arch.siteName} (${arch.period})`,
+          summary: `Scheme: ${arch.roadScheme} • License: ${arch.excavationLicense}`,
+          content: `Transport Infrastructure Ireland (TII) Excavation [Lic: ${arch.excavationLicense}]: ${arch.siteName} along ${arch.roadScheme}. Period: ${arch.period}. Discovery: ${arch.discovery}. Museum Artifacts: ${arch.museumArtifacts?.join(', ') || 'N/A'}.`,
+          sourceCitation: `Transport Infrastructure Ireland (TII) Heritage & Excavations.ie (${arch.excavationLicense})`,
+          metadata: { townland: area.townland, county: area.county, parish: area.parish, coordinates: area.coordinates }
+        })) || []),
+        ...(area.literaryAndMusic ? [{
+          chunkId: `${area.areaId}-lit-music`,
+          h3Index: h3,
+          category: 'literature' as const,
+          title: `Literary Geography & Traditional Music of ${area.townland}`,
+          summary: `Literature: ${area.literaryAndMusic.literaryReferences.map(l => l.author).join(', ')} • Music: ${area.literaryAndMusic.traditionalMusic?.map(m => m.tuneTitle).join(', ') || 'Trad'}`,
+          content: `Literary Geography: ${area.literaryAndMusic.literaryReferences.map(l => `${l.author}'s "${l.workTitle}": ${l.excerptOrTheme}`).join(' ')} Traditional Music (ITMA): ${area.literaryAndMusic.traditionalMusic?.map(m => `${m.tuneTitle} (${m.tuneType}): ${m.notes}`).join('; ') || ''}`,
+          sourceCitation: 'Irish Traditional Music Archive (ITMA) & National Library of Ireland',
+          metadata: { townland: area.townland, county: area.county, parish: area.parish, coordinates: area.coordinates }
+        }] : []),
+        ...(area.climateAndSport ? [{
+          chunkId: `${area.areaId}-climate-sport`,
+          h3Index: h3,
+          category: 'climate' as const,
+          title: `Historical Climate Extremes & Sporting Heritage: ${area.townland}`,
+          summary: `${area.climateAndSport.climateEvent?.name || 'Climate'} • GAA & Equine Tradition`,
+          content: `Met Éireann Climate Archives: ${area.climateAndSport.climateEvent ? `${area.climateAndSport.climateEvent.name} (${area.climateAndSport.climateEvent.year}): ${area.climateAndSport.climateEvent.phenomenon}. Impact: ${area.climateAndSport.climateEvent.impactOnSettlement}` : ''} Sporting & Equine Heritage: ${area.climateAndSport.equineAndGaa?.gaaTradition || ''} ${area.climateAndSport.equineAndGaa?.thoroughbredTradition || ''}`,
+          sourceCitation: 'Met Éireann Historical Weather Archive & GAA Museum Archives',
+          metadata: { townland: area.townland, county: area.county, parish: area.parish, coordinates: area.coordinates }
+        }] : []),
         ...area.threads.map((t, idx) => ({
           chunkId: `${area.areaId}-thread-${t.id}`,
           h3Index: h3,
@@ -325,6 +396,12 @@ class SpatialRagService {
       communityLinks: area.communityLinks,
       csoModern: area.csoModern,
       famousFigures: area.famousFigures,
+      niahHeritage: area.niahHeritage,
+      biodiversity: area.biodiversity,
+      militaryWitnesses: area.militaryWitnesses,
+      motorwayArchaeology: area.motorwayArchaeology,
+      literaryAndMusic: area.literaryAndMusic,
+      climateAndSport: area.climateAndSport,
       teaserScript: area.teaserScript,
       narrativeScript: area.narrativeScript,
       threads: area.threads,

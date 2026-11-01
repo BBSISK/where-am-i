@@ -137,10 +137,88 @@ export interface FamousFigure {
   quoteOrLegacy: string;
 }
 
+export interface NiahBuiltHeritage {
+  regNumber: string; // e.g. "11202008"
+  name?: string;
+  buildingName?: string;
+  originalUse?: string;
+  category?: string;
+  yearBuilt?: string;
+  datePeriod?: string;
+  rating: 'National' | 'Regional' | 'Local' | string;
+  architecturalStyle?: string;
+  description: string;
+  appraisal?: string;
+}
+
+export interface BiodiversityEcology {
+  sacName?: string; // e.g. "Rye Water Valley / Carton SAC (Site Code 001398)"
+  sacOrSpa?: string;
+  designationType?: string;
+  habitats?: string[];
+  indicatorSpecies: Array<{
+    commonName: string;
+    irishName?: string;
+    scientificName: string;
+    status: string;
+    notes: string;
+  }>;
+  conservationNotes: string;
+}
+
+export interface MilitaryWitnessStatement {
+  bureauRef: string; // e.g. "BMH WS 0768"
+  witnessName: string;
+  unitOrBrigade: string; // e.g. "4th Battalion, Dublin Brigade IRA"
+  period: string; // e.g. "1916–1921 (War of Independence)"
+  summary: string;
+  eyewitnessExcerpt: string;
+  historicalContext: string;
+}
+
+export interface MotorwayArchaeology {
+  siteName: string;
+  excavationLicense: string; // e.g. "04E0911"
+  roadScheme: string; // e.g. "N4 Lucan Bypass / M4 Kilcock-Maynooth Motorway Scheme"
+  period: string;
+  discovery: string;
+  museumArtifacts?: string[];
+}
+
+export interface LiteraryAndMusicRecord {
+  literaryReferences: Array<{
+    author: string;
+    workTitle: string;
+    yearPublished?: string;
+    excerptOrTheme: string;
+    geographicalTie: string;
+  }>;
+  traditionalMusic?: Array<{
+    tuneTitle: string;
+    irishTitle?: string;
+    tuneType: 'Reel' | 'Jig' | 'Hornpipe' | 'Air' | 'Harp Planxty';
+    collectorOrComposer?: string;
+    notes: string;
+  }>;
+}
+
+export interface ClimateAndSportHeritage {
+  climateEvent?: {
+    name: string; // e.g. "The Great Frost of 1739–1740 & Frozen Liffey"
+    year: string;
+    phenomenon: string;
+    impactOnSettlement: string;
+  };
+  equineAndGaa?: {
+    gaaTradition: string;
+    thoroughbredTradition?: string;
+  };
+}
+
 export interface ThreadOption {
   id: string;
   title: string;
-  category: 'folklore' | 'monument' | 'etymology' | 'geology' | 'history' | 'waterways' | 'art' | 'diaspora' | 'demographics';
+  category: 'folklore' | 'monument' | 'etymology' | 'geology' | 'history' | 'waterways' | 'art' | 'diaspora' | 'demographics' | 'architecture' | 'ecology' | 'military' | 'excavation' | 'literature' | 'music' | 'climate';
   hookSnippet: string;
   spokenNarrative: string;
   detailMarkdown: string;
@@ -152,7 +230,7 @@ export interface SavedTripThread {
   h3Index: string;
   townland: string;
   threadTitle: string;
-  category: 'folklore' | 'monument' | 'etymology' | 'geology' | 'history' | 'waterways' | 'art' | 'diaspora' | 'demographics';
+  category: 'folklore' | 'monument' | 'etymology' | 'geology' | 'history' | 'waterways' | 'art' | 'diaspora' | 'demographics' | 'architecture' | 'ecology' | 'military' | 'excavation' | 'literature' | 'music' | 'climate';
   spokenNarrative: string;
 }
 
@@ -174,6 +252,12 @@ export interface EnrichedH3Cell {
   communityLinks?: CommunityDiasporaLink[];
   csoModern?: CsoModernMetrics;
   famousFigures?: FamousFigure[];
+  niahHeritage?: NiahBuiltHeritage[];
+  biodiversity?: BiodiversityEcology;
+  militaryWitnesses?: MilitaryWitnessStatement[];
+  motorwayArchaeology?: MotorwayArchaeology[];
+  literaryAndMusic?: LiteraryAndMusicRecord;
+  climateAndSport?: ClimateAndSportHeritage;
   teaserScript: string; // 10-second ambient audio teaser breadcrumb
   narrativeScript: string; // Full audio script
   threads: ThreadOption[]; // Interactive threads to pull

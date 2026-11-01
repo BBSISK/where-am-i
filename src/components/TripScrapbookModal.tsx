@@ -119,13 +119,39 @@ export const TripScrapbookModal: React.FC<TripScrapbookModalProps> = ({
               Close
             </button>
             <button
-              onClick={() => {
-                navigator.clipboard?.writeText(JSON.stringify(savedThreads, null, 2)); alert('Trip Scrapbook copied to clipboard!');
+              onClick={async () => {
+                const summary = [
+                  `🚗 Where Am I? (Cá bhfuil mé?) — Irish Road Trip Scrapbook`,
+                  `Total Discoveries: ${savedThreads.length}\n`,
+                  ...savedThreads.map(
+                    (t, i) =>
+                      `[${i + 1}] 📍 ${t.townland} (${t.category.toUpperCase()})\n` +
+                      `✨ ${t.threadTitle}\n` +
+                      `"${t.spokenNarrative}"\n`
+                  ),
+                  `— Captured live on the N4 Corridor with Where Am I?`
+                ].join('\n');
+
+                if (typeof navigator !== 'undefined' && navigator.share) {
+                  try {
+                    await navigator.share({
+                      title: 'My Irish Road Trip Scrapbook',
+                      text: summary
+                    });
+                    return;
+                  } catch (e) {
+                    // Fall through to clipboard
+                  }
+                }
+                if (typeof navigator !== 'undefined' && navigator.clipboard) {
+                  await navigator.clipboard.writeText(summary);
+                  alert('Trip Scrapbook copied to clipboard!');
+                }
               }}
               className="flex items-center gap-1.5 px-4 py-2 rounded-xl bg-emerald-600 hover:bg-emerald-500 text-white text-xs font-mono font-bold shadow-lg shadow-emerald-600/20 transition-all"
             >
               <Share2 className="w-3.5 h-3.5" />
-              <span>Copy Trip Summary</span>
+              <span>Share Trip Summary</span>
             </button>
           </div>
         </div>

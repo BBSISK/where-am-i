@@ -37,7 +37,7 @@ flowchart TD
         GPS["🛰️ Live Vehicle Telemetry / Simulator"] --> H3["H3 Geofence & Spatial Index"]
     end
 
-    subgraph RAG_PILLARS ["Institutional Knowledge Ingestion"]
+    subgraph RAG_PILLARS ["Institutional Knowledge Ingestion (18 Dimensions)"]
         P1["📚 Logainm.ie (Placename Etymology)"]
         P2["🏰 ASI SMR (National Monuments Service)"]
         P3["🧚 Dúchas.ie (1937 National Folklore Collection)"]
@@ -50,12 +50,18 @@ flowchart TD
         P10["🌍 International Community & Diaspora Ties (Parco Italia)"]
         P11["📊 CSO Live 2022 Census Modern Demographics"]
         P12["⭐ Famous Figures (Dictionary of Irish Biography)"]
+        P13["🏛️ NIAH Built Heritage (Georgian / Regency / Victorian)"]
+        P14["🌿 NBDC & NPWS Biodiversity & SAC Habitats"]
+        P15["🎖️ Bureau of Military History 1913–1921 (Eyewitness Statements)"]
+        P16["⛏️ TII Motorway Archaeology & NMI Dredged Artifacts"]
+        P17["🎻 Literary Geography & Trad Music (Joyce, Swift, ITMA)"]
+        P18["❄️ Met Éireann Historical Climate Extremes & GAA Lore"]
     end
 
     subgraph HUD ["Driver Heads-Up Display (HUD)"]
         UI_Audio["🎙️ Ambient Audio Teaser & Story Threads"]
-        UI_Tabs["📑 12 Dynamic Architectural Tabs"]
-        UI_Scrapbook["📖 1-Tap Trip Scrapbook Archive"]
+        UI_Tabs["📑 18 Dynamic Architectural Tabs"]
+        UI_Share["📲 1-Tap Mobile Story & Trip Scrapbook Sharing"]
     end
 
     H3 --> RAG_PILLARS --> HUD
@@ -101,6 +107,38 @@ flowchart TD
   * **Arthur Guinness** (1725–1803, Leixlip): Began commercial brewing on Leixlip Main Street in 1755 prior to Dublin.
   * **Hon. Desmond & Mariga Guinness** (Leixlip Castle): Co-founders of the Irish Georgian Society (1958).
   * **Arthur Cox** (1891–1965, Lucan House): Founder of Arthur Cox solicitors and Irish Free State legal draughtsman.
+
+### 5. Newly Ingested Corridor Streams
+* **🏛️ NIAH Built Heritage (National Inventory of Architectural Heritage)**:
+  * **Lucan Bridge (1814)**: Widest single stone arch span (110 ft) in Great Britain or Ireland at completion (Reg. 11202005).
+  * **Leixlip Toll House & Liffey Bridge (c. 1780)**: Octagonal cut-limestone turnpike station guarding the 1734 Liffey crossing (Reg. 11804001).
+  * **Maynooth MGWR Railway Station & Platform Canopy (1847)**: Cut-stone station and cast-iron canopy engineered by George Willoughby Hemans (Reg. 11803022).
+  * **St. Patrick's College Pugin Quadrangle (1845–1850)**: Augustus Welby Pugin's neo-Gothic masterpiece and 273-foot collegiate chapel spire (Reg. 11803015).
+* **🌿 NBDC Biodiversity & Special Areas of Conservation (SACs)**:
+  * **Rye Water Valley / Carton SAC (Site 001398)**: Geothermal mineral springs bubbling at a steady 15°C, sustaining ice-age relict molluscs including the **Narrow-mouthed Whorl Snail** (*Vertigo angustior*) and **Desmoulin's Whorl Snail** (*Vertigo moulinsiana*).
+  * **Petrifying Springs with Tufa Rock (*7220)**: Porous calcareous limestone rock precipitating along the river banks.
+  * **Liffey Valley pNHA**: Breeding Kingfisher, European River Otter (*Lutra lutra*), and river-skimming Daubenton's Bats (*Myotis daubentonii*).
+* **🎖️ Bureau of Military History 1913–1921 (Sworn Eyewitness Statements)**:
+  * **BMH WS 0768 (Patrick J. Kelly)**: 4th Battalion Dublin Brigade IRA raid burning Lucan RIC barracks on Easter Saturday 1920.
+  * **BMH WS 0532 (Michael J. Smyth)**: North Kildare IRA flying column railway ambush decoupling tracks at Louisa Bridge station in April 1921.
+  * **BMH WS 0341 (Patrick Colgan)**: Captain of the Maynooth Company marching 15 men on foot along the railway line to fight inside the Dublin GPO on Easter Monday 1916.
+* **⛏️ Motorway Archaeology & National Museum of Ireland Dredged Artifacts**:
+  * **Ballydowd & Esker (N4 Lucan Bypass Scheme)**: Burnt mounds (*fulachtaí fia*), flint scrapers, and Middle Bronze Age palstave axehead (NMI Reg. 1934:412).
+  * **Collinstown & Barnhall (M4 Celbridge/Leixlip)**: Iron Age ring-ditch cemetery and 10th-century Viking iron battleaxe head dredged from Rye Water.
+  * **Railpark 1200 BC (M4 Maynooth Bypass)**: Palisaded Bronze Age roundhouses, amber necklace beads imported from the Baltic Sea, and gold hair-rings.
+* **🎻 Literary Geography & Traditional Music Repertoire (ITMA)**:
+  * **James Joyce (*Finnegans Wake*, 1939)**: Personifying the River Liffey as Anna Livia Plurabelle flowing eternally through the mills and weirs of Lucan.
+  * **Jonathan Swift (*Cadenus and Vanessa*, 1726)**: The wooded falls of Celbridge and Leixlip where Vanessa kept her garden bower beside the roaring rapids.
+  * **Traditional Fiddle Tunes**: *The Strawberry Beds* Reel (recorded by Francis O’Neill), *The Salmon Leap* Reel, and *The Humours of Maynooth* Jig.
+* **❄️ Historical Climate Extremes & Sporting Heritage**:
+  * **1739–1740 Great Frost**: River Liffey frozen solid to a depth of three feet; mill wheels halted in pack ice; Katherine Conolly constructed the Wonderful Barn to employ starving tenant families.
+  * **1839 Night of the Big Wind (*Oíche na Gaoithe Móire*)**: Category 3 hurricane tearing the roof off Maynooth College cloisters and toppling 500 ancient oaks in Carton Demesne.
+  * **Sporting Traditions**: Lucan Sarsfields GAA (1886), Leixlip GAA (1887), Maynooth GAA (Paul Mescal's home club), and the Salmon Leap Canoe Club (Olympic & World marathon kayaking).
+
+### 6. 📲 1-Tap Driver & Passenger Social Sharing
+* **Native OS Share Sheet Integration**: Tapping the share button on any story thread, architectural record, biodiversity checklist, or military dispatch opens the native system share dialog on iOS & Android for WhatsApp, Messages, or email.
+* **Formatted Markdown Clipboard Fallback**: Desktop and in-car web browsers automatically copy a clean, beautifully formatted travel snippet with GPS townland badges and archival citations.
+* **Trip Scrapbook Summary Exporter**: Generates a complete road-trip diary in 1 tap, compiling all visited townlands and unfolded narratives captured during the drive.
 
 ---
 
@@ -253,7 +291,7 @@ Open [http://localhost:5173](http://localhost:5173) in your browser.
 
 ### 5. Run Verification & Tests
 ```bash
-# Run Vitest unit tests (31 unit tests covering RAG, audio, and GPS)
+# Run Vitest unit tests (37 unit tests covering RAG, audio, and GPS)
 npm run test
 
 # Production build check
@@ -266,6 +304,12 @@ npm run build
 
 * **Logainm.ie**: The Placenames Database of Ireland, developed by Fiontar & Scoil na Gaeilge (DCU) and the Department of Tourism, Culture, Arts, Gaeltacht, Sport and Media.
 * **National Monuments Service (ASI)**: Archaeological Survey of Ireland, Department of Housing, Local Government and Heritage.
+* **National Inventory of Architectural Heritage (NIAH)**: Architectural Heritage Protection, Department of Housing, Local Government and Heritage.
+* **National Biodiversity Data Centre (NBDC) & NPWS**: Special Areas of Conservation (SACs) and protected native species indicator surveys.
+* **Bureau of Military History 1913–1921 (Military Archives)**: Sworn witness statements & MSPC pension records.
+* **Transport Infrastructure Ireland (TII) Archaeology**: Motorway rescue excavation monographs & prehistoric settlement discoveries.
+* **Irish Traditional Music Archive (ITMA)**: Historic fiddle tunes, reels, and jigs collected by Francis O'Neill.
+* **Met Éireann Historical Weather Archive**: 1739–1740 Great Frost & 1839 Night of the Big Wind (*Oíche na Gaoithe Móire*).
 * **Dúchas.ie**: National Folklore Collection, University College Dublin (UCD).
 * **Geological Survey Ireland (GSI)**: Department of the Environment, Climate and Communications.
 * **National Archives of Ireland (NAI)**: 1911 Census of Ireland & 1851 Great Famine Mortality Returns.
@@ -274,6 +318,7 @@ npm run build
 * **National Library of Ireland (NLI)**: Prints & Drawings, Shackleton Glass-Plate Collection.
 * **AskAboutIreland / Valuation Office**: Griffith’s Primary Valuation of Tenements (1852–1853).
 * **Trinity College Dublin (TCD GIS)**: The Down Survey of Ireland (1656–1658).
+* **GAA Museum Archives & Thoroughbred Stud Records**: 1886/1887 GAA founding records & Kildare bloodlines.
 
 ---
 

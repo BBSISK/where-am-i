@@ -303,6 +303,111 @@ describe('Spatial RAG Engine', () => {
       expect(mescalChunks.length).toBeGreaterThan(0);
       expect(mescalChunks[0].content).toContain('Paul Mescal');
     });
+
+    it('indexes NIAH Built Heritage records across Lucan, Leixlip, and Maynooth', () => {
+      const lucan = spatialRagService.getAreaByName('Lucan');
+      expect(lucan?.niahHeritage).toBeDefined();
+      expect(lucan?.niahHeritage?.some(h => h.regNumber === '11202005' && (h.buildingName || h.name || '').includes('Lucan Bridge'))).toBe(true);
+
+      const leixlip = spatialRagService.getAreaByName('Leixlip');
+      expect(leixlip?.niahHeritage).toBeDefined();
+      expect(leixlip?.niahHeritage?.some(h => (h.buildingName || h.name || '').includes('Toll House'))).toBe(true);
+
+      const maynooth = spatialRagService.getAreaByName('Maynooth');
+      expect(maynooth?.niahHeritage).toBeDefined();
+      expect(maynooth?.niahHeritage?.some(h => (h.buildingName || h.name || '').includes('Railway Station'))).toBe(true);
+
+      // Test RAG retrieval for NIAH architecture
+      const lucanCoord = { lat: 53.3575, lng: -6.4485 };
+      const niahChunks = spatialRagService.retrieveCorridorChunks(lucanCoord, 'NIAH architectural heritage stone bridge');
+      expect(niahChunks.length).toBeGreaterThan(0);
+      expect(niahChunks.some(c => c.category === 'architecture')).toBe(true);
+    });
+
+    it('indexes NBDC Biodiversity and Special Areas of Conservation (SACs)', () => {
+      const leixlip = spatialRagService.getAreaByName('Leixlip');
+      expect(leixlip?.biodiversity).toBeDefined();
+      expect(leixlip?.biodiversity?.sacOrSpa).toContain('Rye Water Valley / Carton SAC');
+      expect(leixlip?.biodiversity?.indicatorSpecies.some(s => s.scientificName === 'Vertigo angustior')).toBe(true);
+      expect(leixlip?.biodiversity?.indicatorSpecies.some(s => s.commonName.includes('Tufa'))).toBe(true);
+
+      const lucan = spatialRagService.getAreaByName('Lucan');
+      expect(lucan?.biodiversity?.indicatorSpecies.some(s => s.commonName.includes('Daubenton'))).toBe(true);
+
+      // Test RAG retrieval for SAC ecology
+      const leixlipCoord = { lat: 53.3639, lng: -6.4950 };
+      const ecoChunks = spatialRagService.retrieveCorridorChunks(leixlipCoord, 'whorl snail tufa springs SAC');
+      expect(ecoChunks.length).toBeGreaterThan(0);
+      expect(ecoChunks.some(c => c.category === 'ecology')).toBe(true);
+    });
+
+    it('indexes Bureau of Military History (1913–1921) witness statements', () => {
+      const lucan = spatialRagService.getAreaByName('Lucan');
+      expect(lucan?.militaryWitnesses?.some(w => w.bureauRef === 'BMH WS 0768' && w.summary.includes('Lucan RIC Barracks'))).toBe(true);
+
+      const leixlip = spatialRagService.getAreaByName('Leixlip');
+      expect(leixlip?.militaryWitnesses?.some(w => w.bureauRef === 'BMH WS 0532' && w.summary.includes('Louisa Bridge'))).toBe(true);
+
+      const maynooth = spatialRagService.getAreaByName('Maynooth');
+      expect(maynooth?.militaryWitnesses?.some(w => w.witnessName === 'Patrick Colgan' && w.eyewitnessExcerpt.includes('General Post Office'))).toBe(true);
+
+      // Test RAG retrieval for military witness statements
+      const maynoothCoord = { lat: 53.3813, lng: -6.5918 };
+      const militaryChunks = spatialRagService.retrieveCorridorChunks(maynoothCoord, 'GPO Easter Rising Volunteers march');
+      expect(militaryChunks.length).toBeGreaterThan(0);
+      expect(militaryChunks.some(c => c.category === 'military')).toBe(true);
+    });
+
+    it('indexes Motorway Archaeology from TII rescue excavations and NMI artifacts', () => {
+      const lucan = spatialRagService.getAreaByName('Lucan');
+      expect(lucan?.motorwayArchaeology?.some(m => m.siteName.includes('Ballydowd') && m.discovery.includes('fulachtaí fia'))).toBe(true);
+
+      const leixlip = spatialRagService.getAreaByName('Leixlip');
+      expect(leixlip?.motorwayArchaeology?.some(m => m.museumArtifacts?.some(a => a.includes('Viking')))).toBe(true);
+
+      const maynooth = spatialRagService.getAreaByName('Maynooth');
+      expect(maynooth?.motorwayArchaeology?.some(m => m.discovery.includes('amber beads') && m.roadScheme.includes('M4'))).toBe(true);
+
+      // Test RAG retrieval for excavation
+      const maynoothCoord = { lat: 53.3813, lng: -6.5918 };
+      const excavChunks = spatialRagService.retrieveCorridorChunks(maynoothCoord, 'Railpark Bronze Age amber motorway');
+      expect(excavChunks.length).toBeGreaterThan(0);
+      expect(excavChunks.some(c => c.category === 'excavation')).toBe(true);
+    });
+
+    it('indexes Literature and Traditional Music Archive (ITMA) repertoires', () => {
+      const lucan = spatialRagService.getAreaByName('Lucan');
+      expect(lucan?.literaryAndMusic?.literaryReferences.some(l => l.author === 'James Joyce' && l.workTitle === 'Finnegans Wake')).toBe(true);
+      expect(lucan?.literaryAndMusic?.traditionalMusic?.some(t => t.tuneTitle.includes('Strawberry Beds'))).toBe(true);
+
+      const leixlip = spatialRagService.getAreaByName('Leixlip');
+      expect(leixlip?.literaryAndMusic?.traditionalMusic?.some(t => t.tuneTitle === 'The Salmon Leap')).toBe(true);
+
+      const maynooth = spatialRagService.getAreaByName('Maynooth');
+      expect(maynooth?.literaryAndMusic?.literaryReferences.some(l => l.author.includes('Edward FitzGerald'))).toBe(true);
+
+      // Test RAG retrieval for music
+      const lucanCoord = { lat: 53.3575, lng: -6.4485 };
+      const litChunks = spatialRagService.retrieveCorridorChunks(lucanCoord, 'James Joyce Finnegans Wake Strawberry Beds reel');
+      expect(litChunks.length).toBeGreaterThan(0);
+      expect(litChunks.some(c => c.category === 'literature')).toBe(true);
+    });
+
+    it('indexes Met Éireann historical climate extremes and local sporting heritage', () => {
+      const lucan = spatialRagService.getAreaByName('Lucan');
+      expect(lucan?.climateAndSport?.climateEvent?.name).toContain('Great Frost');
+      expect(lucan?.climateAndSport?.equineAndGaa?.gaaTradition).toContain('Lucan Sarsfields');
+
+      const maynooth = spatialRagService.getAreaByName('Maynooth');
+      expect(maynooth?.climateAndSport?.climateEvent?.name).toContain('Night of the Big Wind');
+      expect(maynooth?.climateAndSport?.climateEvent?.year).toContain('1839');
+
+      // Test RAG retrieval for climate
+      const maynoothCoord = { lat: 53.3813, lng: -6.5918 };
+      const climateChunks = spatialRagService.retrieveCorridorChunks(maynoothCoord, 'Night of the Big Wind 1839 hurricane storm');
+      expect(climateChunks.length).toBeGreaterThan(0);
+      expect(climateChunks.some(c => c.category === 'climate')).toBe(true);
+    });
   });
 });
 
