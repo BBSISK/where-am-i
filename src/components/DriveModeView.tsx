@@ -423,16 +423,24 @@ export const DriveModeView: React.FC<DriveModeViewProps> = ({
                 <span className="text-xs px-2 py-0.5 rounded bg-slate-800 text-emerald-400 font-mono">~0.74 km²</span>
               </div>
               <div className="mt-1.5 p-2.5 rounded-xl bg-slate-950 border border-slate-800 flex items-center justify-between font-mono">
-                <span className="text-sm font-bold text-emerald-400 tracking-wider">#{currentCell.h3Index}</span>
-                <span className="text-xs text-slate-500">O(1) Indexed</span>
+                <span className="text-sm font-bold text-emerald-400 tracking-wider">
+                  {drivingMode === 'real-gps' && !isGpsLocked ? 'Scanning...' : `#${currentCell.h3Index}`}
+                </span>
+                <span className="text-xs text-slate-500">
+                  {drivingMode === 'real-gps' && !isGpsLocked ? 'GPS Required' : 'O(1) Indexed'}
+                </span>
               </div>
             </div>
 
             {/* Location & Townland */}
             <div className="mt-4">
               <p className="text-xs text-slate-400 font-mono">Active Townland</p>
-              <h3 className="text-lg font-bold text-white mt-0.5">{currentCell.townland}</h3>
-              <p className="text-xs font-mono text-emerald-400 mt-0.5">County {currentCell.county}</p>
+              <h3 className="text-lg font-bold text-white mt-0.5">
+                {drivingMode === 'real-gps' && !isGpsLocked ? 'Locating Satellites...' : currentCell.townland}
+              </h3>
+              <p className="text-xs font-mono text-emerald-400 mt-0.5">
+                {drivingMode === 'real-gps' && !isGpsLocked ? 'Acquiring GPS fix' : `County ${currentCell.county}`}
+              </p>
             </div>
 
             {/* Live GPS Sensor Coordinates */}
@@ -508,23 +516,33 @@ export const DriveModeView: React.FC<DriveModeViewProps> = ({
                 )}
               </div>
 
-              <button
-                onClick={onReplayAudio}
-                className="flex items-center gap-1.5 px-3 py-1 rounded-lg bg-emerald-500/20 hover:bg-emerald-500/30 border border-emerald-500/30 text-emerald-300 text-xs font-medium transition-all"
-              >
-                <Volume2 className="w-3.5 h-3.5" />
-                <span>Replay Teaser</span>
-              </button>
+              {(drivingMode === 'simulator' || isGpsLocked) && (
+                <button
+                  onClick={onReplayAudio}
+                  className="flex items-center gap-1.5 px-3 py-1 rounded-lg bg-emerald-500/20 hover:bg-emerald-500/30 border border-emerald-500/30 text-emerald-300 text-xs font-medium transition-all"
+                >
+                  <Volume2 className="w-3.5 h-3.5" />
+                  <span>Replay Teaser</span>
+                </button>
+              )}
             </div>
 
             {/* Teaser Breadcrumb */}
             <p className="mt-4 text-base sm:text-lg text-slate-200 leading-relaxed font-serif italic">
-              "{currentCell.teaserScript}"
+              {drivingMode === 'real-gps' && !isGpsLocked
+                ? gpsState.status === 'requesting'
+                  ? "🛰️ Connecting to GPS satellites... Standing by to stream local oral history and townland heritage for your actual physical location."
+                  : "Ready for live vehicle drive mode. Tap 'Start Live GPS Driving' above to lock onto your location and stream authentic heritage as you travel."
+                : `"${currentCell.teaserScript}"`}
             </p>
 
             <div className="mt-3 flex items-center gap-2 text-xs font-mono text-emerald-400">
               <Sparkles className="w-3.5 h-3.5" />
-              <span>Tap any thread below or say "Tell Me More" to unfold the deep story:</span>
+              <span>
+                {drivingMode === 'real-gps' && !isGpsLocked
+                  ? "Once GPS locks, interactive heritage threads for your townland will unfold here automatically."
+                  : 'Tap any thread below or say "Tell Me More" to unfold the deep story:'}
+              </span>
             </div>
           </div>
 
@@ -545,8 +563,8 @@ export const DriveModeView: React.FC<DriveModeViewProps> = ({
               {currentCell.threads && currentCell.threads.length > 0 ? (
                 currentCell.threads.map((thread) => {
                   const isPulled = activeThread?.id === thread.id;
-                  const isThreadPlaying = isPulled && isSpeaking;
-                  const isThreadPaused = isPulled && audioService.isPaused();
+                  const isThreadPlaying = audioService.isTrackPlaying(`thread-${thread.id}`);
+                  const isThreadPaused = audioService.isTrackPaused(`thread-${thread.id}`);
                   return (
                     <button
                       key={thread.id}
@@ -634,19 +652,23 @@ export const DriveModeView: React.FC<DriveModeViewProps> = ({
               <div
                 onClick={() => onPullThread(activeThread)}
                 className="p-5 rounded-2xl bg-gradient-to-r from-amber-950/20 via-slate-950 to-slate-950 border border-amber-500/40 hover:border-amber-500/70 space-y-3 animate-fadeIn cursor-pointer transition-all"
-                title={isSpeaking ? 'Tap box to pause story' : 'Tap box to resume story'}
+                title={
+                  audioService.isTrackPlaying(`thread-${activeThread.id}`)
+                    ? 'Tap box to pause story'
+                    : 'Tap box to resume story'
+                }
               >
                 <div className="flex items-center justify-between border-b border-amber-500/20 pb-2">
                   <div className="flex items-center gap-2">
-                    <span className={`w-2 h-2 rounded-full ${isSpeaking ? 'bg-amber-400 animate-pulse' : 'bg-slate-500'}`}></span>
+                    <span className={`w-2 h-2 rounded-full ${audioService.isTrackPlaying(`thread-${activeThread.id}`) ? 'bg-amber-400 animate-pulse' : 'bg-slate-500'}`}></span>
                     <span className="text-xs font-mono text-amber-400 font-bold uppercase">
                       Unfolded Story: {activeThread.title}
                     </span>
-                    {isSpeaking ? (
+                    {audioService.isTrackPlaying(`thread-${activeThread.id}`) ? (
                       <span className="text-[10px] font-mono px-2 py-0.5 rounded bg-amber-500/20 text-amber-300">
                         Broadcasting (Tap box to pause)
                       </span>
-                    ) : audioService.isPaused() ? (
+                    ) : audioService.isTrackPaused(`thread-${activeThread.id}`) ? (
                       <span className="text-[10px] font-mono px-2 py-0.5 rounded bg-slate-800 text-slate-300">
                         Paused (Tap box to resume)
                       </span>
@@ -655,7 +677,7 @@ export const DriveModeView: React.FC<DriveModeViewProps> = ({
                   <button
                     onClick={(e) => {
                       e.stopPropagation();
-                      audioService.speak(activeThread.spokenNarrative);
+                      audioService.speak(activeThread.spokenNarrative, { trackId: `thread-${activeThread.id}` });
                     }}
                     className="flex items-center gap-1 text-xs text-amber-300 font-mono hover:text-white"
                   >

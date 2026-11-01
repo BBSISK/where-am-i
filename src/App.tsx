@@ -81,7 +81,7 @@ export const App: React.FC = () => {
         const cell = await DynamicHeritageService.resolveCell(state.h3Index, state.coordinate);
         setCurrentCell(cell);
         if (!isAudioMuted && cell.teaserScript) {
-          audioService.speak(cell.teaserScript);
+          audioService.speak(cell.teaserScript, { trackId: 'ambient-teaser' });
         }
       }
     });
@@ -92,9 +92,24 @@ export const App: React.FC = () => {
       setCurrentCell(cell);
       setActiveThread(null);
       if (!isAudioMuted && cell.teaserScript) {
-        audioService.speak(cell.teaserScript);
+        audioService.speak(cell.teaserScript, { trackId: 'ambient-teaser' });
       }
     });
+
+    // Passive immediate GPS check on load if already permitted
+    if (typeof window !== 'undefined' && 'geolocation' in navigator) {
+      navigator.geolocation.getCurrentPosition(
+        async (pos) => {
+          const coord = { lat: pos.coords.latitude, lng: pos.coords.longitude };
+          const h3 = coordinateToH3(coord, 8);
+          lastResolvedH3 = h3;
+          const cell = await DynamicHeritageService.resolveCell(h3, coord);
+          setCurrentCell(cell);
+        },
+        () => {},
+        { enableHighAccuracy: true, timeout: 5000, maximumAge: 60000 }
+      );
+    }
 
     return () => {
       unsubGps();
@@ -107,10 +122,7 @@ export const App: React.FC = () => {
     audioService.unlockMobileAudio();
     voiceCommandService.startListening();
     await realGpsService.startTracking();
-    // Immediate voice feedback unlocked by user gesture
-    if (!isAudioMuted && currentCell.teaserScript) {
-      audioService.speak(currentCell.teaserScript);
-    }
+    // Do NOT play pre-baked Galway teaser! Real GPS will resolve your physical townland and speak upon satellite lock.
   };
 
   const handleStopGps = () => {
@@ -213,19 +225,8 @@ export const App: React.FC = () => {
   };
 
   const handlePullThread = (thread: ThreadOption) => {
-    // If user taps the ALREADY selected thread a second time: PAUSE or RESUME
-    if (activeThread?.id === thread.id) {
-      if (isSpeaking) {
-        audioService.pause();
-        return;
-      } else if (audioService.isPaused()) {
-        audioService.resume();
-        return;
-      }
-    }
-
     setActiveThread(thread);
-    audioService.speak(thread.spokenNarrative);
+    audioService.toggleTrack(`thread-${thread.id}`, thread.spokenNarrative);
 
     // Save thread to scrapbook
     setSavedThreads((prev) => {

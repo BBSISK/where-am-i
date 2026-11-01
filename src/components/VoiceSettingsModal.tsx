@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import {
   X,
   Sparkles,
@@ -6,7 +6,9 @@ import {
   Check,
   Play,
   Square,
-  AlertCircle
+  AlertCircle,
+  RefreshCw,
+  Sliders
 } from 'lucide-react';
 import { audioService, ELEVENLABS_VOICE_PRESETS } from '../services/audioNarrationService';
 
@@ -24,14 +26,49 @@ export const VoiceSettingsModal: React.FC<VoiceSettingsModalProps> = ({
   const [provider, setProvider] = useState<'elevenlabs' | 'webspeech'>(audioService.getProvider());
   const [apiKey, setApiKey] = useState(audioService.getApiKey());
   const [voiceId, setVoiceId] = useState(audioService.getVoiceId());
+  const [customVoiceId, setCustomVoiceId] = useState('');
+  const [userVoices, setUserVoices] = useState<Array<{ id: string; name: string; category?: string }>>([]);
+  const [isLoadingVoices, setIsLoadingVoices] = useState(false);
   const [isTesting, setIsTesting] = useState(false);
   const [testError, setTestError] = useState<string | null>(null);
+  const [testSuccess, setTestSuccess] = useState(false);
+
+  // Web Speech voices
+  const [webVoices, setWebVoices] = useState<SpeechSynthesisVoice[]>([]);
+
+  useEffect(() => {
+    if (isOpen) {
+      setApiKey(audioService.getApiKey());
+      setVoiceId(audioService.getVoiceId());
+      setProvider(audioService.getProvider());
+      setTestError(null);
+      setTestSuccess(false);
+
+      if (audioService.hasApiKey()) {
+        loadUserVoices(audioService.getApiKey());
+      }
+
+      setWebVoices(audioService.getAvailableWebVoices());
+    }
+  }, [isOpen]);
 
   if (!isOpen) return null;
 
+  const loadUserVoices = async (key: string) => {
+    if (!key || key.length < 5) return;
+    setIsLoadingVoices(true);
+    try {
+      const voices = await audioService.fetchUserVoices(key);
+      setUserVoices(voices);
+    } finally {
+      setIsLoadingVoices(false);
+    }
+  };
+
   const handleSave = () => {
+    const finalVoice = customVoiceId.trim() || voiceId;
     audioService.setApiKey(apiKey);
-    audioService.setVoiceId(voiceId);
+    audioService.setVoiceId(finalVoice);
     audioService.setProvider(provider);
     onSettingsSaved();
     onClose();
@@ -39,23 +76,40 @@ export const VoiceSettingsModal: React.FC<VoiceSettingsModalProps> = ({
 
   const handleTestVoice = async () => {
     setTestError(null);
+    setTestSuccess(false);
     setIsTesting(true);
-    // Temporary set to test
-    audioService.setApiKey(apiKey);
-    audioService.setVoiceId(voiceId);
+
+    const activeKey = apiKey.trim();
+    const finalVoice = customVoiceId.trim() || voiceId;
+
+    // Apply temporarily for test
+    audioService.setApiKey(activeKey);
+    audioService.setVoiceId(finalVoice);
     audioService.setProvider(provider);
 
     const sampleText =
       provider === 'elevenlabs'
-        ? "Dia dhuit! You are now driving through Connemara, where ancient Irish granite and blanket bogs meet the Atlantic Ocean."
-        : "Welcome to Ireland. Entering the townland of Galway, home to the ancient Claddagh and the River Corrib.";
+        ? "Dia dhuit! You are now driving through Ireland, where ancient monuments and blanket bogs meet the Atlantic."
+        : "Welcome to Ireland. Locating your Irish townland and streaming ambient local heritage.";
 
     try {
-      await audioService.speak(sampleText, () => {
-        setIsTesting(false);
+      await audioService.speak(sampleText, {
+        trackId: 'test-voice',
+        onEnd: () => {
+          setIsTesting(false);
+          setTestSuccess(true);
+        }
       });
+      // Check if there was an immediate error recorded
+      const err = audioService.getLastError();
+      if (err) {
+        setTestError(err);
+      } else {
+        setTestSuccess(true);
+      }
     } catch (err: any) {
-      setTestError(err?.message || 'Failed to play sample audio');
+      setTestError(err?.message || 'Voice test failed');
+    } finally {
       setIsTesting(false);
     }
   };
@@ -77,7 +131,7 @@ export const VoiceSettingsModal: React.FC<VoiceSettingsModalProps> = ({
             </div>
             <div>
               <h3 className="text-lg font-black text-white">Audio Narration Studio</h3>
-              <p className="text-xs text-slate-400 font-mono">Configure ElevenLabs Emotive Voices or System Fallback</p>
+              <p className="text-xs text-slate-400 font-mono">Configure Storyteller Voice & ElevenLabs Emotive Models</p>
             </div>
           </div>
 
@@ -115,7 +169,7 @@ export const VoiceSettingsModal: React.FC<VoiceSettingsModalProps> = ({
                 {provider === 'elevenlabs' && <Check className="w-4 h-4 text-amber-400" />}
               </div>
               <p className="text-xs text-slate-300 mt-2 leading-relaxed">
-                Hyper-realistic, emotive Irish storyteller and broadcaster voice models.
+                Hyper-realistic, emotive storyteller and broadcaster voices.
               </p>
             </div>
 
@@ -138,7 +192,7 @@ export const VoiceSettingsModal: React.FC<VoiceSettingsModalProps> = ({
                 {provider === 'webspeech' && <Check className="w-4 h-4 text-emerald-400" />}
               </div>
               <p className="text-xs text-slate-300 mt-2 leading-relaxed">
-                Runs on device via Web Speech API. Zero API key required, works offline.
+                Runs on device via Web Speech API. Works offline with zero API key.
               </p>
             </div>
 
@@ -149,47 +203,80 @@ export const VoiceSettingsModal: React.FC<VoiceSettingsModalProps> = ({
         {provider === 'elevenlabs' && (
           <div className="space-y-4 pt-2 border-t border-slate-800/80">
             
-            {/* API Key Section */}
-            {audioService.isEnvKeyConfigured() ? (
-              <div className="p-3.5 rounded-2xl bg-emerald-500/10 border border-emerald-500/20 text-emerald-300 text-xs flex items-center gap-2.5">
-                <Check className="w-4 h-4 text-emerald-400 shrink-0" />
-                <span>ElevenLabs cloud API key is configured at the Render environment level. Emotive Irish AI voices are active automatically for all users!</span>
+            {/* API Key Input */}
+            <div className="space-y-1.5">
+              <div className="flex items-center justify-between">
+                <label className="text-xs font-mono text-slate-300 flex items-center gap-1.5">
+                  <Key className="w-3.5 h-3.5 text-amber-400" />
+                  <span>ElevenLabs API Key</span>
+                </label>
+                {audioService.isEnvKeyConfigured() && (
+                  <span className="text-[10px] font-mono text-emerald-400">Render Env Configured</span>
+                )}
               </div>
-            ) : (
-              <div className="space-y-1.5">
-                <div className="flex items-center justify-between">
-                  <label className="text-xs font-mono text-slate-300 flex items-center gap-1.5">
-                    <Key className="w-3.5 h-3.5 text-amber-400" />
-                    <span>ElevenLabs API Key (Optional Local Override)</span>
-                  </label>
-                  <span className="text-[11px] text-slate-500 font-mono">Saved in browser localStorage</span>
-                </div>
+              <div className="flex gap-2">
                 <input
                   type="password"
                   placeholder="sk_..."
                   value={apiKey}
                   onChange={(e) => setApiKey(e.target.value)}
-                  className="w-full bg-slate-950 border border-slate-800 rounded-xl px-3.5 py-2.5 text-sm text-white font-mono placeholder:text-slate-600 focus:outline-none focus:ring-2 focus:ring-amber-500 focus:border-transparent"
+                  className="flex-1 bg-slate-950 border border-slate-800 rounded-xl px-3.5 py-2.5 text-sm text-white font-mono placeholder:text-slate-600 focus:outline-none focus:ring-2 focus:ring-amber-500 focus:border-transparent"
                 />
-                <p className="text-[11px] text-slate-500">
-                  Can be configured centrally on Render via <code className="text-amber-400 font-bold">VITE_ELEVENLABS_API_KEY</code>.
-                </p>
+                <button
+                  type="button"
+                  onClick={() => loadUserVoices(apiKey)}
+                  disabled={isLoadingVoices || !apiKey}
+                  className="px-3 py-2 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-300 text-xs font-mono flex items-center gap-1.5 transition-all"
+                  title="Fetch voices from your ElevenLabs account"
+                >
+                  <RefreshCw className={`w-3.5 h-3.5 ${isLoadingVoices ? 'animate-spin' : ''}`} />
+                  <span>Discover</span>
+                </button>
+              </div>
+              <p className="text-[11px] text-slate-500">
+                Key is stored safely in your browser. Get a key at <a href="https://elevenlabs.io" target="_blank" rel="noreferrer" className="text-amber-400 underline">elevenlabs.io</a>.
+              </p>
+            </div>
+
+            {/* User Account Voices (if discovered) */}
+            {userVoices.length > 0 && (
+              <div className="space-y-1.5 p-3 rounded-2xl bg-amber-500/10 border border-amber-500/20">
+                <span className="text-xs font-mono text-amber-300 font-bold block">
+                  ✨ Voices in Your ElevenLabs Account ({userVoices.length})
+                </span>
+                <select
+                  value={voiceId}
+                  onChange={(e) => {
+                    setVoiceId(e.target.value);
+                    setCustomVoiceId('');
+                  }}
+                  className="w-full bg-slate-950 border border-slate-800 rounded-xl px-3 py-2 text-xs text-white font-mono focus:ring-2 focus:ring-amber-500 focus:outline-none"
+                >
+                  {userVoices.map((v) => (
+                    <option key={v.id} value={v.id}>
+                      {v.name} ({v.category || 'Custom'})
+                    </option>
+                  ))}
+                </select>
               </div>
             )}
 
-            {/* Presets List */}
+            {/* Guaranteed Official Premade Voices */}
             <div className="space-y-2">
               <label className="text-xs font-mono text-slate-400 uppercase tracking-wider block">
-                Selected Storyteller Voice
+                Standard Storyteller Voices
               </label>
               <div className="space-y-2">
                 {ELEVENLABS_VOICE_PRESETS.map((p) => (
                   <div
                     key={p.id}
-                    onClick={() => setVoiceId(p.id)}
+                    onClick={() => {
+                      setVoiceId(p.id);
+                      setCustomVoiceId('');
+                    }}
                     className={`p-3 rounded-xl border cursor-pointer transition-all flex items-center justify-between ${
-                      voiceId === p.id
-                        ? 'bg-slate-950 border-amber-500 text-white'
+                      voiceId === p.id && !customVoiceId
+                        ? 'bg-slate-950 border-amber-500 text-white ring-1 ring-amber-500/50'
                         : 'bg-slate-950/40 border-slate-800 text-slate-400 hover:text-white hover:border-slate-700'
                     }`}
                   >
@@ -199,51 +286,119 @@ export const VoiceSettingsModal: React.FC<VoiceSettingsModalProps> = ({
                         <span className="text-[10px] px-2 py-0.5 rounded bg-slate-800 text-amber-400 font-mono">
                           {p.accent}
                         </span>
+                        {p.isGuaranteedPremade && (
+                          <span className="text-[9px] px-1.5 py-0.2 rounded bg-emerald-500/10 text-emerald-400 font-mono">
+                            Universal
+                          </span>
+                        )}
                       </div>
-                      <p className="text-xs text-slate-400 mt-0.5">{p.description}</p>
+                      <p className="text-xs text-slate-400 mt-1">{p.description}</p>
                     </div>
 
-                    <div className="w-5 h-5 rounded-full border flex items-center justify-center border-slate-700">
-                      {voiceId === p.id && <div className="w-2.5 h-2.5 rounded-full bg-amber-400"></div>}
-                    </div>
+                    {voiceId === p.id && !customVoiceId && (
+                      <Check className="w-4 h-4 text-amber-400 shrink-0 ml-2" />
+                    )}
                   </div>
                 ))}
               </div>
             </div>
 
-            {/* Error Message if API fails */}
-            {testError && (
-              <div className="p-3 rounded-xl bg-rose-500/10 border border-rose-500/30 text-rose-400 text-xs flex items-start gap-2">
-                <AlertCircle className="w-4 h-4 shrink-0 mt-0.5" />
-                <span>{testError}</span>
-              </div>
-            )}
+            {/* Custom Voice ID entry */}
+            <div className="space-y-1">
+              <label className="text-xs font-mono text-slate-400 flex items-center gap-1.5">
+                <Sliders className="w-3 h-3 text-slate-400" />
+                <span>Custom Voice ID (Optional)</span>
+              </label>
+              <input
+                type="text"
+                placeholder="e.g. 21m00Tcm4TlvDq8ikWAM or cloned Irish voice ID"
+                value={customVoiceId}
+                onChange={(e) => setCustomVoiceId(e.target.value)}
+                className="w-full bg-slate-950 border border-slate-800 rounded-xl px-3 py-2 text-xs text-white font-mono placeholder:text-slate-600 focus:outline-none focus:ring-1 focus:ring-amber-500"
+              />
+            </div>
 
           </div>
         )}
 
-        {/* Footer Actions */}
-        <div className="flex items-center justify-between pt-4 border-t border-slate-800">
-          <button
-            onClick={isTesting ? handleStopTest : handleTestVoice}
-            className="flex items-center gap-2 px-4 py-2 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-200 text-xs font-mono font-bold border border-slate-700 transition-all"
-          >
-            {isTesting ? <Square className="w-3.5 h-3.5 fill-current text-rose-400" /> : <Play className="w-3.5 h-3.5 fill-current text-amber-400" />}
-            <span>{isTesting ? 'Stop Sample' : 'Test Voice Audio'}</span>
-          </button>
+        {/* Web Speech Voice Options */}
+        {provider === 'webspeech' && (
+          <div className="space-y-3 pt-2 border-t border-slate-800/80">
+            <label className="text-xs font-mono text-slate-400 uppercase tracking-wider block">
+              Device Voices ({webVoices.length} available)
+            </label>
+            {webVoices.length > 0 ? (
+              <select
+                onChange={(e) => audioService.setPreferredWebVoice(e.target.value)}
+                className="w-full bg-slate-950 border border-slate-800 rounded-xl px-3 py-2.5 text-xs text-white font-mono focus:ring-2 focus:ring-emerald-500 focus:outline-none"
+              >
+                {webVoices.map((v) => (
+                  <option key={v.voiceURI} value={v.voiceURI}>
+                    {v.name} ({v.lang})
+                  </option>
+                ))}
+              </select>
+            ) : (
+              <p className="text-xs text-slate-500 font-mono">
+                Using system default English voice with Irish cadence tuning.
+              </p>
+            )}
+          </div>
+        )}
 
-          <div className="flex items-center gap-2">
+        {/* Error / Success Alerts */}
+        {testError && (
+          <div className="p-3.5 rounded-2xl bg-rose-500/10 border border-rose-500/30 text-rose-300 text-xs flex items-center gap-2.5">
+            <AlertCircle className="w-4 h-4 text-rose-400 shrink-0" />
+            <span>Voice error: {testError}</span>
+          </div>
+        )}
+
+        {testSuccess && (
+          <div className="p-3.5 rounded-2xl bg-emerald-500/10 border border-emerald-500/30 text-emerald-300 text-xs flex items-center gap-2.5">
+            <Check className="w-4 h-4 text-emerald-400 shrink-0" />
+            <span>Voice playback verified successfully!</span>
+          </div>
+        )}
+
+        {/* Action Buttons */}
+        <div className="flex flex-col sm:flex-row items-center justify-between gap-3 pt-4 border-t border-slate-800">
+          <div className="flex items-center gap-2 w-full sm:w-auto">
+            {isTesting ? (
+              <button
+                type="button"
+                onClick={handleStopTest}
+                className="w-full sm:w-auto flex items-center justify-center gap-2 px-4 py-2.5 rounded-xl bg-slate-800 hover:bg-slate-700 text-white text-xs font-mono font-bold transition-all"
+              >
+                <Square className="w-3.5 h-3.5 fill-current" />
+                <span>Stop Sample</span>
+              </button>
+            ) : (
+              <button
+                type="button"
+                onClick={handleTestVoice}
+                className="w-full sm:w-auto flex items-center justify-center gap-2 px-4 py-2.5 rounded-xl bg-slate-800 hover:bg-slate-700 text-amber-400 text-xs font-mono font-bold transition-all border border-slate-700"
+              >
+                <Play className="w-3.5 h-3.5 fill-current" />
+                <span>Test Voice Sample</span>
+              </button>
+            )}
+          </div>
+
+          <div className="flex items-center gap-2 w-full sm:w-auto justify-end">
             <button
+              type="button"
               onClick={onClose}
-              className="px-4 py-2 rounded-xl text-xs font-mono text-slate-400 hover:text-white transition-all"
+              className="px-4 py-2.5 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-300 text-xs font-mono transition-all"
             >
               Cancel
             </button>
             <button
+              type="button"
               onClick={handleSave}
-              className="px-5 py-2 rounded-xl bg-amber-600 hover:bg-amber-500 text-white text-xs font-mono font-bold shadow-lg shadow-amber-600/20 transition-all"
+              className="px-5 py-2.5 rounded-xl bg-emerald-600 hover:bg-emerald-500 text-white text-xs font-mono font-bold shadow-lg shadow-emerald-600/20 transition-all"
             >
-              Apply Settings
+              Save Voice Settings
             </button>
           </div>
         </div>
