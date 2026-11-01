@@ -51,13 +51,16 @@ class AudioNarrationService {
 
   constructor() {
     if (typeof window !== 'undefined') {
-      this.elevenApiKey = localStorage.getItem('elevenlabs_api_key') || (import.meta as any).env?.VITE_ELEVENLABS_API_KEY || '';
+      const envKey = (import.meta as any).env?.VITE_ELEVENLABS_API_KEY;
+      const localKey = localStorage.getItem('elevenlabs_api_key');
+      this.elevenApiKey = (envKey || localKey || '').trim();
       this.selectedVoiceId = localStorage.getItem('elevenlabs_voice_id') || ELEVENLABS_VOICE_PRESETS[0].id;
-      const savedProvider = localStorage.getItem('audio_provider');
-      if (savedProvider === 'webspeech' || savedProvider === 'elevenlabs') {
-        this.provider = savedProvider;
+
+      if (this.elevenApiKey) {
+        this.provider = 'elevenlabs';
       } else {
-        this.provider = this.elevenApiKey ? 'elevenlabs' : 'webspeech';
+        const savedProvider = localStorage.getItem('audio_provider');
+        this.provider = savedProvider === 'elevenlabs' ? 'elevenlabs' : 'webspeech';
       }
 
       // Pre-instantiate single shared audio element for mobile Safari compatibility
@@ -71,6 +74,10 @@ class AudioNarrationService {
         }
       }
     }
+  }
+
+  public isEnvKeyConfigured(): boolean {
+    return Boolean((import.meta as any).env?.VITE_ELEVENLABS_API_KEY);
   }
 
   public hasApiKey(): boolean {

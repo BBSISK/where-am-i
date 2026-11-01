@@ -12,3 +12,6 @@ services:
       - path: /*
         name: Cache-Control
         value: public, max-age=0, must-revalidate
+    envVars:
+      - key: VITE_ELEVENLABS_API_KEY
+        sync: false

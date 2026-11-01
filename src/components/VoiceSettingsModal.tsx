@@ -149,26 +149,33 @@ export const VoiceSettingsModal: React.FC<VoiceSettingsModalProps> = ({
         {provider === 'elevenlabs' && (
           <div className="space-y-4 pt-2 border-t border-slate-800/80">
             
-            {/* API Key Input */}
-            <div className="space-y-1.5">
-              <div className="flex items-center justify-between">
-                <label className="text-xs font-mono text-slate-300 flex items-center gap-1.5">
-                  <Key className="w-3.5 h-3.5 text-amber-400" />
-                  <span>ElevenLabs API Key</span>
-                </label>
-                <span className="text-[11px] text-slate-500 font-mono">Saved in browser localStorage</span>
+            {/* API Key Section */}
+            {audioService.isEnvKeyConfigured() ? (
+              <div className="p-3.5 rounded-2xl bg-emerald-500/10 border border-emerald-500/20 text-emerald-300 text-xs flex items-center gap-2.5">
+                <Check className="w-4 h-4 text-emerald-400 shrink-0" />
+                <span>ElevenLabs cloud API key is configured at the Render environment level. Emotive Irish AI voices are active automatically for all users!</span>
               </div>
-              <input
-                type="password"
-                placeholder="sk_..."
-                value={apiKey}
-                onChange={(e) => setApiKey(e.target.value)}
-                className="w-full bg-slate-950 border border-slate-800 rounded-xl px-3.5 py-2.5 text-sm text-white font-mono placeholder:text-slate-600 focus:outline-none focus:ring-2 focus:ring-amber-500 focus:border-transparent"
-              />
-              <p className="text-[11px] text-slate-500">
-                Don't have a key? Get a free key at <a href="https://elevenlabs.io" target="_blank" rel="noreferrer" className="text-amber-400 underline">elevenlabs.io</a> (10,000 free characters/month).
-              </p>
-            </div>
+            ) : (
+              <div className="space-y-1.5">
+                <div className="flex items-center justify-between">
+                  <label className="text-xs font-mono text-slate-300 flex items-center gap-1.5">
+                    <Key className="w-3.5 h-3.5 text-amber-400" />
+                    <span>ElevenLabs API Key (Optional Local Override)</span>
+                  </label>
+                  <span className="text-[11px] text-slate-500 font-mono">Saved in browser localStorage</span>
+                </div>
+                <input
+                  type="password"
+                  placeholder="sk_..."
+                  value={apiKey}
+                  onChange={(e) => setApiKey(e.target.value)}
+                  className="w-full bg-slate-950 border border-slate-800 rounded-xl px-3.5 py-2.5 text-sm text-white font-mono placeholder:text-slate-600 focus:outline-none focus:ring-2 focus:ring-amber-500 focus:border-transparent"
+                />
+                <p className="text-[11px] text-slate-500">
+                  Can be configured centrally on Render via <code className="text-amber-400 font-bold">VITE_ELEVENLABS_API_KEY</code>.
+                </p>
+              </div>
+            )}
 
             {/* Presets List */}
             <div className="space-y-2">

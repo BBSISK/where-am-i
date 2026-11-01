@@ -1,15 +1,17 @@
+export type VoiceCommandType = 'tell_me_more' | 'where_am_i' | 'wake_word' | 'stop_audio';
+
 export interface VoiceCommandState {
   isSupported: boolean;
   isListening: boolean;
   lastHeardPhrase: string;
-  commandDetected: string | null;
+  commandDetected: VoiceCommandType | null;
 }
 
 class VoiceCommandService {
   private recognition: any = null;
   private isListeningActive: boolean = false;
   private listeners: Set<(state: VoiceCommandState) => void> = new Set();
-  private commandCallbacks: Set<(cmd: 'tell_me_more' | 'stop_audio') => void> = new Set();
+  private commandCallbacks: Set<(cmd: VoiceCommandType) => void> = new Set();
 
   private currentState: VoiceCommandState = {
     isSupported: false,
@@ -74,7 +76,7 @@ class VoiceCommandService {
     };
   }
 
-  public onCommand(callback: (cmd: 'tell_me_more' | 'stop_audio') => void) {
+  public onCommand(callback: (cmd: VoiceCommandType) => void) {
     this.commandCallbacks.add(callback);
     return () => {
       this.commandCallbacks.delete(callback);
@@ -93,7 +95,7 @@ class VoiceCommandService {
       this.currentState.isListening = true;
       this.notify();
     } catch (e) {
-      // Already started
+      // Already running
     }
   }
 
@@ -108,6 +110,20 @@ class VoiceCommandService {
     this.notify();
   }
 
+  private triggerCommand(cmd: VoiceCommandType) {
+    this.currentState.commandDetected = cmd;
+    this.notify();
+    this.commandCallbacks.forEach(fn => fn(cmd));
+
+    // Clear after 3 seconds
+    setTimeout(() => {
+      if (this.currentState.commandDetected === cmd) {
+        this.currentState.commandDetected = null;
+        this.notify();
+      }
+    }, 3000);
+  }
+
   private handleSpeechResult(event: any) {
     let transcript = '';
     for (let i = event.resultIndex; i < event.results.length; ++i) {
@@ -119,7 +135,31 @@ class VoiceCommandService {
 
     this.currentState.lastHeardPhrase = transcript;
 
-    // Detect driver voice triggers
+    // 1. Wake word triggers ("Hey Anseo", "Anseo")
+    if (
+      transcript.includes('hey anseo') ||
+      transcript.includes('anseo') ||
+      transcript.includes('an seo') ||
+      transcript.includes('hey antioch') || // Phonetic catch
+      transcript.includes('hey an show')
+    ) {
+      this.triggerCommand('wake_word');
+      return;
+    }
+
+    // 2. "Where Am I?" / Location Query
+    if (
+      transcript.includes('where am i') ||
+      transcript.includes('where are we') ||
+      transcript.includes('what is this place') ||
+      transcript.includes('what townland') ||
+      transcript.includes('location')
+    ) {
+      this.triggerCommand('where_am_i');
+      return;
+    }
+
+    // 3. "Tell Me More" / Deep Thread Trigger
     if (
       transcript.includes('tell me more') ||
       transcript.includes('tell more') ||
@@ -127,24 +167,25 @@ class VoiceCommandService {
       transcript.includes('explore') ||
       transcript.includes('folklore') ||
       transcript.includes('story') ||
+      transcript.includes('history') ||
       transcript.includes('pull thread')
     ) {
-      this.currentState.commandDetected = 'tell_me_more';
-      this.notify();
-      this.commandCallbacks.forEach(fn => fn('tell_me_more'));
-
-      // Clear detected command after 3 seconds
-      setTimeout(() => {
-        this.currentState.commandDetected = null;
-        this.notify();
-      }, 3000);
-    } else if (transcript.includes('stop') || transcript.includes('quiet') || transcript.includes('mute')) {
-      this.currentState.commandDetected = 'stop_audio';
-      this.notify();
-      this.commandCallbacks.forEach(fn => fn('stop_audio'));
-    } else {
-      this.notify();
+      this.triggerCommand('tell_me_more');
+      return;
     }
+
+    // 4. Mute / Silence Commands
+    if (
+      transcript.includes('stop') ||
+      transcript.includes('quiet') ||
+      transcript.includes('mute') ||
+      transcript.includes('silence')
+    ) {
+      this.triggerCommand('stop_audio');
+      return;
+    }
+
+    this.notify();
   }
 
   public getState(): VoiceCommandState {

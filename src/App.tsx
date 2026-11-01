@@ -119,15 +119,6 @@ export const App: React.FC = () => {
     audioService.stop();
   };
 
-  const handleToggleVoiceCommand = () => {
-    if (voiceState.isListening) {
-      voiceCommandService.stopListening();
-    } else {
-      audioService.unlockMobileAudio();
-      voiceCommandService.startListening();
-    }
-  };
-
   // Simulator: derived waypoints & bearing
   const simWaypoint = currentRoute.waypoints[currentWaypointIndex];
   const nextSimWaypoint = currentRoute.waypoints[(currentWaypointIndex + 1) % currentRoute.waypoints.length];
@@ -179,11 +170,14 @@ export const App: React.FC = () => {
     const nextState = !isPlaying;
     setIsPlaying(nextState);
     if (nextState) {
+      audioService.unlockMobileAudio();
+      voiceCommandService.startListening();
       if (!isAudioMuted && currentCell.teaserScript) {
         audioService.speak(currentCell.teaserScript);
       }
     } else {
       audioService.stop();
+      voiceCommandService.stopListening();
     }
   };
 
@@ -256,7 +250,12 @@ export const App: React.FC = () => {
     });
 
     const unsubCmd = voiceCommandService.onCommand((cmd) => {
-      if (cmd === 'tell_me_more') {
+      if (cmd === 'wake_word') {
+        audioService.speak("Dia dhuit! Ask 'Where am I', or say 'Tell me more'.");
+      } else if (cmd === 'where_am_i') {
+        const text = `You are in the townland of ${currentCell.townland}, County ${currentCell.county}. ${currentCell.teaserScript}`;
+        audioService.speak(text);
+      } else if (cmd === 'tell_me_more') {
         if (currentCell.threads && currentCell.threads.length > 0) {
           handlePullThread(currentCell.threads[0]);
         }
@@ -304,8 +303,6 @@ export const App: React.FC = () => {
             onStartGps={handleStartGps}
             onStopGps={handleStopGps}
             voiceState={voiceState}
-            onToggleVoiceCommand={handleToggleVoiceCommand}
-            audioProvider={audioService.getProvider()}
             hasElevenApiKey={audioService.hasApiKey()}
             audioLastError={audioService.getLastError()}
             onOpenVoiceStudio={() => setIsVoiceModalOpen(true)}
