@@ -1,7 +1,38 @@
 import { EnrichedH3Cell, GeoCoordinate } from '../types';
 import { spatialRagService } from '../services/spatialRagService';
+import { N4_CORRIDOR_AREAS } from './n4CorridorData';
 
-export const HERITAGE_KNOWLEDGE_STORE: Record<string, Partial<EnrichedH3Cell>> = {
+export const HERITAGE_KNOWLEDGE_STORE: Record<string, Partial<EnrichedH3Cell>> = {};
+
+// Ingest N4 Corridor (Lucan, Leixlip, Maynooth) into the base store
+N4_CORRIDOR_AREAS.forEach((area) => {
+  HERITAGE_KNOWLEDGE_STORE[area.townland] = {
+    townland: area.townland,
+    parish: area.parish,
+    county: area.county,
+    center: area.coordinates,
+    etymology: area.etymology,
+    monuments: area.monuments,
+    folklore: area.folklore,
+    geology: area.geology,
+    history: area.history,
+    waterways: area.waterways,
+    teaserScript: area.teaserScript,
+    narrativeScript: area.narrativeScript,
+    threads: area.threads,
+    keyHighlights: [
+      `Gaeilge: ${area.irishName} (${area.phonetic})`,
+      `${area.monuments.length} recorded national monuments`,
+      `1937 Dúchas oral folklore: "${area.folklore.title}"`
+    ],
+    curatedByAgent: true,
+    enrichmentLatencyMs: 2,
+    tokensConsumed: 450
+  };
+});
+
+// Legacy regional knowledge bases
+Object.assign(HERITAGE_KNOWLEDGE_STORE, {
   // --- Connemara & Galway ---
   'Galway City': {
     townland: 'Claddagh & Corribmouth',
@@ -602,7 +633,7 @@ export const HERITAGE_KNOWLEDGE_STORE: Record<string, Partial<EnrichedH3Cell>> =
     tokensConsumed: 535,
     enrichmentLatencyMs: 310
   }
-};
+});
 
 /**
  * Returns enriched metadata for a given waypoint name or coordinates.

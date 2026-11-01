@@ -161,6 +161,7 @@ export const App: React.FC = () => {
           const coord = { lat: pos.coords.latitude, lng: pos.coords.longitude };
           const h3 = coordinateToH3(coord, 8);
           lastResolvedH3 = h3;
+          realGpsService.updateLocationManually(coord, Math.round(pos.coords.accuracy) || 15);
           const cell = await DynamicHeritageService.resolveCell(h3, coord);
           setCurrentCell(cell);
         },

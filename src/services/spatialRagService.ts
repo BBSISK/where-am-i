@@ -27,6 +27,7 @@ export interface AreaKnowledgeUnit {
   parish: string;
   coordinates: GeoCoordinate;
   h3Indices: string[]; // List of H3 Res 8 cells covering this area
+  aliases?: string[]; // Townland sub-districts and neighborhood aliases
   etymology: EtymologyInfo;
   monuments: NationalMonument[];
   folklore: FolkloreStory;
@@ -187,16 +188,16 @@ class SpatialRagService {
 
   /**
    * Resolves the primary Area Knowledge Unit for a coordinate, or null if uncurated.
-   * Employs spatial index with Haversine corridor proximity fallback (< 4000m).
+   * Employs spatial index with Haversine corridor proximity fallback (< 6500m).
    */
   public resolveArea(coord: GeoCoordinate): AreaKnowledgeUnit | null {
     const currentH3 = coordinateToH3(coord, 8);
     const directHit = this.h3ToAreaMap.get(currentH3);
     if (directHit) return directHit;
 
-    // Check registered areas by physical distance along the highway corridor
+    // Check registered areas by physical distance along the highway corridor (up to 6.5km)
     let closestArea: AreaKnowledgeUnit | null = null;
-    let minDistance = 4000; // 4km corridor threshold
+    let minDistance = 6500; // 6.5km corridor threshold to cover entire metropolitan district
 
     for (const area of this.registeredAreas) {
       const dist = calculateHaversineDistance(coord, area.coordinates);
@@ -216,16 +217,17 @@ class SpatialRagService {
   }
 
   /**
-   * Retrieves an Area Knowledge Unit by townland or Irish name.
+   * Retrieves an Area Knowledge Unit by townland, Irish name, or neighborhood alias.
    */
   public getAreaByName(name: string): AreaKnowledgeUnit | null {
     const query = name.toLowerCase().trim();
-    return this.registeredAreas.find(area =>
-      query.includes(area.townland.toLowerCase()) ||
-      area.townland.toLowerCase().includes(query) ||
-      query.includes(area.irishName.toLowerCase()) ||
-      area.irishName.toLowerCase().includes(query)
-    ) || null;
+    if (!query) return null;
+    return this.registeredAreas.find(area => {
+      const townlandMatch = query.includes(area.townland.toLowerCase()) || area.townland.toLowerCase().includes(query);
+      const irishMatch = query.includes(area.irishName.toLowerCase()) || area.irishName.toLowerCase().includes(query);
+      const aliasMatch = area.aliases?.some(alias => query.includes(alias.toLowerCase()) || alias.toLowerCase().includes(query));
+      return townlandMatch || irishMatch || aliasMatch;
+    }) || null;
   }
 
   /**

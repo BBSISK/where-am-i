@@ -35,22 +35,8 @@ export class DynamicHeritageService {
   private static cache: Map<string, EnrichedH3Cell> = new Map();
 
   public static async resolveCell(h3Index: string, coord: GeoCoordinate): Promise<EnrichedH3Cell> {
-    if (this.cache.has(h3Index)) {
-      return this.cache.get(h3Index)!;
-    }
-
-    if (typeof window !== 'undefined') {
-      const stored = localStorage.getItem(`h3_${h3Index}`);
-      if (stored) {
-        try {
-          const parsed = JSON.parse(stored) as EnrichedH3Cell;
-          this.cache.set(h3Index, parsed);
-          return parsed;
-        } catch (e) {}
-      }
-    }
-
-    // 1. Check Spatial RAG Index (Sub-millisecond geofenced in-memory retrieval)
+    // 1. Check Spatial RAG Index FIRST (Sub-millisecond geofenced in-memory retrieval)
+    // Curated high-fidelity knowledge units ALWAYS take precedence over generic caches
     const ragArea = spatialRagService.resolveArea(coord);
     if (ragArea) {
       const cell = spatialRagService.toEnrichedCell(ragArea, h3Index, coord);
@@ -58,7 +44,32 @@ export class DynamicHeritageService {
       return cell;
     }
 
-    // 2. Check legacy curated route milestones
+    // 2. Validate in-memory cache (must have 6 cultural pillars)
+    if (this.cache.has(h3Index)) {
+      const cached = this.cache.get(h3Index)!;
+      if (cached.history && cached.waterways) {
+        return cached;
+      }
+    }
+
+    // 3. Check persistent localStorage (purge any stale entries from prior sessions)
+    if (typeof window !== 'undefined') {
+      const stored = localStorage.getItem(`h3_${h3Index}`);
+      if (stored) {
+        try {
+          const parsed = JSON.parse(stored) as EnrichedH3Cell;
+          // Purge stale caches that lack 6 pillars or contain generic synthetic SMR monuments
+          if (parsed.history && parsed.waterways && !parsed.monuments?.some(m => m.name.includes('Archaeological SMR Enclosure'))) {
+            this.cache.set(h3Index, parsed);
+            return parsed;
+          } else {
+            localStorage.removeItem(`h3_${h3Index}`);
+          }
+        } catch (e) {}
+      }
+    }
+
+    // 4. Check legacy curated route milestones
     for (const key of Object.keys(HERITAGE_KNOWLEDGE_STORE)) {
       const curated = HERITAGE_KNOWLEDGE_STORE[key]!;
       if (curated.townland && key !== 'fallback') {
@@ -73,6 +84,8 @@ export class DynamicHeritageService {
             monuments: curated.monuments || [],
             folklore: curated.folklore!,
             geology: curated.geology!,
+            history: curated.history,
+            waterways: curated.waterways,
             teaserScript: curated.teaserScript || `Entering ${curated.townland}. Tap to pull a thread on its ancient Irish roots and heritage.`,
             narrativeScript: curated.narrativeScript || `You are now passing through ${curated.townland}.`,
             threads: curated.threads || [],
@@ -87,8 +100,17 @@ export class DynamicHeritageService {
       }
     }
 
-    // 2. Query Live OpenStreetMap Reverse Geocoding to get real Townland & County
+    // 5. Query Live OpenStreetMap Reverse Geocoding to get real Townland & County
     const geoInfo = await this.fetchLiveReverseGeocode(coord);
+
+    // If reverse geocoding resolved to an area in our Spatial RAG Index (e.g. Lucan, Leixlip, Maynooth)
+    const ragByGeocode = spatialRagService.getAreaByName(geoInfo.townland);
+    if (ragByGeocode) {
+      const cell = spatialRagService.toEnrichedCell(ragByGeocode, h3Index, coord);
+      this.saveToCache(h3Index, cell);
+      return cell;
+    }
+
     const dynamicCell = this.buildCellFromGeoInfo(h3Index, coord, geoInfo);
     this.saveToCache(h3Index, dynamicCell);
     return dynamicCell;
@@ -241,6 +263,9 @@ export class DynamicHeritageService {
 
   private static isNearKnownPlace(coord: GeoCoordinate, placeKey: string): boolean {
     const coordsMap: Record<string, GeoCoordinate> = {
+      'Lucan': { lat: 53.3575, lng: -6.4485 },
+      'Leixlip': { lat: 53.3639, lng: -6.4950 },
+      'Maynooth': { lat: 53.3813, lng: -6.5918 },
       'Galway City': { lat: 53.27, lng: -9.05 },
       'Moycullen': { lat: 53.33, lng: -9.18 },
       'Oughterard': { lat: 53.42, lng: -9.32 },

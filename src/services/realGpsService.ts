@@ -111,6 +111,31 @@ class RealGpsService {
     );
   }
 
+  /**
+   * Allows passive initial lock from navigator.geolocation on app boot
+   */
+  public updateLocationManually(coord: GeoCoordinate, accuracyMeters: number = 15): void {
+    const currentH3 = coordinateToH3(coord, 8);
+    const isFirstLock = this.lastH3Index === null;
+    const isNewCell = this.lastH3Index !== null && currentH3 !== this.lastH3Index;
+
+    this.lastCoordinate = coord;
+    this.lastH3Index = currentH3;
+
+    this.currentState = {
+      ...this.currentState,
+      status: 'locked',
+      coordinate: coord,
+      accuracyMeters,
+      h3Index: currentH3
+    };
+    this.notify();
+
+    if (isFirstLock || isNewCell) {
+      this.cellEntryListeners.forEach(fn => fn(currentH3, coord, 0));
+    }
+  }
+
   private handleGpsUpdate(position: GeolocationPosition) {
     // Hard guard: if user stopped tracking, discard any incoming delayed callbacks
     if (!this.isTrackingActive) return;

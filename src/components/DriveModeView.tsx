@@ -111,6 +111,7 @@ export const DriveModeView: React.FC<DriveModeViewProps> = ({
 }) => {
   const [activeCardTab, setActiveCardTab] = useState<'etymology' | 'monuments' | 'folklore' | 'geology' | 'history' | 'waterways'>('etymology');
   const isGpsLocked = gpsState.status === 'locked';
+  const isAcquiring = drivingMode === 'real-gps' && !isGpsLocked && (currentCell.h3Index === 'scanning...' || currentCell.townland === 'Acquiring GPS fix...');
 
   return (
     <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6 space-y-6">
@@ -503,10 +504,10 @@ export const DriveModeView: React.FC<DriveModeViewProps> = ({
               </div>
               <div className="mt-1.5 p-2.5 rounded-xl bg-slate-950 border border-slate-800 flex items-center justify-between font-mono">
                 <span className="text-sm font-bold text-emerald-400 tracking-wider">
-                  {drivingMode === 'real-gps' && !isGpsLocked ? 'Scanning...' : `#${currentCell.h3Index}`}
+                  {isAcquiring ? 'Scanning...' : `#${currentCell.h3Index}`}
                 </span>
                 <span className="text-xs text-slate-500">
-                  {drivingMode === 'real-gps' && !isGpsLocked ? 'GPS Required' : 'O(1) Indexed'}
+                  {isAcquiring ? 'GPS Required' : 'O(1) Indexed'}
                 </span>
               </div>
             </div>
@@ -515,10 +516,10 @@ export const DriveModeView: React.FC<DriveModeViewProps> = ({
             <div className="mt-4">
               <p className="text-xs text-slate-400 font-mono">Active Townland</p>
               <h3 className="text-lg font-bold text-white mt-0.5">
-                {drivingMode === 'real-gps' && !isGpsLocked ? 'Locating Satellites...' : currentCell.townland}
+                {isAcquiring ? 'Locating Satellites...' : currentCell.townland}
               </h3>
               <p className="text-xs font-mono text-emerald-400 mt-0.5">
-                {drivingMode === 'real-gps' && !isGpsLocked ? 'Acquiring GPS fix' : `County ${currentCell.county}`}
+                {isAcquiring ? 'Acquiring GPS fix' : `County ${currentCell.county}`}
               </p>
             </div>
 
@@ -595,7 +596,7 @@ export const DriveModeView: React.FC<DriveModeViewProps> = ({
                 )}
               </div>
 
-              {(drivingMode === 'simulator' || isGpsLocked) && (
+              {!isAcquiring && (
                 <button
                   onClick={onReplayAudio}
                   className="flex items-center gap-1.5 px-3 py-1 rounded-lg bg-emerald-500/20 hover:bg-emerald-500/30 border border-emerald-500/30 text-emerald-300 text-xs font-medium transition-all"
@@ -608,7 +609,7 @@ export const DriveModeView: React.FC<DriveModeViewProps> = ({
 
             {/* Teaser Breadcrumb */}
             <p className="mt-4 text-base sm:text-lg text-slate-200 leading-relaxed font-serif italic">
-              {drivingMode === 'real-gps' && !isGpsLocked
+              {isAcquiring
                 ? gpsState.status === 'requesting'
                   ? "🛰️ Connecting to GPS satellites... Standing by to stream local oral history and townland heritage for your actual physical location."
                   : "Ready for live vehicle drive mode. Tap 'Start Live GPS Driving' above to lock onto your location and stream authentic heritage as you travel."
@@ -619,13 +620,13 @@ export const DriveModeView: React.FC<DriveModeViewProps> = ({
               <div className="flex items-center gap-2 text-xs font-mono text-emerald-400">
                 <Sparkles className="w-3.5 h-3.5 shrink-0" />
                 <span>
-                  {drivingMode === 'real-gps' && !isGpsLocked
+                  {isAcquiring
                     ? "Once GPS locks, interactive heritage threads for your townland will unfold here automatically."
                     : 'Tap any thread below or say "Tell Me More" to explore:'}
                 </span>
               </div>
 
-              {(drivingMode === 'simulator' || isGpsLocked) && currentCell.threads && currentCell.threads.length > 0 && onPullNextThread && (
+              {!isAcquiring && currentCell.threads && currentCell.threads.length > 0 && onPullNextThread && (
                 <button
                   onClick={onPullNextThread}
                   type="button"
@@ -653,7 +654,7 @@ export const DriveModeView: React.FC<DriveModeViewProps> = ({
 
             {/* Large Interactive Thread Cards */}
             <div className="grid grid-cols-1 gap-3">
-              {drivingMode === 'real-gps' && !isGpsLocked ? (
+              {isAcquiring ? (
                 <div className="p-6 rounded-2xl bg-slate-950/80 border border-slate-800 text-center space-y-3">
                   <div className="inline-flex p-3 rounded-2xl bg-emerald-500/10 border border-emerald-500/20 text-emerald-400">
                     <Radio className="w-6 h-6 animate-pulse" />
@@ -904,7 +905,7 @@ export const DriveModeView: React.FC<DriveModeViewProps> = ({
             </div>
 
             <div className="p-6">
-              {drivingMode === 'real-gps' && !isGpsLocked ? (
+              {isAcquiring ? (
                 <div className="text-center py-8 text-xs text-slate-500 font-mono space-y-2">
                   <div className="text-xl">🛰️</div>
                   <p className="text-slate-300 font-bold">Townland Etymology & Cultural Heritage Standby</p>

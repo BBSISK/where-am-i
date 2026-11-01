@@ -137,10 +137,23 @@ describe('Spatial RAG Engine', () => {
       expect(maynooth?.waterways?.type).toBe('Canal');
     });
 
-    it('resolves coordinates along the N4 corridor to the closest townland within 4km', () => {
+    it('resolves neighborhood aliases like Griffeen, Adamstown, and Lucan Village', () => {
+      expect(spatialRagService.getAreaByName('Griffeen')?.townland).toBe('Lucan');
+      expect(spatialRagService.getAreaByName('Griffeen Bridge')?.townland).toBe('Lucan');
+      expect(spatialRagService.getAreaByName('Adamstown')?.townland).toBe('Lucan');
+      expect(spatialRagService.getAreaByName('Lucan Village')?.townland).toBe('Lucan');
+      expect(spatialRagService.getAreaByName('Confey')?.townland).toBe('Leixlip');
+      expect(spatialRagService.getAreaByName('Carton')?.townland).toBe('Maynooth');
+    });
+
+    it('resolves coordinates along the N4 corridor to the closest townland within 6.5km', () => {
       // Point on N4 near Lucan bypass (lat: 53.3590, lng: -6.4520)
       const nearLucan = spatialRagService.resolveArea({ lat: 53.3590, lng: -6.4520 });
       expect(nearLucan?.townland).toBe('Lucan');
+
+      // Point in Adamstown / Lucan South (lat: 53.3440, lng: -6.4620, ~1.8km from Lucan center)
+      const adamstown = spatialRagService.resolveArea({ lat: 53.3440, lng: -6.4620 });
+      expect(adamstown?.townland).toBe('Lucan');
 
       // Point on M4 near Maynooth Junction 7 (lat: 53.3750, lng: -6.5850)
       const nearMaynooth = spatialRagService.resolveArea({ lat: 53.3750, lng: -6.5850 });

@@ -18,6 +18,27 @@ export const N4_CORRIDOR_AREAS: AreaKnowledgeUnit[] = [
     parish: 'Lucan (Paróiste Leamhcáin)',
     coordinates: { lat: 53.3575, lng: -6.4485 },
     h3Indices: [], // Dynamic corridor expansion
+    aliases: [
+      'Lucan',
+      'Leamhcán',
+      'Griffeen',
+      'Griffeen Valley',
+      'Griffeen Bridge',
+      'Adamstown',
+      'Dodsboro',
+      'Finnstown',
+      'Esker',
+      'Laraghcon',
+      'Lucan Demesne',
+      'Hermitage',
+      'Ballyowen',
+      'Lucan Village',
+      'Lucan and Pettystown',
+      'South Dublin',
+      'Lucan Heights',
+      'Woodview',
+      'Weston'
+    ],
     etymology: {
       irishName: 'Leamhcán',
       englishName: 'Lucan',
@@ -128,6 +149,18 @@ export const N4_CORRIDOR_AREAS: AreaKnowledgeUnit[] = [
     parish: 'Leixlip (Paróiste Léim an Bhradáin)',
     coordinates: { lat: 53.3639, lng: -6.4950 },
     h3Indices: [],
+    aliases: [
+      'Leixlip',
+      'Léim an Bhradáin',
+      'Salmon Leap',
+      'Confey',
+      'Louisa Bridge',
+      'Castletown',
+      'Barnhall',
+      'Rye Water',
+      'St. Catherine’s',
+      'Wonderful Barn'
+    ],
     etymology: {
       irishName: 'Léim an Bhradáin',
       englishName: 'Leixlip',
@@ -238,6 +271,17 @@ export const N4_CORRIDOR_AREAS: AreaKnowledgeUnit[] = [
     parish: 'Maynooth (Paróiste Mhaigh Nuadhad)',
     coordinates: { lat: 53.3813, lng: -6.5918 },
     h3Indices: [],
+    aliases: [
+      'Maynooth',
+      'Maigh Nuadhad',
+      'Carton',
+      'Carton Demesne',
+      "St. Patrick's College",
+      'Lyreen',
+      'Railpark',
+      'Moyglare',
+      'Maynooth Castle'
+    ],
     etymology: {
       irishName: 'Maigh Nuadhad',
       englishName: 'Maynooth',
@@ -336,3 +380,4 @@ export const N4_CORRIDOR_AREAS: AreaKnowledgeUnit[] = [
     ]
   }
 ];
+
