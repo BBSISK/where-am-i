@@ -41,6 +41,9 @@ interface DriveModeViewProps {
   audioPlaybackState?: 'idle' | 'loading' | 'playing' | 'paused';
   currentTrackId?: string | null;
   onToggleVoiceListening?: () => void;
+  selectedVoiceId?: string;
+  onSelectVoice?: (voiceId: string) => void;
+  onPullNextThread?: () => void;
 
   // Simulator props (Secondary mode)
   currentRoute: SimulatedRoute;
@@ -80,6 +83,9 @@ export const DriveModeView: React.FC<DriveModeViewProps> = ({
   audioPlaybackState = 'idle',
   currentTrackId = null,
   onToggleVoiceListening,
+  selectedVoiceId = '2WvAXMgrakBkapSmnlv7',
+  onSelectVoice,
+  onPullNextThread,
   currentRoute,
   onRouteChange,
   availableRoutes,
@@ -365,21 +371,68 @@ export const DriveModeView: React.FC<DriveModeViewProps> = ({
           <div className="p-3 rounded-2xl bg-rose-500/10 border border-rose-500/30 text-rose-300 text-xs flex items-center justify-between">
             <div className="flex items-center gap-2">
               <ShieldAlert className="w-4 h-4 text-rose-400 shrink-0" />
-              <span>Audio notice: {audioLastError}. Using native device speech.</span>
-            </div>
-          </div>
-        ) : hasElevenApiKey ? (
-          <div className="px-3.5 py-2 rounded-2xl bg-emerald-500/10 border border-emerald-500/20 text-emerald-300 text-xs flex items-center justify-between font-mono">
-            <div className="flex items-center gap-2">
-              <span className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse"></span>
-              <span>🎙️ ElevenLabs: {audioService.getVoiceLabel()}</span>
+              <span>Audio notice: {audioLastError}.</span>
             </div>
             <button
               onClick={onOpenVoiceStudio}
-              className="text-emerald-400 hover:text-white text-xs underline font-bold"
+              className="text-rose-400 hover:text-white text-xs underline font-bold"
             >
-              Voice Studio
+              Open Voice Studio
             </button>
+          </div>
+        ) : hasElevenApiKey ? (
+          <div className="px-3.5 py-2.5 rounded-2xl bg-emerald-500/10 border border-emerald-500/20 text-emerald-300 text-xs flex flex-col sm:flex-row items-start sm:items-center justify-between gap-2.5 font-mono">
+            <div className="flex items-center gap-2 flex-wrap">
+              <span className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse"></span>
+              <span className="font-bold">🎙️ Voice: {audioService.getVoiceLabel()}</span>
+            </div>
+
+            <div className="flex items-center gap-1.5 flex-wrap">
+              <span className="text-[10px] text-slate-400">Quick Try:</span>
+              <button
+                type="button"
+                onClick={() => onSelectVoice?.('2WvAXMgrakBkapSmnlv7')}
+                className={`text-[10px] px-2 py-0.5 rounded border transition-all cursor-pointer ${
+                  selectedVoiceId === '2WvAXMgrakBkapSmnlv7'
+                    ? 'bg-amber-500/30 text-amber-300 border-amber-500 font-bold'
+                    : 'bg-slate-800 text-slate-400 border-slate-700 hover:text-white'
+                }`}
+                title="Flynn: Crisp authentic Dublin / Leinster Irish narrator"
+              >
+                🇮🇪 Flynn (Irish)
+              </button>
+              <button
+                type="button"
+                onClick={() => onSelectVoice?.('N2lVS1w4EtoT3dr4eOWO')}
+                className={`text-[10px] px-2 py-0.5 rounded border transition-all cursor-pointer ${
+                  selectedVoiceId === 'N2lVS1w4EtoT3dr4eOWO'
+                    ? 'bg-amber-500/30 text-amber-300 border-amber-500 font-bold'
+                    : 'bg-slate-800 text-slate-400 border-slate-700 hover:text-white'
+                }`}
+                title="Callum: Rich, husky Celtic folklore storyteller"
+              >
+                ☘️ Callum (Celtic)
+              </button>
+              <button
+                type="button"
+                onClick={() => onSelectVoice?.('JBFqnCBsd6RMkjVDRZzb')}
+                className={`text-[10px] px-2 py-0.5 rounded border transition-all cursor-pointer ${
+                  selectedVoiceId === 'JBFqnCBsd6RMkjVDRZzb'
+                    ? 'bg-amber-500/30 text-amber-300 border-amber-500 font-bold'
+                    : 'bg-slate-800 text-slate-400 border-slate-700 hover:text-white'
+                }`}
+                title="George: British / Celtic heritage narrator"
+              >
+                🎙️ George (UK/Celtic)
+              </button>
+              <button
+                type="button"
+                onClick={onOpenVoiceStudio}
+                className="text-emerald-400 hover:text-white text-xs underline font-bold ml-1 cursor-pointer"
+              >
+                Studio...
+              </button>
+            </div>
           </div>
         ) : (
           <div className="px-3.5 py-2 rounded-2xl bg-slate-900 border border-slate-800 text-slate-300 text-xs flex items-center justify-between font-mono">
@@ -560,13 +613,27 @@ export const DriveModeView: React.FC<DriveModeViewProps> = ({
                 : `"${currentCell.teaserScript}"`}
             </p>
 
-            <div className="mt-3 flex items-center gap-2 text-xs font-mono text-emerald-400">
-              <Sparkles className="w-3.5 h-3.5" />
-              <span>
-                {drivingMode === 'real-gps' && !isGpsLocked
-                  ? "Once GPS locks, interactive heritage threads for your townland will unfold here automatically."
-                  : 'Tap any thread below or say "Tell Me More" to unfold the deep story:'}
-              </span>
+            <div className="mt-4 pt-3 border-t border-emerald-500/20 flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+              <div className="flex items-center gap-2 text-xs font-mono text-emerald-400">
+                <Sparkles className="w-3.5 h-3.5 shrink-0" />
+                <span>
+                  {drivingMode === 'real-gps' && !isGpsLocked
+                    ? "Once GPS locks, interactive heritage threads for your townland will unfold here automatically."
+                    : 'Tap any thread below or say "Tell Me More" to explore:'}
+                </span>
+              </div>
+
+              {(drivingMode === 'simulator' || isGpsLocked) && currentCell.threads && currentCell.threads.length > 0 && onPullNextThread && (
+                <button
+                  onClick={onPullNextThread}
+                  type="button"
+                  className="px-3.5 py-1.5 rounded-xl bg-gradient-to-r from-amber-500 to-amber-600 hover:from-amber-400 hover:to-amber-500 text-slate-950 font-bold text-xs flex items-center justify-center gap-1.5 shadow-lg shadow-amber-500/20 transition-all cursor-pointer whitespace-nowrap active:scale-95"
+                  title="Move to the next story thread in this townland"
+                >
+                  <Sparkles className="w-3.5 h-3.5 fill-current" />
+                  <span>🧵 Tell Me More (Next Topic)</span>
+                </button>
+              )}
             </div>
           </div>
 

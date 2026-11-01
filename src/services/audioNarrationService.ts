@@ -8,6 +8,20 @@ export interface ElevenLabsVoicePreset {
 
 export const ELEVENLABS_VOICE_PRESETS: ElevenLabsVoicePreset[] = [
   {
+    id: '2WvAXMgrakBkapSmnlv7',
+    name: 'Flynn (Authentic Irish Male Narrator)',
+    description: 'Crisp, natural and authentic Irish male cadence (Dublin / Leinster tone)',
+    accent: 'Irish (Male)',
+    isGuaranteedPremade: true
+  },
+  {
+    id: 'N2lVS1w4EtoT3dr4eOWO',
+    name: 'Callum (Husky Celtic Storyteller)',
+    description: 'Rich, gravelly Celtic storyteller voice ideal for folklore and myth (official premade)',
+    accent: 'Celtic / Transatlantic (Male)',
+    isGuaranteedPremade: true
+  },
+  {
     id: 'JBFqnCBsd6RMkjVDRZzb',
     name: 'George (Warm Celtic & British Heritage)',
     description: 'Warm, captivating British / Celtic heritage male narrator (official premade)',
@@ -16,29 +30,15 @@ export const ELEVENLABS_VOICE_PRESETS: ElevenLabsVoicePreset[] = [
   },
   {
     id: 'pNInz6obpgDQGcFmaJgB',
-    name: 'Adam (Expressive Storyteller)',
+    name: 'Adam (Deep Expressive Storyteller)',
     description: 'Dynamic, deep and narrative-rich male voice for dramatic folklore passages',
     accent: 'Deep Storyteller (Male)',
     isGuaranteedPremade: true
   },
   {
-    id: 'IKne3meq5aSn9XLyUdCD',
-    name: 'Charlie (Conversational Host)',
-    description: 'Casual, friendly driving companion male narrator',
-    accent: 'Conversational (Male)',
-    isGuaranteedPremade: true
-  },
-  {
-    id: 'ErXwobaYiN019PkySvjV',
-    name: 'Antoni (Classic Radio)',
-    description: 'Crisp, measured modulation ideal for automotive heads-up audio',
-    accent: 'Radio Modulation (Male)',
-    isGuaranteedPremade: true
-  },
-  {
     id: 'D38z5RcWu1voky8WS1ja',
-    name: 'Fin (Irish Storyteller Clone)',
-    description: 'Authentic Irish cadence (requires voice in your ElevenLabs library)',
+    name: 'Fin (West of Ireland Storyteller)',
+    description: 'Authentic Connemara & Western Irish storytelling cadence (requires library voice)',
     accent: 'Irish (West)',
     isGuaranteedPremade: false
   }
@@ -86,9 +86,9 @@ class AudioNarrationService {
       this.elevenApiKey = (envKey || localKey || '').trim().replace(/^["']|["']$/g, '');
       
       const savedVoiceId = localStorage.getItem('elevenlabs_voice_id');
-      // Always ensure valid default (avoid stale 404 Fin voice)
+      // Default to Flynn (Authentic Irish Male) or saved preference
       if (!savedVoiceId || savedVoiceId === 'D38z5RcWu1voky8WS1ja') {
-        this.selectedVoiceId = ELEVENLABS_VOICE_PRESETS[0].id;
+        this.selectedVoiceId = ELEVENLABS_VOICE_PRESETS[0].id; // Flynn (2WvAXMgrakBkapSmnlv7)
       } else {
         this.selectedVoiceId = savedVoiceId;
       }
@@ -423,6 +423,20 @@ class AudioNarrationService {
 
       if (!response.ok) {
         const errorText = await response.text();
+        // If the voice ID returned 404 (e.g. community voice not in this account's library),
+        // automatically fallback to Callum or George (guaranteed premades available to all accounts)
+        if (
+          response.status === 404 &&
+          this.selectedVoiceId !== 'N2lVS1w4EtoT3dr4eOWO' &&
+          this.selectedVoiceId !== 'JBFqnCBsd6RMkjVDRZzb'
+        ) {
+          console.warn(`Voice ${this.selectedVoiceId} returned 404, falling back to guaranteed premade Celtic voice (Callum)...`);
+          this.selectedVoiceId = 'N2lVS1w4EtoT3dr4eOWO';
+          if (typeof window !== 'undefined') {
+            localStorage.setItem('elevenlabs_voice_id', this.selectedVoiceId);
+          }
+          return this.speakWithElevenLabs(sessionId, text, onEnd);
+        }
         throw new Error(`ElevenLabs (${response.status}): ${errorText}`);
       }
 

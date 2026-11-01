@@ -7,11 +7,20 @@ describe('Audio Narration & Voice Copilot Engine', () => {
     audioService.stop();
   });
 
-  it('guarantees George (JBFqnCBsd6RMkjVDRZzb) as the default premade voice', () => {
-    const defaultVoice = ELEVENLABS_VOICE_PRESETS[0];
-    expect(defaultVoice.id).toBe('JBFqnCBsd6RMkjVDRZzb');
-    expect(defaultVoice.name).toContain('George');
-    expect(defaultVoice.isGuaranteedPremade).toBe(true);
+  it('provides authentic Irish male narrator (Flynn) and Celtic premade voices (Callum, George)', () => {
+    const flynn = ELEVENLABS_VOICE_PRESETS.find(p => p.id === '2WvAXMgrakBkapSmnlv7');
+    expect(flynn).toBeDefined();
+    expect(flynn?.name).toContain('Flynn');
+    expect(flynn?.accent).toContain('Irish');
+
+    const callum = ELEVENLABS_VOICE_PRESETS.find(p => p.id === 'N2lVS1w4EtoT3dr4eOWO');
+    expect(callum).toBeDefined();
+    expect(callum?.name).toContain('Callum');
+    expect(callum?.isGuaranteedPremade).toBe(true);
+
+    const george = ELEVENLABS_VOICE_PRESETS.find(p => p.id === 'JBFqnCBsd6RMkjVDRZzb');
+    expect(george).toBeDefined();
+    expect(george?.name).toContain('George');
   });
 
   it('tracks playback state transitions: idle -> loading -> playing -> paused -> idle', () => {

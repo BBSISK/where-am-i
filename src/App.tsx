@@ -281,11 +281,7 @@ export const App: React.FC = () => {
     }
   };
 
-  const handlePullThread = (thread: ThreadOption) => {
-    setActiveThread(thread);
-    audioService.toggleTrack(`thread-${thread.id}`, thread.spokenNarrative);
-
-    // Save thread to scrapbook
+  const saveThreadToScrapbook = (thread: ThreadOption) => {
     setSavedThreads((prev) => {
       if (prev.some((t) => t.id === thread.id)) return prev;
       const newEntry: SavedTripThread = {
@@ -303,6 +299,53 @@ export const App: React.FC = () => {
       }
       return updated;
     });
+  };
+
+  const handlePullThread = (thread: ThreadOption) => {
+    setActiveThread(thread);
+    audioService.toggleTrack(`thread-${thread.id}`, thread.spokenNarrative);
+    saveThreadToScrapbook(thread);
+  };
+
+  /**
+   * Progressive Thread Unfolder:
+   * When user triggers "Tell me more" or clicks Next Topic:
+   * Advances cleanly to the NEXT topic in the active cell, never repeating the first response!
+   */
+  const handlePullNextThread = () => {
+    if (!currentCell.threads || currentCell.threads.length === 0) {
+      if (currentCell.narrativeScript) {
+        audioService.speak(currentCell.narrativeScript, { trackId: `cell-narrative-${currentCell.h3Index}` });
+      }
+      return;
+    }
+
+    // Determine currently active or last played thread index
+    const currentIndex = activeThread
+      ? currentCell.threads.findIndex((t) => t.id === activeThread.id)
+      : -1;
+
+    const nextIndex = currentIndex + 1;
+
+    if (nextIndex < currentCell.threads.length) {
+      const nextThread = currentCell.threads[nextIndex];
+      setActiveThread(nextThread);
+      audioService.speak(nextThread.spokenNarrative, { trackId: `thread-${nextThread.id}` });
+      saveThreadToScrapbook(nextThread);
+    } else {
+      // All curated threads have been explored: reveal the comprehensive oral folklore & townland history
+      audioService.speak(
+        `You have explored the main threads for ${currentCell.townland}. Here is the deeper historical heritage: ${currentCell.narrativeScript}`,
+        { trackId: `cell-narrative-${currentCell.h3Index}` }
+      );
+      // Reset so the next trigger can cycle
+      setActiveThread(null);
+    }
+  };
+
+  const handleSelectVoice = (voiceId: string) => {
+    audioService.setVoiceId(voiceId);
+    setVoiceVersion((v) => v + 1);
   };
 
   const handleClearScrapbook = () => {
@@ -325,9 +368,7 @@ export const App: React.FC = () => {
         const text = `You are in the townland of ${currentCell.townland}, County ${currentCell.county}. ${currentCell.teaserScript}`;
         audioService.speak(text);
       } else if (cmd === 'tell_me_more') {
-        if (currentCell.threads && currentCell.threads.length > 0) {
-          handlePullThread(currentCell.threads[0]);
-        }
+        handlePullNextThread();
       } else if (cmd === 'stop_audio') {
         audioService.stop();
       }
@@ -337,7 +378,7 @@ export const App: React.FC = () => {
       unsubVoice();
       unsubCmd();
     };
-  }, [currentCell]);
+  }, [currentCell, activeThread]);
 
   // Telemetry values depending on active mode
   const activeSpeed = drivingMode === 'real-gps' ? gpsState.speedKmh : isPlaying ? Math.round(simWaypoint.speedLimitKmh * 0.95) : 0;
@@ -375,9 +416,12 @@ export const App: React.FC = () => {
             hasElevenApiKey={audioService.hasApiKey()}
             audioLastError={audioService.getLastError()}
             onOpenVoiceStudio={() => setIsVoiceModalOpen(true)}
+            selectedVoiceId={audioService.getVoiceId()}
+            onSelectVoice={handleSelectVoice}
             audioPlaybackState={audioPlaybackState}
             currentTrackId={currentAudioTrackId}
             onToggleVoiceListening={handleToggleVoiceListening}
+            onPullNextThread={handlePullNextThread}
             currentRoute={currentRoute}
             onRouteChange={handleSimulatorRouteChange}
             availableRoutes={SIMULATED_ROUTES}
