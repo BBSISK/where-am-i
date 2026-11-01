@@ -1,5 +1,6 @@
 import { GeoCoordinate, EnrichedH3Cell } from '../types';
 import { HERITAGE_KNOWLEDGE_STORE } from '../data/heritageKnowledgeBase';
+import { spatialRagService } from './spatialRagService';
 
 interface GaelicRoot {
   root: string;
@@ -49,7 +50,15 @@ export class DynamicHeritageService {
       }
     }
 
-    // 1. Check curated route milestones
+    // 1. Check Spatial RAG Index (Sub-millisecond geofenced in-memory retrieval)
+    const ragArea = spatialRagService.resolveArea(coord);
+    if (ragArea) {
+      const cell = spatialRagService.toEnrichedCell(ragArea, h3Index, coord);
+      this.saveToCache(h3Index, cell);
+      return cell;
+    }
+
+    // 2. Check legacy curated route milestones
     for (const key of Object.keys(HERITAGE_KNOWLEDGE_STORE)) {
       const curated = HERITAGE_KNOWLEDGE_STORE[key]!;
       if (curated.townland && key !== 'fallback') {
