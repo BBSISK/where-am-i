@@ -76,7 +76,16 @@ export const App: React.FC = () => {
   };
 
   const handleTogglePlay = () => {
-    setIsPlaying(!isPlaying);
+    const nextState = !isPlaying;
+    setIsPlaying(nextState);
+    if (nextState) {
+      // Starting drive: immediately trigger speech for the first location (user gesture unlocked)
+      if (!isAudioMuted && currentCell.narrativeScript) {
+        audioService.speak(currentCell.narrativeScript);
+      }
+    } else {
+      audioService.stop();
+    }
   };
 
   const handleReset = () => {
@@ -99,6 +108,12 @@ export const App: React.FC = () => {
   const handleSelectWaypoint = (index: number) => {
     audioService.stop();
     setCurrentWaypointIndex(index);
+    const wp = currentRoute.waypoints[index];
+    const h3Idx = coordinateToH3(wp.coordinate, 8);
+    const cell = getEnrichedDataForWaypoint(wp.name, h3Idx);
+    if (!isAudioMuted && cell.narrativeScript) {
+      audioService.speak(cell.narrativeScript);
+    }
   };
 
   return (
