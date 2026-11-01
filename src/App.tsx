@@ -69,12 +69,23 @@ export const App: React.FC = () => {
 
   // Subscribe to Real GPS state
   useEffect(() => {
-    const unsubGps = realGpsService.subscribe((state) => {
+    let lastResolvedH3 = "";
+
+    const unsubGps = realGpsService.subscribe(async (state) => {
       setGpsState(state);
+      // Immediately resolve the real location as soon as GPS coordinates arrive
+      if (state.status === "locked" && state.coordinate && state.h3Index && state.h3Index !== lastResolvedH3) {
+        lastResolvedH3 = state.h3Index;
+        const cell = await DynamicHeritageService.resolveCell(state.h3Index, state.coordinate);
+        setCurrentCell(cell);
+        if (!isAudioMuted && cell.teaserScript) {
+          audioService.speak(cell.teaserScript);
+        }
+      }
     });
 
-    // Listen for Real H3 Cell Entry as the vehicle travels along any Irish road
     const unsubCell = realGpsService.onCellEntry(async (newH3Id, coord) => {
+      lastResolvedH3 = newH3Id;
       const cell = await DynamicHeritageService.resolveCell(newH3Id, coord);
       setCurrentCell(cell);
       setActiveThread(null);

@@ -73,10 +73,9 @@ class RealGpsService {
     };
     this.notify();
 
-    // Request Screen Wake Lock so phone doesn't sleep while driving on car mount
+    // Request Screen Wake Lock
     await this.requestWakeLock();
 
-    // Re-acquire wake lock if driver switches apps and comes back
     if (typeof document !== 'undefined') {
       document.addEventListener('visibilitychange', () => {
         if (document.visibilityState === 'visible' && this.currentState.status === 'locked') {
@@ -86,11 +85,19 @@ class RealGpsService {
     }
 
     const options: PositionOptions = {
-      enableHighAccuracy: true, // Use GPS satellite sensor, not just Wi-Fi triangulation
-      maximumAge: 1000,         // Don't accept stale coordinates older than 1 second
-      timeout: 15000            // 15 second timeout to acquire initial lock
+      enableHighAccuracy: true,
+      maximumAge: 1000,
+      timeout: 15000
     };
 
+    // First attempt an immediate single position query to lock on instantly
+    navigator.geolocation.getCurrentPosition(
+      (pos) => this.handleGpsUpdate(pos),
+      () => {},
+      options
+    );
+
+    // Then start continuous watch
     this.watchId = navigator.geolocation.watchPosition(
       (position) => this.handleGpsUpdate(position),
       (error) => this.handleGpsError(error),
@@ -104,7 +111,6 @@ class RealGpsService {
     const accuracy = Math.round(position.coords.accuracy);
     const altitude = position.coords.altitude !== null ? Math.round(position.coords.altitude) : null;
 
-    // Convert velocity: m/s to km/h (fallback to 0 if stationary or negative)
     let speedKmh = 0;
     if (position.coords.speed !== null && position.coords.speed > 0) {
       speedKmh = Math.round(position.coords.speed * 3.6);
@@ -112,13 +118,12 @@ class RealGpsService {
 
     const newCoord: GeoCoordinate = { lat: rawLat, lng: rawLng };
 
-    // Jitter filtering: if stationary (< 2 km/h) and moved < 8 meters, ignore jitter
+    // Jitter filter & heading
     let heading = this.currentState.heading;
     if (this.lastCoordinate) {
       const movedMeters = calculateHaversineDistance(this.lastCoordinate, newCoord);
       if (movedMeters > 5) {
         this.totalDistance += movedMeters;
-        // Calculate bearing from trajectory if phone compass heading not provided
         if (position.coords.heading !== null && !isNaN(position.coords.heading)) {
           heading = Math.round(position.coords.heading);
         } else {
@@ -129,14 +134,11 @@ class RealGpsService {
       heading = Math.round(position.coords.heading);
     }
 
-    // Convert to discrete Uber H3 Resolution 8 Hex ID
     const currentH3 = coordinateToH3(newCoord, 8);
 
-    // Check if entered a new 1km H3 hex cell
-    if (this.lastH3Index && currentH3 !== this.lastH3Index) {
-      // Fire cell entry listeners
-      this.cellEntryListeners.forEach((fn) => fn(currentH3, newCoord, speedKmh));
-    }
+    // CRITICAL FIX: Trigger cell entry on INITIAL lock as well as on new cell entry!
+    const isFirstLock = this.lastH3Index === null;
+    const isNewCell = this.lastH3Index !== null && currentH3 !== this.lastH3Index;
 
     this.lastCoordinate = newCoord;
     this.lastH3Index = currentH3;
@@ -155,6 +157,10 @@ class RealGpsService {
     };
 
     this.notify();
+
+    if (isFirstLock || isNewCell) {
+      this.cellEntryListeners.forEach((fn) => fn(currentH3, newCoord, speedKmh));
+    }
   }
 
   private handleGpsError(error: GeolocationPositionError) {
@@ -188,9 +194,7 @@ class RealGpsService {
           this.currentState.isScreenWakeLocked = false;
           this.wakeLock = null;
         });
-      } catch (err) {
-        console.warn('Wake Lock request error (browser may restrict in non-HTTPS or low battery):', err);
-      }
+      } catch (err) {}
     }
   }
 
@@ -203,6 +207,8 @@ class RealGpsService {
       this.wakeLock.release().catch(() => {});
       this.wakeLock = null;
     }
+    this.lastH3Index = null;
+    this.lastCoordinate = null;
     this.currentState = {
       ...this.currentState,
       status: 'idle',

@@ -315,6 +315,17 @@ export const DriveModeView: React.FC<DriveModeViewProps> = ({
               <p className="text-xs font-mono text-emerald-400 mt-0.5">County {currentCell.county}</p>
             </div>
 
+            {/* Live GPS Sensor Coordinates */}
+            {drivingMode === "real-gps" && gpsState.coordinate && (
+              <div className="mt-3 p-2.5 rounded-xl bg-slate-950 border border-emerald-500/30 flex items-center justify-between text-xs font-mono">
+                <div className="flex items-center gap-1.5 text-emerald-400 font-bold">
+                  <span className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse"></span>
+                  <span>{gpsState.coordinate.lat.toFixed(4)}°N, {Math.abs(gpsState.coordinate.lng).toFixed(4)}°W</span>
+                </div>
+                <span className="text-slate-400">±{gpsState.accuracyMeters}m</span>
+              </div>
+            )}
+
             {/* Total Distance Driven in Real GPS */}
             {drivingMode === 'real-gps' && isGpsLocked && (
               <div className="mt-3 pt-3 border-t border-slate-800/60 flex items-center justify-between text-xs font-mono text-slate-400">
