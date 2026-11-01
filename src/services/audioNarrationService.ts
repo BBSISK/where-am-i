@@ -9,36 +9,36 @@ export interface ElevenLabsVoicePreset {
 export const ELEVENLABS_VOICE_PRESETS: ElevenLabsVoicePreset[] = [
   {
     id: 'JBFqnCBsd6RMkjVDRZzb',
-    name: 'George (Celtic & British Heritage)',
-    description: 'Warm, captivating British / Celtic heritage narrator (premade on all accounts)',
-    accent: 'Warm Celtic / UK',
+    name: 'George (Warm Celtic & British Heritage)',
+    description: 'Warm, captivating British / Celtic heritage male narrator (official premade)',
+    accent: 'Warm Celtic / UK (Male)',
     isGuaranteedPremade: true
   },
   {
     id: 'pNInz6obpgDQGcFmaJgB',
     name: 'Adam (Expressive Storyteller)',
-    description: 'Dynamic, deep and narrative-rich for dramatic folklore passages',
-    accent: 'Deep Storyteller',
+    description: 'Dynamic, deep and narrative-rich male voice for dramatic folklore passages',
+    accent: 'Deep Storyteller (Male)',
     isGuaranteedPremade: true
   },
   {
     id: 'IKne3meq5aSn9XLyUdCD',
     name: 'Charlie (Conversational Host)',
-    description: 'Casual, friendly driving companion tone',
-    accent: 'Conversational',
+    description: 'Casual, friendly driving companion male narrator',
+    accent: 'Conversational (Male)',
     isGuaranteedPremade: true
   },
   {
     id: 'ErXwobaYiN019PkySvjV',
     name: 'Antoni (Classic Radio)',
     description: 'Crisp, measured modulation ideal for automotive heads-up audio',
-    accent: 'Radio Modulation',
+    accent: 'Radio Modulation (Male)',
     isGuaranteedPremade: true
   },
   {
     id: 'D38z5RcWu1voky8WS1ja',
     name: 'Fin (Irish Storyteller Clone)',
-    description: 'Authentic Irish cadence (requires voice in your ElevenLabs library or custom clone)',
+    description: 'Authentic Irish cadence (requires voice in your ElevenLabs library)',
     accent: 'Irish (West)',
     isGuaranteedPremade: false
   }
@@ -47,6 +47,7 @@ export const ELEVENLABS_VOICE_PRESETS: ElevenLabsVoicePreset[] = [
 export interface AudioTrackInfo {
   trackId: string;
   text: string;
+  charIndex: number;
   onEnd?: () => void;
 }
 
@@ -63,11 +64,12 @@ class AudioNarrationService {
   // Track & Playback state
   private currentTrack: AudioTrackInfo | null = null;
   private playbackState: 'idle' | 'playing' | 'paused' = 'idle';
+  private currentUtterance: SpeechSynthesisUtterance | null = null;
 
   // Settings
   private provider: 'elevenlabs' | 'webspeech' = 'elevenlabs';
   private elevenApiKey: string = '';
-  // Default to George (guaranteed premade on 100% of ElevenLabs accounts)
+  // Default to George (official male premade voice)
   private selectedVoiceId: string = ELEVENLABS_VOICE_PRESETS[0].id;
   private modelId: string = 'eleven_turbo_v2_5';
   private lastErrorMessage: string | null = null;
@@ -79,7 +81,12 @@ class AudioNarrationService {
       this.elevenApiKey = (envKey || localKey || '').trim();
       
       const savedVoiceId = localStorage.getItem('elevenlabs_voice_id');
-      this.selectedVoiceId = savedVoiceId || ELEVENLABS_VOICE_PRESETS[0].id;
+      // If previous session stored the 404-prone Fin ID without key, migrate to George
+      if (!savedVoiceId || savedVoiceId === 'D38z5RcWu1voky8WS1ja') {
+        this.selectedVoiceId = ELEVENLABS_VOICE_PRESETS[0].id;
+      } else {
+        this.selectedVoiceId = savedVoiceId;
+      }
 
       if (this.elevenApiKey) {
         this.provider = 'elevenlabs';
@@ -146,11 +153,35 @@ class AudioNarrationService {
   private initWebVoice() {
     if (!this.synth) return;
     const voices = this.synth.getVoices();
-    this.preferredWebVoice =
-      voices.find(v => v.lang === 'en-IE') ||
-      voices.find(v => v.lang.startsWith('en-GB') || v.name.includes('Ireland') || v.name.includes('UK') || v.name.includes('Irish')) ||
-      voices.find(v => v.lang.startsWith('en')) ||
-      null;
+    if (!voices || voices.length === 0) return;
+
+    // Check saved manual preference
+    const savedVoiceUri = typeof window !== 'undefined' ? localStorage.getItem('preferred_web_voice_uri') : null;
+    if (savedVoiceUri) {
+      const found = voices.find(v => v.voiceURI === savedVoiceUri);
+      if (found) {
+        this.preferredWebVoice = found;
+        return;
+      }
+    }
+
+    // Prioritize MALE storyteller / heritage voices (George, Daniel, Oliver, Arthur, Alex, or explicit Male)
+    // Avoid default female voices (Moira, Samantha, Victoria, Karen, Serena, Fiona, Kate)
+    const femaleNames = ['moira', 'samantha', 'victoria', 'karen', 'serena', 'fiona', 'tessa', 'siri', 'kate'];
+    
+    const maleCelticOrBritish = voices.find(v => {
+      const name = v.name.toLowerCase();
+      const isEnglish = v.lang.startsWith('en');
+      const isMale = (name.includes('george') || name.includes('daniel') || name.includes('oliver') || name.includes('arthur') || name.includes('male') || name.includes('alex')) && !femaleNames.some(f => name.includes(f));
+      return isEnglish && isMale;
+    });
+
+    const anyMaleEnglish = voices.find(v => {
+      const name = v.name.toLowerCase();
+      return v.lang.startsWith('en') && !femaleNames.some(f => name.includes(f));
+    });
+
+    this.preferredWebVoice = maleCelticOrBritish || anyMaleEnglish || voices.find(v => v.lang.startsWith('en')) || null;
   }
 
   public getAvailableWebVoices(): SpeechSynthesisVoice[] {
@@ -244,8 +275,8 @@ class AudioNarrationService {
 
   /**
    * Toggles playback for a track ID:
-   * - If currently playing this track -> pauses it.
-   * - If currently paused on this track -> resumes it.
+   * - If currently playing this track -> pauses it immediately.
+   * - If currently paused on this track -> resumes it right from where it paused.
    * - Otherwise -> starts this track fresh.
    */
   public async toggleTrack(trackId: string, text: string, onEnd?: () => void): Promise<void> {
@@ -272,7 +303,7 @@ class AudioNarrationService {
 
     this.stop();
     this.lastErrorMessage = null;
-    this.currentTrack = { trackId, text, onEnd };
+    this.currentTrack = { trackId, text, charIndex: 0, onEnd };
     this.playbackState = 'playing';
 
     if (this.provider === 'elevenlabs' && this.elevenApiKey) {
@@ -371,39 +402,61 @@ class AudioNarrationService {
     await audio.play();
   }
 
-  private speakWithWebSpeech(text: string, onEnd?: () => void): void {
+  private speakWithWebSpeech(text: string, onEnd?: () => void, startCharIndex = 0): void {
     if (!this.synth) {
       onEnd?.();
       return;
     }
 
     this.initWebVoice();
-    const utterance = new SpeechSynthesisUtterance(text);
+    const textToSpeak = startCharIndex > 0 ? text.slice(startCharIndex) : text;
+    const utterance = new SpeechSynthesisUtterance(textToSpeak);
+    this.currentUtterance = utterance;
+
     if (this.preferredWebVoice) {
       utterance.voice = this.preferredWebVoice;
     }
-    utterance.lang = this.preferredWebVoice?.lang || 'en-IE';
-    utterance.rate = 0.98;
+    utterance.lang = this.preferredWebVoice?.lang || 'en-GB';
+    utterance.rate = 0.95;
     utterance.pitch = 1.0;
 
+    // Track word boundary so pause & resume works seamlessly without restarting from word 0
+    utterance.onboundary = (event) => {
+      if (this.currentTrack && (event.name === 'word' || (event as any).charIndex !== undefined)) {
+        this.currentTrack.charIndex = startCharIndex + event.charIndex;
+      }
+    };
+
     utterance.onstart = () => {
-      this.playbackState = 'playing';
-      this.notify(true);
+      if (this.currentUtterance === utterance) {
+        this.playbackState = 'playing';
+        this.notify(true);
+      }
     };
 
     utterance.onend = () => {
-      this.playbackState = 'idle';
-      this.currentTrack = null;
-      this.notify(false);
-      onEnd?.();
+      if (this.currentUtterance === utterance && this.playbackState === 'playing') {
+        this.playbackState = 'idle';
+        this.currentTrack = null;
+        this.currentUtterance = null;
+        this.notify(false);
+        onEnd?.();
+      }
     };
 
-    utterance.onerror = (err) => {
-      console.warn('SpeechSynthesis error:', err);
-      this.playbackState = 'idle';
-      this.currentTrack = null;
-      this.notify(false);
-      onEnd?.();
+    utterance.onerror = (err: any) => {
+      // If error is caused by our own pause cancel, do not clear the paused state!
+      if (this.playbackState === 'paused') {
+        return;
+      }
+      if (this.currentUtterance === utterance) {
+        console.warn('SpeechSynthesis error:', err);
+        this.playbackState = 'idle';
+        this.currentTrack = null;
+        this.currentUtterance = null;
+        this.notify(false);
+        onEnd?.();
+      }
     };
 
     this.synth.speak(utterance);
@@ -412,6 +465,7 @@ class AudioNarrationService {
   public stop(): void {
     this.playbackState = 'idle';
     this.currentTrack = null;
+    this.currentUtterance = null;
     if (this.sharedAudioElement) {
       this.sharedAudioElement.pause();
       this.sharedAudioElement.currentTime = 0;
@@ -423,34 +477,34 @@ class AudioNarrationService {
   }
 
   public pause(): void {
-    if (this.playbackState !== 'playing') return;
+    if (this.playbackState !== 'playing' || !this.currentTrack) return;
 
     this.playbackState = 'paused';
-    if (this.sharedAudioElement && !this.sharedAudioElement.paused) {
+
+    if (this.provider === 'elevenlabs' && this.sharedAudioElement) {
       this.sharedAudioElement.pause();
+    } else if (this.synth) {
+      // Cancel speech cleanly so audio halts immediately; resume will continue from charIndex
+      this.synth.cancel();
+      this.currentUtterance = null;
     }
-    if (this.synth && this.synth.speaking && !this.synth.paused) {
-      this.synth.pause();
-    }
+
     this.notify(false);
   }
 
   public resume(): void {
-    if (this.playbackState !== 'paused') return;
+    if (this.playbackState !== 'paused' || !this.currentTrack) return;
 
     this.playbackState = 'playing';
+
     if (this.provider === 'elevenlabs' && this.sharedAudioElement) {
       this.sharedAudioElement.play().catch(console.warn);
       this.notify(true);
     } else if (this.synth) {
-      this.synth.resume();
+      // Resume speaking from the exact word where it was paused!
+      const resumeFrom = this.currentTrack.charIndex || 0;
+      this.speakWithWebSpeech(this.currentTrack.text, this.currentTrack.onEnd, resumeFrom);
       this.notify(true);
-      // Fallback if browser SpeechSynthesis fails to resume after pausing
-      setTimeout(() => {
-        if (this.playbackState === 'playing' && this.synth && !this.synth.speaking && this.currentTrack) {
-          this.speakWithWebSpeech(this.currentTrack.text, this.currentTrack.onEnd);
-        }
-      }, 150);
     }
   }
 
@@ -467,13 +521,13 @@ class AudioNarrationService {
   }
 
   public getVoiceLabel(): string {
-    if (this.provider === 'elevenlabs') {
+    if (this.provider === 'elevenlabs' && this.hasApiKey()) {
       const preset = ELEVENLABS_VOICE_PRESETS.find(p => p.id === this.selectedVoiceId);
-      return preset ? `${preset.name}` : `Custom Voice (${this.selectedVoiceId.slice(0, 8)}…)`;
+      return preset ? `${preset.name} (ElevenLabs)` : `Custom ElevenLabs (${this.selectedVoiceId.slice(0, 6)}…)`;
     }
     return this.preferredWebVoice
-      ? `${this.preferredWebVoice.name} (${this.preferredWebVoice.lang})`
-      : 'Device System Voice';
+      ? `${this.preferredWebVoice.name} (Male Narrator)`
+      : 'George / Male Narrator';
   }
 }
 

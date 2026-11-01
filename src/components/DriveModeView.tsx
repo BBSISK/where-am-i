@@ -347,27 +347,27 @@ export const DriveModeView: React.FC<DriveModeViewProps> = ({
         ) : hasElevenApiKey ? (
           <div className="px-3.5 py-2 rounded-2xl bg-emerald-500/10 border border-emerald-500/20 text-emerald-300 text-xs flex items-center justify-between font-mono">
             <div className="flex items-center gap-2">
-              <span className="w-2 h-2 rounded-full bg-emerald-400"></span>
-              <span>ElevenLabs High-Fidelity Irish AI Storyteller Active</span>
+              <span className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse"></span>
+              <span>🎙️ ElevenLabs: {audioService.getVoiceLabel()}</span>
             </div>
             <button
               onClick={onOpenVoiceStudio}
-              className="text-slate-400 hover:text-white text-[11px] underline"
+              className="text-emerald-400 hover:text-white text-xs underline font-bold"
             >
-              Voice Settings
+              Voice Studio
             </button>
           </div>
         ) : (
-          <div className="px-3.5 py-2 rounded-2xl bg-slate-900 border border-slate-800 text-slate-400 text-xs flex items-center justify-between font-mono">
+          <div className="px-3.5 py-2 rounded-2xl bg-slate-900 border border-slate-800 text-slate-300 text-xs flex items-center justify-between font-mono">
             <div className="flex items-center gap-2">
-              <Volume2 className="w-3.5 h-3.5 text-slate-400" />
-              <span>Native Audio Synthesis Engine Active</span>
+              <Volume2 className="w-3.5 h-3.5 text-amber-400" />
+              <span>Voice: {audioService.getVoiceLabel()}</span>
             </div>
             <button
               onClick={onOpenVoiceStudio}
-              className="text-slate-400 hover:text-white text-[11px] underline"
+              className="text-amber-400 hover:text-white text-xs underline font-bold"
             >
-              Voice Settings
+              Change Voice / Add ElevenLabs
             </button>
           </div>
         )}
