@@ -16,7 +16,7 @@ export default defineConfig(({ mode }) => {
     process.env.ELEVENLABS_API_KEY ||
     process.env.ELEVEN_LABS_API_KEY ||
     ''
-  ).trim();
+  ).replace(/^["']|["']$/g, '').trim();
 
   return {
     plugins: [react()],

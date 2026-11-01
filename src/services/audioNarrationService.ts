@@ -57,6 +57,7 @@ class AudioNarrationService {
   private isMuted: boolean = false;
   private preferredWebVoice: SpeechSynthesisVoice | null = null;
   private listeners: Set<(speaking: boolean) => void> = new Set();
+  private stateListeners: Set<(state: 'idle' | 'loading' | 'playing' | 'paused', trackId: string | null) => void> = new Set();
   
   // Audio blob cache
   private audioBlobCache: Map<string, string> = new Map();
@@ -82,7 +83,7 @@ class AudioNarrationService {
     if (typeof window !== 'undefined') {
       const envKey = (import.meta as any).env?.VITE_ELEVENLABS_API_KEY;
       const localKey = localStorage.getItem('elevenlabs_api_key');
-      this.elevenApiKey = (envKey || localKey || '').trim();
+      this.elevenApiKey = (envKey || localKey || '').trim().replace(/^["']|["']$/g, '');
       
       const savedVoiceId = localStorage.getItem('elevenlabs_voice_id');
       // Always ensure valid default (avoid stale 404 Fin voice)
@@ -168,23 +169,44 @@ class AudioNarrationService {
       }
     }
 
-    // Prioritize MALE storyteller / heritage voices (George, Daniel, Oliver, Arthur, Alex, or explicit Male)
-    // Avoid default female voices (Moira, Samantha, Victoria, Karen, Serena, Fiona, Kate)
-    const femaleNames = ['moira', 'samantha', 'victoria', 'karen', 'serena', 'fiona', 'tessa', 'siri', 'kate'];
+    // Comprehensive blacklist of default female synthesized voices
+    const femaleNames = [
+      'moira', 'samantha', 'victoria', 'karen', 'serena', 'fiona', 'tessa', 'siri',
+      'kate', 'susan', 'zoe', 'ava', 'allison', 'nicky', 'stephanie', 'alice', 'veena',
+      'claire', 'yuna', 'amelie', 'kyoko', 'sin-ji', 'ting-ting', 'mónica'
+    ];
     
+    // Priority 1: Male Celtic / British voices (George, Daniel, Oliver, Arthur, Malcolm, Graham)
     const maleCelticOrBritish = voices.find(v => {
       const name = v.name.toLowerCase();
       const isEnglish = v.lang.startsWith('en');
-      const isMale = (name.includes('george') || name.includes('daniel') || name.includes('oliver') || name.includes('arthur') || name.includes('male') || name.includes('alex')) && !femaleNames.some(f => name.includes(f));
+      const isMale = (
+        name.includes('george') ||
+        name.includes('daniel') ||
+        name.includes('oliver') ||
+        name.includes('arthur') ||
+        name.includes('malcolm') ||
+        name.includes('graham') ||
+        name.includes('male')
+      ) && !femaleNames.some(f => name.includes(f));
       return isEnglish && isMale;
     });
 
+    // Priority 2: Any English male voice (Alex, Fred, Aaron, Rishi, etc.)
     const anyMaleEnglish = voices.find(v => {
+      const name = v.name.toLowerCase();
+      const isEnglish = v.lang.startsWith('en');
+      const isMale = (name.includes('alex') || name.includes('fred') || name.includes('aaron') || name.includes('rishi') || name.includes('gordon')) && !femaleNames.some(f => name.includes(f));
+      return isEnglish && isMale;
+    });
+
+    // Priority 3: Any English voice that is NOT explicitly on the female voice list
+    const nonFemaleEnglish = voices.find(v => {
       const name = v.name.toLowerCase();
       return v.lang.startsWith('en') && !femaleNames.some(f => name.includes(f));
     });
 
-    this.preferredWebVoice = maleCelticOrBritish || anyMaleEnglish || voices.find(v => v.lang.startsWith('en')) || null;
+    this.preferredWebVoice = maleCelticOrBritish || anyMaleEnglish || nonFemaleEnglish || voices.find(v => v.lang.startsWith('en')) || null;
   }
 
   public getAvailableWebVoices(): SpeechSynthesisVoice[] {
@@ -212,8 +234,17 @@ class AudioNarrationService {
     };
   }
 
+  public subscribePlaybackState(listener: (state: 'idle' | 'loading' | 'playing' | 'paused', trackId: string | null) => void) {
+    this.stateListeners.add(listener);
+    listener(this.playbackState, this.getCurrentTrackId());
+    return () => {
+      this.stateListeners.delete(listener);
+    };
+  }
+
   private notify(speaking: boolean) {
     this.listeners.forEach((fn) => fn(speaking));
+    this.stateListeners.forEach((fn) => fn(this.playbackState, this.getCurrentTrackId()));
   }
 
   public setApiKey(key: string) {
@@ -272,6 +303,10 @@ class AudioNarrationService {
     return this.playbackState === 'paused' && this.currentTrack?.trackId === trackId;
   }
 
+  public isTrackLoading(trackId: string): boolean {
+    return this.playbackState === 'loading' && this.currentTrack?.trackId === trackId;
+  }
+
   public isPaused(): boolean {
     return this.playbackState === 'paused';
   }
@@ -280,6 +315,7 @@ class AudioNarrationService {
    * Toggles playback for a track ID:
    * - If currently playing this track -> pauses it immediately.
    * - If currently paused on this track -> resumes it right from where it paused.
+   * - If loading -> stops and cancels request.
    * - Otherwise -> starts this track fresh.
    */
   public async toggleTrack(trackId: string, text: string, onEnd?: () => void): Promise<void> {
@@ -287,6 +323,8 @@ class AudioNarrationService {
       this.pause();
     } else if (this.isTrackPaused(trackId)) {
       this.resume();
+    } else if (this.isTrackLoading(trackId)) {
+      this.stop();
     } else {
       await this.speak(text, { trackId, onEnd });
     }
@@ -434,7 +472,38 @@ class AudioNarrationService {
       }
     };
 
-    await audio.play();
+    // Prime buffer before playing to avoid frame dropouts / stutter
+    await new Promise<void>((resolve) => {
+      if (audio.readyState >= 3) {
+        resolve();
+        return;
+      }
+      const onCanPlay = () => {
+        audio.removeEventListener('canplay', onCanPlay);
+        resolve();
+      };
+      audio.addEventListener('canplay', onCanPlay);
+      setTimeout(() => {
+        audio.removeEventListener('canplay', onCanPlay);
+        resolve();
+      }, 350);
+    });
+
+    if (this.currentSessionId !== sessionId) {
+      return;
+    }
+
+    try {
+      await audio.play();
+    } catch (e: any) {
+      if (this.currentSessionId === sessionId) {
+        console.warn('Audio play failed:', e);
+        this.playbackState = 'idle';
+        this.currentTrack = null;
+        this.notify(false);
+        onEnd?.();
+      }
+    }
   }
 
   private speakWithWebSpeech(sessionId: number, text: string, onEnd?: () => void, startCharIndex = 0): void {
@@ -544,14 +613,21 @@ class AudioNarrationService {
   public resume(): void {
     if (this.playbackState !== 'paused' || !this.currentTrack) return;
 
-    const sessionId = ++this.currentSessionId;
     this.playbackState = 'playing';
 
     if (this.provider === 'elevenlabs' && this.sharedAudioElement) {
-      this.sharedAudioElement.play().catch(console.warn);
+      // NOTE: Do NOT increment currentSessionId for ElevenLabs!
+      // The audio element is simply unpaused, and preserving the session ID ensures
+      // that the attached audio.onended handler matches and cleans up properly upon completion.
+      this.sharedAudioElement.play().catch((err) => {
+        console.warn('ElevenLabs resume failed:', err);
+        this.playbackState = 'paused';
+        this.notify(false);
+      });
       this.notify(true);
     } else if (this.synth) {
-      // Resume speaking from the exact word where it was paused!
+      // For Web Speech, dispatch a new utterance starting from the exact word where it was paused
+      const sessionId = ++this.currentSessionId;
       const resumeFrom = this.currentTrack.charIndex || 0;
       this.speakWithWebSpeech(sessionId, this.currentTrack.text, this.currentTrack.onEnd, resumeFrom);
       this.notify(true);

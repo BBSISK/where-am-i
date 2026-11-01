@@ -18,6 +18,48 @@ import { Sparkles } from 'lucide-react';
 export const App: React.FC = () => {
   const [activeTab, setActiveTab] = useState<'drive' | 'map' | 'dev'>('drive');
   
+  // Standby acquiring state before GPS satellite lock (Never show Galway by default)
+  const INITIAL_ACQUIRING_CELL: EnrichedH3Cell = {
+    h3Index: 'scanning...',
+    center: { lat: 53.4, lng: -7.9 },
+    townland: 'Acquiring GPS fix...',
+    parish: 'Standby',
+    county: 'Éire',
+    etymology: {
+      irishName: 'Ag Lorg Suímh',
+      englishName: 'Acquiring Location',
+      phonetic: 'egg lurg see-v',
+      rootWords: [{ root: 'Lorg', meaning: 'Search / trace' }],
+      explanation: 'Standing by for live vehicle drive mode. As soon as your physical coordinates are locked, authentic placename roots will populate here.',
+      source: 'Logainm.ie Placenames Database'
+    },
+    monuments: [],
+    folklore: {
+      title: 'Irish Folklore Standby',
+      informant: 'Oral Tradition',
+      schoolName: 'Irish National Folklore Collection',
+      parish: 'Standby',
+      county: 'Éire',
+      yearRecorded: 1937,
+      storySnippet: 'Folklore and oral history records will unfold once GPS locks onto your townland.',
+      category: 'Fairy Lore',
+      duchasVolumeId: 'NFC-STANDBY'
+    },
+    geology: {
+      name: 'Irish Terrain Standby',
+      type: 'Karst Limestone',
+      ageEpoch: 'Holocene',
+      scientificInsight: 'Geological data will activate upon location fix.'
+    },
+    teaserScript: 'Connecting to GPS satellites. Standing by to stream local oral history for your actual physical location.',
+    narrativeScript: 'Connecting to GPS satellites. Standing by to stream local oral history for your actual physical location.',
+    threads: [],
+    keyHighlights: ['GPS Satellite Connection Pending', 'Irish Heritage Engine Active', 'Hands-Free Driving Ready'],
+    curatedByAgent: true,
+    enrichmentLatencyMs: 0,
+    tokensConsumed: 0
+  };
+
   // DRIVING MODE: Primary is 'real-gps' (real vehicle hardware GPS), 'simulator' is demo bolt-on
   const [drivingMode, setDrivingMode] = useState<'real-gps' | 'simulator'>('real-gps');
   const [gpsState, setGpsState] = useState<RealGpsState>(realGpsService.getState());
@@ -31,17 +73,15 @@ export const App: React.FC = () => {
   // Audio & Modals
   const [isAudioMuted, setIsAudioMuted] = useState(false);
   const [isSpeaking, setIsSpeaking] = useState(false);
+  const [audioPlaybackState, setAudioPlaybackState] = useState<'idle' | 'loading' | 'playing' | 'paused'>(audioService.getPlaybackState());
+  const [currentAudioTrackId, setCurrentAudioTrackId] = useState<string | null>(audioService.getCurrentTrackId());
   const [voiceState, setVoiceState] = useState<VoiceCommandState>(voiceCommandService.getState());
   const [isVoiceModalOpen, setIsVoiceModalOpen] = useState(false);
   const [isScrapbookOpen, setIsScrapbookOpen] = useState(false);
   const [, setVoiceVersion] = useState(0);
 
-  // Active cell & threads
-  const [currentCell, setCurrentCell] = useState<EnrichedH3Cell>(() => {
-    const initWp = SIMULATED_ROUTES[0].waypoints[0];
-    const initH3 = coordinateToH3(initWp.coordinate, 8);
-    return getEnrichedDataForWaypoint(initWp.name, initH3);
-  });
+  // Active cell & threads: Initialize with neutral acquiring state (Never Galway)
+  const [currentCell, setCurrentCell] = useState<EnrichedH3Cell>(INITIAL_ACQUIRING_CELL);
   const [activeThread, setActiveThread] = useState<ThreadOption | null>(null);
 
   // Trip Scrapbook persistence
@@ -59,16 +99,41 @@ export const App: React.FC = () => {
     return [];
   });
 
-  // Subscribe to audio state
+  // Subscribe to audio & playback state
   useEffect(() => {
     const unsub = audioService.subscribe((speaking) => {
       setIsSpeaking(speaking);
-      voiceCommandService.setAudioDucked(speaking);
+      voiceCommandService.setAudioSpeaking(speaking);
+    });
+    const unsubState = audioService.subscribePlaybackState((state, trackId) => {
+      setAudioPlaybackState(state);
+      setCurrentAudioTrackId(trackId);
     });
     return () => {
       unsub();
+      unsubState();
     };
   }, []);
+
+  // Handle switching between Real GPS and Simulator
+  const handleSetDrivingMode = (mode: 'real-gps' | 'simulator') => {
+    setDrivingMode(mode);
+    if (mode === 'simulator') {
+      const initWp = currentRoute.waypoints[currentWaypointIndex];
+      const initH3 = coordinateToH3(initWp.coordinate, 8);
+      setCurrentCell(getEnrichedDataForWaypoint(initWp.name, initH3));
+    } else {
+      if (gpsState.status === 'locked' && gpsState.coordinate && gpsState.h3Index) {
+        // Keep locked cell
+      } else {
+        setCurrentCell(INITIAL_ACQUIRING_CELL);
+      }
+    }
+  };
+
+  const handleToggleVoiceListening = () => {
+    voiceCommandService.toggleListening();
+  };
 
   // Subscribe to Real GPS state
   useEffect(() => {
@@ -115,7 +180,6 @@ export const App: React.FC = () => {
     audioService.unlockMobileAudio();
     voiceCommandService.startListening();
     await realGpsService.startTracking();
-    // Do NOT play pre-baked Galway teaser! Real GPS will resolve your physical townland and speak upon satellite lock.
   };
 
   const handleStopGps = () => {
@@ -303,7 +367,7 @@ export const App: React.FC = () => {
         {activeTab === 'drive' && (
           <DriveModeView
             drivingMode={drivingMode}
-            setDrivingMode={setDrivingMode}
+            setDrivingMode={handleSetDrivingMode}
             gpsState={gpsState}
             onStartGps={handleStartGps}
             onStopGps={handleStopGps}
@@ -311,6 +375,9 @@ export const App: React.FC = () => {
             hasElevenApiKey={audioService.hasApiKey()}
             audioLastError={audioService.getLastError()}
             onOpenVoiceStudio={() => setIsVoiceModalOpen(true)}
+            audioPlaybackState={audioPlaybackState}
+            currentTrackId={currentAudioTrackId}
+            onToggleVoiceListening={handleToggleVoiceListening}
             currentRoute={currentRoute}
             onRouteChange={handleSimulatorRouteChange}
             availableRoutes={SIMULATED_ROUTES}

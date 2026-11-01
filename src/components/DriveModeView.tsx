@@ -38,6 +38,9 @@ interface DriveModeViewProps {
   hasElevenApiKey: boolean;
   audioLastError: string | null;
   onOpenVoiceStudio: () => void;
+  audioPlaybackState?: 'idle' | 'loading' | 'playing' | 'paused';
+  currentTrackId?: string | null;
+  onToggleVoiceListening?: () => void;
 
   // Simulator props (Secondary mode)
   currentRoute: SimulatedRoute;
@@ -74,6 +77,9 @@ export const DriveModeView: React.FC<DriveModeViewProps> = ({
   hasElevenApiKey,
   audioLastError,
   onOpenVoiceStudio,
+  audioPlaybackState = 'idle',
+  currentTrackId = null,
+  onToggleVoiceListening,
   currentRoute,
   onRouteChange,
   availableRoutes,
@@ -291,25 +297,30 @@ export const DriveModeView: React.FC<DriveModeViewProps> = ({
           </div>
         )}
 
-        {/* Automatic Hands-Free Voice Copilot Bar */}
+        {/* Hands-Free Voice Copilot Bar */}
         <div className="flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-3 p-3 sm:px-4 rounded-2xl bg-slate-900 border border-slate-800 text-xs font-mono">
           <div className="flex items-center gap-3">
-            <div className={`p-2 rounded-xl flex items-center justify-center transition-all ${
-              voiceState.isListening
-                ? 'bg-emerald-500/20 text-emerald-300 border border-emerald-500/40'
-                : 'bg-slate-800 text-slate-400 border border-slate-700'
-            }`}>
+            <button
+              onClick={onToggleVoiceListening}
+              type="button"
+              className={`p-2 rounded-xl flex items-center justify-center transition-all cursor-pointer hover:scale-105 active:scale-95 ${
+                voiceState.isListening
+                  ? 'bg-emerald-500/20 text-emerald-300 border border-emerald-500/40 hover:bg-emerald-500/30'
+                  : 'bg-slate-800 text-slate-400 border border-slate-700 hover:bg-slate-700'
+              }`}
+              title={voiceState.isListening ? 'Voice Copilot active: tap to mute' : 'Voice Copilot paused: tap to listen'}
+            >
               {voiceState.isListening ? (
                 <Mic className="w-4 h-4 animate-pulse text-emerald-400" />
               ) : (
                 <MicOff className="w-4 h-4" />
               )}
-            </div>
+            </button>
 
             <div>
-              <div className="flex items-center gap-2">
+              <div className="flex items-center gap-2 flex-wrap">
                 <span className={`font-bold ${voiceState.isListening ? 'text-emerald-400' : 'text-slate-400'}`}>
-                  {voiceState.isListening ? '🎙️ Automatic Voice Copilot Active' : '🎙️ Voice Copilot Ready'}
+                  {voiceState.isListening ? '🎙️ Hands-Free Voice Copilot Active' : '🎙️ Voice Copilot Standby (Tap Mic)'}
                 </span>
                 {voiceState.isListening && (
                   <span className="flex h-2 w-2 relative">
@@ -317,9 +328,14 @@ export const DriveModeView: React.FC<DriveModeViewProps> = ({
                     <span className="relative inline-flex rounded-full h-2 w-2 bg-emerald-500"></span>
                   </span>
                 )}
+                {isSpeaking && (
+                  <span className="text-[10px] px-2 py-0.5 rounded-full bg-cyan-500/10 text-cyan-300 border border-cyan-500/30 font-mono">
+                    🔇 Mic dormant during speech
+                  </span>
+                )}
               </div>
               <p className="text-[11px] text-slate-400 mt-0.5">
-                Always hands-free: Say <strong className="text-amber-300">"Hey Anseo"</strong> • <strong className="text-cyan-300">"Where am I"</strong> • <strong className="text-emerald-300">"Tell me more"</strong> • <strong className="text-slate-300">"Stop"</strong>
+                Say <strong className="text-amber-300">"Hey Anseo"</strong> • <strong className="text-cyan-300">"Where am I"</strong> • <strong className="text-emerald-300">"Tell me more"</strong> • <strong className="text-slate-300">"Stop audio"</strong>
               </p>
             </div>
           </div>
@@ -330,9 +346,17 @@ export const DriveModeView: React.FC<DriveModeViewProps> = ({
                 Heard: "{voiceState.lastHeardPhrase}"
               </span>
             )}
-            <span className="text-[10px] px-2 py-0.5 rounded-full bg-emerald-500/10 text-emerald-400 border border-emerald-500/20 font-bold">
-              {voiceState.isListening ? 'Continuous Listening' : 'Auto-starts with drive'}
-            </span>
+            <button
+              onClick={onToggleVoiceListening}
+              type="button"
+              className={`text-[10px] px-2.5 py-1 rounded-lg border font-bold cursor-pointer transition-all ${
+                voiceState.isListening
+                  ? 'bg-emerald-500/10 text-emerald-400 border-emerald-500/30 hover:bg-emerald-500/20'
+                  : 'bg-slate-800 text-slate-300 border-slate-700 hover:bg-slate-700'
+              }`}
+            >
+              {voiceState.isListening ? 'Mute Mic' : 'Turn On Mic'}
+            </button>
           </div>
         </div>
 
@@ -560,11 +584,29 @@ export const DriveModeView: React.FC<DriveModeViewProps> = ({
 
             {/* Large Interactive Thread Cards */}
             <div className="grid grid-cols-1 gap-3">
-              {currentCell.threads && currentCell.threads.length > 0 ? (
+              {drivingMode === 'real-gps' && !isGpsLocked ? (
+                <div className="p-6 rounded-2xl bg-slate-950/80 border border-slate-800 text-center space-y-3">
+                  <div className="inline-flex p-3 rounded-2xl bg-emerald-500/10 border border-emerald-500/20 text-emerald-400">
+                    <Radio className="w-6 h-6 animate-pulse" />
+                  </div>
+                  <div>
+                    <h4 className="text-sm font-bold text-slate-200">
+                      {gpsState.status === 'requesting' ? 'Locking Onto Irish GPS Satellites...' : 'Standing By For Live Driving'}
+                    </h4>
+                    <p className="text-xs text-slate-400 max-w-md mx-auto mt-1 leading-relaxed">
+                      {gpsState.status === 'requesting'
+                        ? 'Acquiring satellite telemetry. Once your physical townland is resolved, authentic local threads (folklore, monuments, and etymology) will appear here automatically.'
+                        : 'Tap "Start Live GPS Driving" above to stream local oral history and townland heritage as you travel.'}
+                    </p>
+                  </div>
+                </div>
+              ) : currentCell.threads && currentCell.threads.length > 0 ? (
                 currentCell.threads.map((thread) => {
                   const isPulled = activeThread?.id === thread.id;
-                  const isThreadPlaying = audioService.isTrackPlaying(`thread-${thread.id}`);
-                  const isThreadPaused = audioService.isTrackPaused(`thread-${thread.id}`);
+                  const isThisTrack = currentTrackId === `thread-${thread.id}`;
+                  const isThreadPlaying = isThisTrack && audioPlaybackState === 'playing';
+                  const isThreadPaused = isThisTrack && audioPlaybackState === 'paused';
+                  const isThreadLoading = isThisTrack && audioPlaybackState === 'loading';
                   return (
                     <button
                       key={thread.id}
@@ -576,7 +618,7 @@ export const DriveModeView: React.FC<DriveModeViewProps> = ({
                       }`}
                       title={
                         isPulled
-                          ? (isThreadPlaying ? 'Selected thread playing: tap to pause' : 'Selected thread paused: tap to resume')
+                          ? (isThreadPlaying ? 'Selected thread playing: tap to pause' : isThreadPaused ? 'Selected thread paused: tap to resume' : 'Selected thread')
                           : `Pull thread: ${thread.title}`
                       }
                     >
@@ -595,6 +637,10 @@ export const DriveModeView: React.FC<DriveModeViewProps> = ({
                             <span className={`text-[10px] font-mono px-2 py-0.5 rounded-full font-bold flex items-center gap-1 ${
                               isThreadPlaying
                                 ? 'bg-amber-500/20 text-amber-300 border border-amber-500/30'
+                                : isThreadPaused
+                                ? 'bg-amber-500/10 text-amber-400 border border-amber-500/30'
+                                : isThreadLoading
+                                ? 'bg-slate-800 text-slate-300 border border-slate-700 animate-pulse'
                                 : 'bg-slate-800 text-slate-300 border border-slate-700'
                             }`}>
                               {isThreadPlaying ? (
@@ -605,8 +651,10 @@ export const DriveModeView: React.FC<DriveModeViewProps> = ({
                               ) : isThreadPaused ? (
                                 <>
                                   <Play className="w-2.5 h-2.5 fill-current" />
-                                  <span>Paused (tap)</span>
+                                  <span>Paused (tap to play)</span>
                                 </>
+                              ) : isThreadLoading ? (
+                                <span>Buffering...</span>
                               ) : (
                                 <span>✓ Selected</span>
                               )}
@@ -653,24 +701,36 @@ export const DriveModeView: React.FC<DriveModeViewProps> = ({
                 onClick={() => onPullThread(activeThread)}
                 className="p-5 rounded-2xl bg-gradient-to-r from-amber-950/20 via-slate-950 to-slate-950 border border-amber-500/40 hover:border-amber-500/70 space-y-3 animate-fadeIn cursor-pointer transition-all"
                 title={
-                  audioService.isTrackPlaying(`thread-${activeThread.id}`)
+                  currentTrackId === `thread-${activeThread.id}` && audioPlaybackState === 'playing'
                     ? 'Tap box to pause story'
                     : 'Tap box to resume story'
                 }
               >
                 <div className="flex items-center justify-between border-b border-amber-500/20 pb-2">
                   <div className="flex items-center gap-2">
-                    <span className={`w-2 h-2 rounded-full ${audioService.isTrackPlaying(`thread-${activeThread.id}`) ? 'bg-amber-400 animate-pulse' : 'bg-slate-500'}`}></span>
+                    <span className={`w-2 h-2 rounded-full ${
+                      currentTrackId === `thread-${activeThread.id}` && audioPlaybackState === 'playing'
+                        ? 'bg-amber-400 animate-pulse'
+                        : currentTrackId === `thread-${activeThread.id}` && audioPlaybackState === 'paused'
+                        ? 'bg-amber-500'
+                        : 'bg-slate-500'
+                    }`}></span>
                     <span className="text-xs font-mono text-amber-400 font-bold uppercase">
                       Unfolded Story: {activeThread.title}
                     </span>
-                    {audioService.isTrackPlaying(`thread-${activeThread.id}`) ? (
-                      <span className="text-[10px] font-mono px-2 py-0.5 rounded bg-amber-500/20 text-amber-300">
+                    {currentTrackId === `thread-${activeThread.id}` && audioPlaybackState === 'playing' ? (
+                      <span className="text-[10px] font-mono px-2 py-0.5 rounded bg-amber-500/20 text-amber-300 flex items-center gap-1">
+                        <Pause className="w-2.5 h-2.5 fill-current" />
                         Broadcasting (Tap box to pause)
                       </span>
-                    ) : audioService.isTrackPaused(`thread-${activeThread.id}`) ? (
-                      <span className="text-[10px] font-mono px-2 py-0.5 rounded bg-slate-800 text-slate-300">
+                    ) : currentTrackId === `thread-${activeThread.id}` && audioPlaybackState === 'paused' ? (
+                      <span className="text-[10px] font-mono px-2 py-0.5 rounded bg-amber-500/10 text-amber-400 border border-amber-500/30 flex items-center gap-1 font-bold">
+                        <Play className="w-2.5 h-2.5 fill-current" />
                         Paused (Tap box to resume)
+                      </span>
+                    ) : currentTrackId === `thread-${activeThread.id}` && audioPlaybackState === 'loading' ? (
+                      <span className="text-[10px] font-mono px-2 py-0.5 rounded bg-slate-800 text-slate-300 animate-pulse">
+                        Buffering...
                       </span>
                     ) : null}
                   </div>
@@ -751,77 +811,89 @@ export const DriveModeView: React.FC<DriveModeViewProps> = ({
             </div>
 
             <div className="p-6">
-              {activeCardTab === 'etymology' && (
-                <div className="space-y-4">
-                  <div className="flex flex-col sm:flex-row sm:items-baseline justify-between gap-2 border-b border-slate-800 pb-3">
-                    <div>
-                      <span className="text-xs font-mono text-emerald-400 uppercase">Gaeilge (Irish Gaelic)</span>
-                      <h4 className="text-2xl font-black text-white">{currentCell.etymology.irishName}</h4>
-                      <p className="text-xs font-mono text-slate-400 mt-0.5">
-                        Phonetic pronunciation: <span className="text-amber-400 font-bold">{currentCell.etymology.phonetic}</span>
+              {drivingMode === 'real-gps' && !isGpsLocked ? (
+                <div className="text-center py-8 text-xs text-slate-500 font-mono space-y-2">
+                  <div className="text-xl">🛰️</div>
+                  <p className="text-slate-300 font-bold">Townland Etymology & Cultural Heritage Standby</p>
+                  <p className="text-slate-500 max-w-md mx-auto">
+                    Waiting for satellite fix. As soon as your physical coordinates are locked, authentic placename roots, national monuments, and Dúchas folklore for your townland will populate here.
+                  </p>
+                </div>
+              ) : (
+                <>
+                  {activeCardTab === 'etymology' && (
+                    <div className="space-y-4">
+                      <div className="flex flex-col sm:flex-row sm:items-baseline justify-between gap-2 border-b border-slate-800 pb-3">
+                        <div>
+                          <span className="text-xs font-mono text-emerald-400 uppercase">Gaeilge (Irish Gaelic)</span>
+                          <h4 className="text-2xl font-black text-white">{currentCell.etymology.irishName}</h4>
+                          <p className="text-xs font-mono text-slate-400 mt-0.5">
+                            Phonetic pronunciation: <span className="text-amber-400 font-bold">{currentCell.etymology.phonetic}</span>
+                          </p>
+                        </div>
+                        <div className="text-right">
+                          <span className="text-xs font-mono text-slate-400">Anglicized Form</span>
+                          <p className="text-lg font-bold text-slate-200">{currentCell.etymology.englishName}</p>
+                        </div>
+                      </div>
+
+                      <div>
+                        <h5 className="text-xs font-mono text-slate-400 uppercase mb-2">Linguistic Root Decomposition</h5>
+                        <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                          {currentCell.etymology.rootWords.map((root, i) => (
+                            <div key={i} className="p-3 rounded-xl bg-slate-950 border border-slate-800">
+                              <span className="text-emerald-400 font-bold font-mono text-sm">{root.root}</span>
+                              <p className="text-xs text-slate-300 mt-1">{root.meaning}</p>
+                            </div>
+                          ))}
+                        </div>
+                      </div>
+
+                      <p className="text-sm text-slate-300 leading-relaxed bg-slate-950/60 p-4 rounded-xl border border-slate-800">
+                        {currentCell.etymology.explanation}
                       </p>
                     </div>
-                    <div className="text-right">
-                      <span className="text-xs font-mono text-slate-400">Anglicized Form</span>
-                      <p className="text-lg font-bold text-slate-200">{currentCell.etymology.englishName}</p>
-                    </div>
-                  </div>
+                  )}
 
-                  <div>
-                    <h5 className="text-xs font-mono text-slate-400 uppercase mb-2">Linguistic Root Decomposition</h5>
-                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                      {currentCell.etymology.rootWords.map((root, i) => (
-                        <div key={i} className="p-3 rounded-xl bg-slate-950 border border-slate-800">
-                          <span className="text-emerald-400 font-bold font-mono text-sm">{root.root}</span>
-                          <p className="text-xs text-slate-300 mt-1">{root.meaning}</p>
-                        </div>
-                      ))}
-                    </div>
-                  </div>
-
-                  <p className="text-sm text-slate-300 leading-relaxed bg-slate-950/60 p-4 rounded-xl border border-slate-800">
-                    {currentCell.etymology.explanation}
-                  </p>
-                </div>
-              )}
-
-              {activeCardTab === 'monuments' && (
-                <div className="space-y-4">
-                  <div className="grid grid-cols-1 gap-3">
-                    {currentCell.monuments.map((m) => (
-                      <div key={m.id} className="p-4 rounded-xl bg-slate-950 border border-slate-800 space-y-2">
-                        <div className="flex items-center justify-between">
-                          <span className="px-2 py-0.5 rounded bg-amber-500/10 text-amber-400 text-xs font-bold font-mono">
-                            {m.type} • {m.era}
-                          </span>
-                          <span className="text-xs font-mono text-emerald-400 font-semibold">
-                            {m.distanceMeters}m from route
-                          </span>
-                        </div>
-                        <h5 className="text-base font-bold text-white">{m.name}</h5>
-                        <p className="text-xs text-slate-300 leading-relaxed">{m.description}</p>
+                  {activeCardTab === 'monuments' && (
+                    <div className="space-y-4">
+                      <div className="grid grid-cols-1 gap-3">
+                        {currentCell.monuments.map((m) => (
+                          <div key={m.id} className="p-4 rounded-xl bg-slate-950 border border-slate-800 space-y-2">
+                            <div className="flex items-center justify-between">
+                              <span className="px-2 py-0.5 rounded bg-amber-500/10 text-amber-400 text-xs font-bold font-mono">
+                                {m.type} • {m.era}
+                              </span>
+                              <span className="text-xs font-mono text-emerald-400 font-semibold">
+                                {m.distanceMeters}m from route
+                              </span>
+                            </div>
+                            <h5 className="text-base font-bold text-white">{m.name}</h5>
+                            <p className="text-xs text-slate-300 leading-relaxed">{m.description}</p>
+                          </div>
+                        ))}
                       </div>
-                    ))}
-                  </div>
-                </div>
-              )}
+                    </div>
+                  )}
 
-              {activeCardTab === 'folklore' && (
-                <div className="space-y-4">
-                  <h4 className="text-lg font-bold text-white">{currentCell.folklore.title}</h4>
-                  <blockquote className="p-4 rounded-xl bg-slate-950 border-l-4 border-amber-500 text-sm text-slate-300 italic leading-relaxed">
-                    "{currentCell.folklore.storySnippet}"
-                  </blockquote>
-                </div>
-              )}
+                  {activeCardTab === 'folklore' && (
+                    <div className="space-y-4">
+                      <h4 className="text-lg font-bold text-white">{currentCell.folklore.title}</h4>
+                      <blockquote className="p-4 rounded-xl bg-slate-950 border-l-4 border-amber-500 text-sm text-slate-300 italic leading-relaxed">
+                        "{currentCell.folklore.storySnippet}"
+                      </blockquote>
+                    </div>
+                  )}
 
-              {activeCardTab === 'geology' && (
-                <div className="space-y-4">
-                  <h4 className="text-lg font-bold text-white">{currentCell.geology.name}</h4>
-                  <p className="text-sm text-slate-300 leading-relaxed p-4 rounded-xl bg-slate-950 border border-slate-800">
-                    {currentCell.geology.scientificInsight}
-                  </p>
-                </div>
+                  {activeCardTab === 'geology' && (
+                    <div className="space-y-4">
+                      <h4 className="text-lg font-bold text-white">{currentCell.geology.name}</h4>
+                      <p className="text-sm text-slate-300 leading-relaxed p-4 rounded-xl bg-slate-950 border border-slate-800">
+                        {currentCell.geology.scientificInsight}
+                      </p>
+                    </div>
+                  )}
+                </>
               )}
             </div>
           </div>

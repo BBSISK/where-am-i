@@ -10,7 +10,8 @@ export interface VoiceCommandState {
 class VoiceCommandService {
   private recognition: any = null;
   private isListeningActive: boolean = false;
-  private isAudioDucked: boolean = false;
+  private isAudioSpeaking: boolean = false;
+  private restartTimeout: any = null;
   private listeners: Set<(state: VoiceCommandState) => void> = new Set();
   private commandCallbacks: Set<(cmd: VoiceCommandType) => void> = new Set();
 
@@ -36,27 +37,43 @@ class VoiceCommandService {
             rec.lang = 'en-US';
           }
 
+          rec.onstart = () => {
+            this.currentState.isListening = true;
+            this.notify();
+          };
+
           rec.onresult = (event: any) => this.handleSpeechResult(event);
+
           rec.onend = () => {
+            // HARD GUARD: If audio narration is speaking, stay dormant!
+            // Restarting microphone capture while playing audio causes CoreAudio/WebAudio buffer renegotiation
+            // which produces stutter and drops audio output ("sounds like losing signal").
+            if (this.isAudioSpeaking) {
+              this.currentState.isListening = false;
+              this.notify();
+              return;
+            }
+
             // Auto-restart if user still wants listening active while driving
             if (this.isListeningActive) {
-              try {
-                rec.start();
-              } catch (e) {
-                // If immediate restart fails, try again shortly
-                setTimeout(() => {
-                  if (this.isListeningActive) {
-                    try { rec.start(); } catch (err) {}
-                  }
-                }, 500);
-              }
+              if (this.restartTimeout) clearTimeout(this.restartTimeout);
+              this.restartTimeout = setTimeout(() => {
+                if (this.isListeningActive && !this.isAudioSpeaking) {
+                  try {
+                    rec.start();
+                    this.currentState.isListening = true;
+                    this.notify();
+                  } catch (err) {}
+                }
+              }, 400);
             } else {
               this.currentState.isListening = false;
               this.notify();
             }
           };
+
           rec.onerror = (err: any) => {
-            if (err.error !== 'no-speech') {
+            if (err.error !== 'no-speech' && err.error !== 'aborted') {
               console.warn('SpeechRecognition error:', err);
             }
           };
@@ -125,13 +142,60 @@ class VoiceCommandService {
     }, 3000);
   }
 
+  public setAudioSpeaking(speaking: boolean) {
+    this.isAudioSpeaking = speaking;
+
+    if (speaking) {
+      if (this.restartTimeout) {
+        clearTimeout(this.restartTimeout);
+        this.restartTimeout = null;
+      }
+      // Audio narration has started: immediately stop microphone capture so the browser / OS
+      // does not renegotiate audio session buffers or stutter output audio
+      if (this.recognition && this.currentState.isListening) {
+        try {
+          this.recognition.stop();
+        } catch (e) {}
+      }
+      this.currentState.isListening = false;
+      this.notify();
+    } else {
+      // Audio narration ended: wait a brief moment for audio hardware pipeline to settle,
+      // then resume hands-free listening if user kept it active
+      if (this.isListeningActive && this.recognition) {
+        if (this.restartTimeout) clearTimeout(this.restartTimeout);
+        this.restartTimeout = setTimeout(() => {
+          if (this.isListeningActive && !this.isAudioSpeaking) {
+            try {
+              this.recognition.start();
+              this.currentState.isListening = true;
+              this.notify();
+            } catch (err) {}
+          }
+        }, 400);
+      }
+    }
+  }
+
+  /** Backward compatibility alias */
   public setAudioDucked(ducked: boolean) {
-    this.isAudioDucked = ducked;
+    this.setAudioSpeaking(ducked);
+  }
+
+  public toggleListening(): boolean {
+    if (this.isListeningActive) {
+      this.stopListening();
+      return false;
+    } else {
+      this.startListening();
+      return true;
+    }
   }
 
   private handleSpeechResult(event: any) {
-    // If audio is actively speaking, ignore microphone input to prevent acoustic feedback loop
-    if (this.isAudioDucked) return;
+    // HARD GUARD: If audio is currently speaking, completely ignore microphone input
+    // to prevent acoustic feedback loop where phone speakers trigger voice commands
+    if (this.isAudioSpeaking) return;
 
     let transcript = '';
     for (let i = event.resultIndex; i < event.results.length; ++i) {
@@ -155,39 +219,44 @@ class VoiceCommandService {
       return;
     }
 
-    // 2. "Where Am I?" / Location Query
+    // 2. "Where Am I?" / Location Query (Requires explicit location intent)
     if (
       transcript.includes('where am i') ||
       transcript.includes('where are we') ||
-      transcript.includes('what is this place') ||
       transcript.includes('what townland') ||
-      transcript.includes('location')
+      transcript.includes('what is this place') ||
+      transcript.includes('what place is this') ||
+      transcript.includes('current location')
     ) {
       this.triggerCommand('where_am_i');
       return;
     }
 
-    // 3. "Tell Me More" / Deep Thread Trigger
+    // 3. "Tell Me More" / Deep Thread Trigger (Requires intentional phrase - never single words like "more" or "history")
     if (
       transcript.includes('tell me more') ||
       transcript.includes('tell more') ||
-      transcript.includes('more') ||
-      transcript.includes('explore') ||
-      transcript.includes('folklore') ||
-      transcript.includes('story') ||
-      transcript.includes('history') ||
-      transcript.includes('pull thread')
+      transcript.includes('tell me a story') ||
+      transcript.includes('tell the story') ||
+      transcript.includes('more details') ||
+      transcript.includes('tell me folklore') ||
+      transcript.includes('pull thread') ||
+      transcript.includes('unfold thread') ||
+      transcript.includes('unfold story')
     ) {
       this.triggerCommand('tell_me_more');
       return;
     }
 
-    // 4. Mute / Silence Commands
+    // 4. Mute / Silence Commands (Requires intentional command phrases - never single isolated word "stop")
     if (
-      transcript.includes('stop') ||
-      transcript.includes('quiet') ||
-      transcript.includes('mute') ||
-      transcript.includes('silence')
+      transcript.includes('stop audio') ||
+      transcript.includes('stop talking') ||
+      transcript.includes('pause audio') ||
+      transcript.includes('be quiet') ||
+      transcript.includes('silence audio') ||
+      transcript.includes('shut up') ||
+      (transcript.includes('stop') && transcript.includes('anseo'))
     ) {
       this.triggerCommand('stop_audio');
       return;
