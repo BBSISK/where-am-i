@@ -65,6 +65,36 @@ export interface CouncilHeritageSource {
   keyHighlights: string[];
 }
 
+export interface CensusDemographics {
+  censusYear: 1911;
+  totalPopulation: number;
+  inhabitedHouses: number;
+  roofTypes: { slateOrTile: number; thatchOrWood: number };
+  literacyRatePct: number;
+  irishSpeakersCount: number;
+  topOccupations: string[];
+  notableHouseholds: string[];
+  famineImpact: {
+    pop1841: number;
+    pop1851: number;
+    changePct: string;
+    narrative: string;
+  };
+  griffithsValuation: {
+    yearRecorded: number;
+    primaryLessor: string;
+    tenementCount: number;
+    predominantFamilyNames: string[];
+    annualValuationPounds: string;
+  };
+  downSurvey1656?: {
+    parish1641: string;
+    catholicLandowner1641: string;
+    cromwellianGrantee1656: string;
+    terrainNotes: string;
+  };
+}
+
 export interface ThreadOption {
   id: string;
   title: string;
@@ -97,6 +127,7 @@ export interface EnrichedH3Cell {
   history?: HistoryEvent;
   waterways?: WaterwayInfo;
   councilSource?: CouncilHeritageSource;
+  census?: CensusDemographics;
   teaserScript: string; // 10-second ambient audio teaser breadcrumb
   narrativeScript: string; // Full audio script
   threads: ThreadOption[]; // Interactive threads to pull

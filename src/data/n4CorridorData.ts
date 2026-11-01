@@ -52,6 +52,45 @@ export const N4_CORRIDOR_AREAS: AreaKnowledgeUnit[] = [
         '1758 Lucan Sulphur Spa & Dublin-Lucan Electric Tramway (1881–1940)'
       ]
     },
+    census: {
+      censusYear: 1911,
+      totalPopulation: 792,
+      inhabitedHouses: 162,
+      roofTypes: { slateOrTile: 142, thatchOrWood: 20 },
+      literacyRatePct: 88.5,
+      irishSpeakersCount: 38,
+      topOccupations: [
+        'Corn & Roller Flour Millers (Anna Liffey Mill)',
+        'Steam Tram Motormen & Conductors (Dublin & Lucan Railway)',
+        'Hydrotherapy Spa Attendants & Bath Stewards',
+        'Agricultural Labourers & Stewards',
+        'Laundresses & Domestic Servants'
+      ],
+      notableHouseholds: [
+        'Jane Wigham Shackleton (Anna Liffey House - Miller & Photographer)',
+        'Patrick Colthurst (Lucan House Demesne)',
+        'Michael O’Dwyer (Lucan Spa Hotel Manager)'
+      ],
+      famineImpact: {
+        pop1841: 1139,
+        pop1851: 818,
+        changePct: '-28.2%',
+        narrative: 'Despite the active flour mills along the River Liffey, Lucan lost over a quarter of its population between 1841 and 1851 due to crop failures, typhus fever, and migration toward Dublin city workhouses.'
+      },
+      griffithsValuation: {
+        yearRecorded: 1852,
+        primaryLessor: 'Viscount de Vesci, Charles Colthurst, & Dublin and Mullingar Turnpike Trust',
+        tenementCount: 148,
+        predominantFamilyNames: ['Shackleton', 'Kelly', 'Byrne', 'Doyle', 'Gahan', 'Flynn', 'Behan', 'Carroll'],
+        annualValuationPounds: '£4,185'
+      },
+      downSurvey1656: {
+        parish1641: 'Lucan Civil Parish (Newcastle Barony)',
+        catholicLandowner1641: 'Patrick Sarsfield (Ancestor of the 1st Earl of Lucan)',
+        cromwellianGrantee1656: 'Sir Theophilus Jones',
+        terrainNotes: '612 acres of arable and meadowland, one stone castle, two corn mills on the Aven Liffey, and an ancient timber bridge.'
+      }
+    },
     etymology: {
       irishName: 'Leamhcán',
       englishName: 'Lucan',
@@ -180,6 +219,14 @@ export const N4_CORRIDOR_AREAS: AreaKnowledgeUnit[] = [
         hookSnippet: 'Eight centuries of monastic devotion overlooking the ancient Esker ridge.',
         spokenNarrative: 'On the high ground of Esker overlooking Lucan lie the venerable stone ruins of St. Finian’s Church, dedicated in 1224 by the Dean of St. Patrick’s Cathedral in Dublin. For centuries it served as the mother church of the parish, surrounded by ancient Celtic grave slabs and yew trees.',
         detailMarkdown: 'South Dublin County Council Heritage Trail & National Monuments Record DU017-024.'
+      },
+      {
+        id: 'lucan-census',
+        title: 'The 1911 Census of Lucan: Millers, Tram Motormen & Spa Gentry',
+        category: 'history',
+        hookSnippet: 'National Archives records show 792 residents, 20 thatched cottages, and a thriving tramway.',
+        spokenNarrative: 'According to the 1911 Census of Ireland, 792 people lived in Lucan across 162 dwellings. Over eighty percent worked directly on the river—grinding wheat at Shackleton’s roller mill, driving the new electric steam tram into Dublin city, or attending to wealthy bathers drinking the mineral waters at the Lucan Spa Hotel.',
+        detailMarkdown: 'National Archives of Ireland (1911 Census of Ireland, DED Lucan) & AskAboutIreland Griffith’s Valuation.'
       }
     ]
   },
@@ -220,6 +267,45 @@ export const N4_CORRIDOR_AREAS: AreaKnowledgeUnit[] = [
         '1743 Wonderful Barn & Pigeon House famine relief follies',
         'Leixlip Toll House & 1734 3-arch stone Liffey bridge'
       ]
+    },
+    census: {
+      censusYear: 1911,
+      totalPopulation: 846,
+      inhabitedHouses: 184,
+      roofTypes: { slateOrTile: 151, thatchOrWood: 33 },
+      literacyRatePct: 86.2,
+      irishSpeakersCount: 29,
+      topOccupations: [
+        'Royal Canal Lockkeepers & Barge Men (Louisa Bridge)',
+        'Brewery Maltsters & Coopers',
+        'Woollen & Corn Mill Workers',
+        'Railway Gangers & Plate-Layers (Midland Great Western)',
+        'Liffey Salmon Fishermen'
+      ],
+      notableHouseholds: [
+        'Desmond Connolly (Main Street)',
+        'Thomas Farrell (Louisa Bridge Lockhouse)',
+        'Hon. Ernest Guinness (Castletown Outfarm)'
+      ],
+      famineImpact: {
+        pop1841: 1086,
+        pop1851: 832,
+        changePct: '-23.4%',
+        narrative: 'The Great Famine severely impacted the agricultural labourers of the Rye Water basin. Katherine Conolly’s corkscrew Wonderful Barn served as an essential grain depot to ward off total starvation in the parish.'
+      },
+      griffithsValuation: {
+        yearRecorded: 1853,
+        primaryLessor: 'Heirs of Rt. Hon. Thomas Conolly (Castletown Estate) & Duke of Leinster',
+        tenementCount: 165,
+        predominantFamilyNames: ['Guinness', 'Farrell', 'Dunne', 'Brady', 'Kelly', 'Murphy', 'Gorman', 'Whelan'],
+        annualValuationPounds: '£3,890'
+      },
+      downSurvey1656: {
+        parish1641: 'Leixlip Civil Parish (Salt Barony)',
+        catholicLandowner1641: 'Nicholas White of Leixlip Castle',
+        cromwellianGrantee1656: 'Sir George Wentworth',
+        terrainNotes: '540 acres of rich arable plain, one stone castle, a salmon leap weir, and two stone watermills.'
+      }
     },
     etymology: {
       irishName: 'Léim an Bhradáin',
@@ -349,6 +435,14 @@ export const N4_CORRIDOR_AREAS: AreaKnowledgeUnit[] = [
         hookSnippet: 'How Leixlip Castle saved Ireland’s Georgian architectural heritage.',
         spokenNarrative: 'In 1958, the Honorable Desmond Guinness and his wife Mariga bought Leixlip Castle and founded the Irish Georgian Society in its ancient dining room. Together, they campaigned fiercely against the destruction of Dublin’s Georgian streetscapes, saving Castletown House, Mountjoy Square, and the Conolly Folly for future generations.',
         detailMarkdown: 'Kildare County Council Heritage Studies & Irish Georgian Society Archives.'
+      },
+      {
+        id: 'leixlip-census',
+        title: 'The 1911 Census of Leixlip: Canal Men, Maltsters & Thatched Cottages',
+        category: 'history',
+        hookSnippet: 'National Archives records reveal 846 residents, 33 thatched homes, and canal lockkeepers.',
+        spokenNarrative: 'In the 1911 Census of Ireland, Leixlip recorded 846 residents across 184 houses, with thirty-three families still living under traditional thatched roofs. The canal basin at Louisa Bridge bustled with lockkeepers and turf boat captains, while coopers and maltsters supplied the thriving brewing and distilling trades along the Liffey.',
+        detailMarkdown: 'National Archives of Ireland (1911 Census of Ireland, DED Leixlip) & AskAboutIreland Griffith’s Valuation.'
       }
     ]
   },
@@ -388,6 +482,45 @@ export const N4_CORRIDOR_AREAS: AreaKnowledgeUnit[] = [
         "The Duke's Avenue (Carton Avenue 2km public ceremonial parkway)",
         'Royal Canal 1790 stone locks & fly-boat harbour'
       ]
+    },
+    census: {
+      censusYear: 1911,
+      totalPopulation: 1385,
+      inhabitedHouses: 215,
+      roofTypes: { slateOrTile: 192, thatchOrWood: 23 },
+      literacyRatePct: 93.4,
+      irishSpeakersCount: 245,
+      topOccupations: [
+        'Collegiate Professors & Divinity Students (St. Patrick’s)',
+        'Carton House Grooms & Gamekeepers (Duke of Leinster Estate)',
+        'Royal Canal Fly-Boat Captains & Porters',
+        'Midland Great Western Railway Station Masters',
+        'Blacksmiths & Harness Makers'
+      ],
+      notableHouseholds: [
+        'Most Rev. Daniel Mannix (St. Patrick’s College President)',
+        'Maurice FitzGerald, 6th Duke of Leinster (Carton House)',
+        'Michael Callan (Maynooth Town Merchant)'
+      ],
+      famineImpact: {
+        pop1841: 2129,
+        pop1851: 1696,
+        changePct: '-20.3%',
+        narrative: 'While the 3rd Duke of Leinster funded local famine relief works around Carton Demesne, the agricultural labourers of Maynooth suffered widespread depopulation and emigration across the Atlantic.'
+      },
+      griffithsValuation: {
+        yearRecorded: 1853,
+        primaryLessor: 'Augustus Frederick FitzGerald, 3rd Duke of Leinster (Carton House)',
+        tenementCount: 198,
+        predominantFamilyNames: ['FitzGerald', 'Callan', 'O’Brien', 'Kavanagh', 'Flood', 'Dowling', 'Smyth', 'Connor'],
+        annualValuationPounds: '£7,240'
+      },
+      downSurvey1656: {
+        parish1641: 'Maynooth Civil Parish (North Salt Barony)',
+        catholicLandowner1641: 'George FitzGerald, 16th Earl of Kildare',
+        cromwellianGrantee1656: 'Earl of Kildare (Retained due to Royalist alliance)',
+        terrainNotes: '1,200 acres of flat fertile till, one large ruined castle, ancient college foundations, and extensive oak hunting groves.'
+      }
     },
     etymology: {
       irishName: 'Maigh Nuadhad',
@@ -526,6 +659,14 @@ export const N4_CORRIDOR_AREAS: AreaKnowledgeUnit[] = [
         hookSnippet: 'The oldest cultivated tree in Ireland, under which Silken Thomas played his lute in 1535.',
         spokenNarrative: 'Standing just outside Maynooth Castle gate is the Silken Thomas Yew, recognized as the oldest cultivated tree in Ireland with a trunk girth exceeding fourteen feet. According to local lore, Lord Thomas FitzGerald sat beneath its heavy branches playing his lute on the eve of his 1535 rebellion before marching against King Henry’s army.',
         detailMarkdown: 'Protected Ancient Heritage Tree maintained by St. Patrick’s College and Kildare County Council.'
+      },
+      {
+        id: 'maynooth-census',
+        title: 'The 1911 Census of Maynooth: Scholars, Dukes & Canal Fly-Boats',
+        category: 'history',
+        hookSnippet: 'National Archives records reveal 1,385 residents, 93% literacy, and 245 Irish speakers.',
+        spokenNarrative: 'In the 1911 Census, Maynooth recorded 1,385 residents—boasting Ireland’s highest local literacy rate at ninety-three percent. Over six hundred were professors and divinity scholars at St. Patrick’s College, while the town bustled with grooms attending to the Duke of Leinster’s thoroughbreds and fly-boat captains plying the Royal Canal.',
+        detailMarkdown: 'National Archives of Ireland (1911 Census of Ireland, DED Maynooth) & AskAboutIreland Griffith’s Valuation.'
       }
     ]
   }

@@ -192,6 +192,31 @@ describe('Spatial RAG Engine', () => {
       expect(maynooth?.monuments.some(m => m.name.includes('Silken Thomas Yew'))).toBe(true);
       expect(maynooth?.monuments.some(m => m.name.includes('Nicholas Callan'))).toBe(true);
     });
+
+    it('indexes authentic 1911 Census and Griffith Valuation records across the N4 corridor', () => {
+      const lucan = spatialRagService.getAreaByName('Lucan');
+      expect(lucan?.census).toBeDefined();
+      expect(lucan?.census?.totalPopulation).toBe(792);
+      expect(lucan?.census?.inhabitedHouses).toBe(162);
+      expect(lucan?.census?.famineImpact.changePct).toBe('-28.2%');
+      expect(lucan?.census?.griffithsValuation.predominantFamilyNames).toContain('Shackleton');
+
+      const leixlip = spatialRagService.getAreaByName('Leixlip');
+      expect(leixlip?.census).toBeDefined();
+      expect(leixlip?.census?.roofTypes.thatchOrWood).toBe(33);
+      expect(leixlip?.census?.topOccupations.some(o => o.includes('Lockkeepers'))).toBe(true);
+
+      const maynooth = spatialRagService.getAreaByName('Maynooth');
+      expect(maynooth?.census).toBeDefined();
+      expect(maynooth?.census?.literacyRatePct).toBe(93.4);
+      expect(maynooth?.census?.griffithsValuation.primaryLessor).toContain('Duke of Leinster');
+
+      // Test RAG search retrieval on census intents
+      const lucanCoord = { lat: 53.3575, lng: -6.4485 };
+      const censusChunks = spatialRagService.retrieveCorridorChunks(lucanCoord, 'census population 1911 valuation');
+      expect(censusChunks.length).toBeGreaterThan(0);
+      expect(censusChunks[0].title).toContain('1911 Census');
+    });
   });
 });
 

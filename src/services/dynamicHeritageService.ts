@@ -87,6 +87,7 @@ export class DynamicHeritageService {
             history: curated.history,
             waterways: curated.waterways,
             councilSource: curated.councilSource,
+            census: curated.census,
             teaserScript: curated.teaserScript || `Entering ${curated.townland}. Tap to pull a thread on its ancient Irish roots and heritage.`,
             narrativeScript: curated.narrativeScript || `You are now passing through ${curated.townland}.`,
             threads: curated.threads || [],

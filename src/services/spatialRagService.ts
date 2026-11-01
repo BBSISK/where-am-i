@@ -1,4 +1,4 @@
-import { GeoCoordinate, EnrichedH3Cell, ThreadOption, NationalMonument, FolkloreStory, GeologicalFeature, EtymologyInfo, HistoryEvent, WaterwayInfo, CouncilHeritageSource } from '../types';
+import { GeoCoordinate, EnrichedH3Cell, ThreadOption, NationalMonument, FolkloreStory, GeologicalFeature, EtymologyInfo, HistoryEvent, WaterwayInfo, CouncilHeritageSource, CensusDemographics } from '../types';
 import { coordinateToH3, getCorridorNeighbors, calculateHaversineDistance } from './spatialEngine';
 import { N4_CORRIDOR_AREAS } from '../data/n4CorridorData';
 
@@ -29,6 +29,7 @@ export interface AreaKnowledgeUnit {
   h3Indices: string[]; // List of H3 Res 8 cells covering this area
   aliases?: string[]; // Townland sub-districts and neighborhood aliases
   councilSource?: CouncilHeritageSource; // County Council & Local Historical Society Sources
+  census?: CensusDemographics; // 1911 Census, Griffith's Valuation, and Down Survey records
   etymology: EtymologyInfo;
   monuments: NationalMonument[];
   folklore: FolkloreStory;
@@ -143,6 +144,16 @@ class SpatialRagService {
           summary: `${area.councilSource.councilName} • ${area.councilSource.historicalSociety}`,
           content: `${area.councilSource.trailName} curated by ${area.councilSource.councilName} and ${area.councilSource.historicalSociety}. Archives: ${area.councilSource.archiveCitation}. Highlights: ${area.councilSource.keyHighlights.join(', ')}.`,
           sourceCitation: `${area.councilSource.councilName} & ${area.councilSource.historicalSociety}`,
+          metadata: { townland: area.townland, county: area.county, parish: area.parish, coordinates: area.coordinates }
+        }] : []),
+        ...(area.census ? [{
+          chunkId: `${area.areaId}-census`,
+          h3Index: h3,
+          category: 'history' as const,
+          title: `1911 Census & Griffith's Valuation: ${area.townland}`,
+          summary: `Population ${area.census.totalPopulation} in ${area.census.inhabitedHouses} houses. Landlord: ${area.census.griffithsValuation.primaryLessor}`,
+          content: `1911 Census of Ireland: ${area.townland} recorded ${area.census.totalPopulation} residents in ${area.census.inhabitedHouses} dwellings (${area.census.roofTypes.slateOrTile} slate, ${area.census.roofTypes.thatchOrWood} thatch). ${area.census.irishSpeakersCount} Irish speakers. Top trades: ${area.census.topOccupations.join(', ')}. Famine (1841-51): ${area.census.famineImpact.changePct}. Griffith's Valuation (${area.census.griffithsValuation.yearRecorded}): Primary lessor was ${area.census.griffithsValuation.primaryLessor}. Surnames: ${area.census.griffithsValuation.predominantFamilyNames.join(', ')}.`,
+          sourceCitation: 'National Archives of Ireland (1911 Census) & AskAboutIreland (Griffith’s Valuation)',
           metadata: { townland: area.townland, county: area.county, parish: area.parish, coordinates: area.coordinates }
         }] : []),
         ...area.threads.map((t, idx) => ({
@@ -265,6 +276,7 @@ class SpatialRagService {
       history: area.history,
       waterways: area.waterways,
       councilSource: area.councilSource,
+      census: area.census,
       teaserScript: area.teaserScript,
       narrativeScript: area.narrativeScript,
       threads: area.threads,

@@ -11,6 +11,8 @@ import {
   Mountain,
   Landmark,
   Waves,
+  Users,
+  FileText,
   Volume2,
   ChevronRight,
   Bookmark,
@@ -109,7 +111,7 @@ export const DriveModeView: React.FC<DriveModeViewProps> = ({
   onOpenScrapbook,
   savedThreadsCount
 }) => {
-  const [activeCardTab, setActiveCardTab] = useState<'etymology' | 'monuments' | 'folklore' | 'geology' | 'history' | 'waterways' | 'council'>('etymology');
+  const [activeCardTab, setActiveCardTab] = useState<'etymology' | 'monuments' | 'folklore' | 'geology' | 'history' | 'waterways' | 'council' | 'census'>('etymology');
   const isGpsLocked = gpsState.status === 'locked';
   const isAcquiring = drivingMode === 'real-gps' && !isGpsLocked && (currentCell.h3Index === 'scanning...' || currentCell.townland === 'Acquiring GPS fix...');
 
@@ -933,6 +935,20 @@ export const DriveModeView: React.FC<DriveModeViewProps> = ({
                   <span>Council & Tourist Trail</span>
                 </button>
               )}
+
+              {currentCell.census && (
+                <button
+                  onClick={() => setActiveCardTab('census')}
+                  className={`flex items-center gap-2 px-4 py-3 text-xs sm:text-sm font-bold border-b-2 transition-all whitespace-nowrap ${
+                    activeCardTab === 'census'
+                      ? 'border-indigo-500 text-indigo-400 bg-indigo-500/10'
+                      : 'border-transparent text-slate-400 hover:text-white'
+                  }`}
+                >
+                  <Users className="w-4 h-4 text-indigo-400" />
+                  <span>1911 Census & Land Records</span>
+                </button>
+              )}
             </div>
 
             <div className="p-6">
@@ -1110,6 +1126,133 @@ export const DriveModeView: React.FC<DriveModeViewProps> = ({
                         <span>Archive & Research Citation:</span>
                         <span className="text-slate-300 font-semibold">{currentCell.councilSource.archiveCitation}</span>
                       </div>
+                    </div>
+                  )}
+
+                  {activeCardTab === 'census' && currentCell.census && (
+                    <div className="space-y-4">
+                      {/* Header */}
+                      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 border-b border-slate-800 pb-3">
+                        <div>
+                          <span className="px-2 py-0.5 rounded bg-indigo-500/20 text-indigo-300 text-xs font-bold font-mono">
+                            National Archives of Ireland & Valuation Office
+                          </span>
+                          <h4 className="text-xl font-bold text-white mt-1.5">
+                            {currentCell.townland} Demographics & Land Heritage
+                          </h4>
+                          <p className="text-xs font-mono text-slate-400 mt-0.5">
+                            Primary Sources: 1911 Census Return Form A/B1 & 1850s Griffith’s Valuation
+                          </p>
+                        </div>
+                        <div className="text-left sm:text-right">
+                          <span className="text-xs font-mono text-slate-400">1911 Census Year</span>
+                          <p className="text-sm font-bold text-indigo-400">Recorded April 2, 1911</p>
+                        </div>
+                      </div>
+
+                      {/* 4 Key Census Metrics */}
+                      <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
+                        <div className="p-3.5 rounded-xl bg-slate-950 border border-slate-800">
+                          <span className="text-xs text-slate-400 font-mono">1911 Population</span>
+                          <p className="text-lg font-black text-white mt-0.5">{currentCell.census.totalPopulation.toLocaleString()}</p>
+                          <span className="text-[10px] text-slate-500 font-mono">Documented residents</span>
+                        </div>
+
+                        <div className="p-3.5 rounded-xl bg-slate-950 border border-slate-800">
+                          <span className="text-xs text-slate-400 font-mono">Houses & Roofs</span>
+                          <p className="text-lg font-black text-white mt-0.5">{currentCell.census.inhabitedHouses} Houses</p>
+                          <span className="text-[10px] text-slate-400 font-mono">
+                            {currentCell.census.roofTypes.slateOrTile} slate • {currentCell.census.roofTypes.thatchOrWood} thatch
+                          </span>
+                        </div>
+
+                        <div className="p-3.5 rounded-xl bg-slate-950 border border-slate-800">
+                          <span className="text-xs text-slate-400 font-mono">Literacy Rate</span>
+                          <p className="text-lg font-black text-emerald-400 mt-0.5">{currentCell.census.literacyRatePct}%</p>
+                          <span className="text-[10px] text-slate-500 font-mono">Can read and write</span>
+                        </div>
+
+                        <div className="p-3.5 rounded-xl bg-slate-950 border border-slate-800">
+                          <span className="text-xs text-slate-400 font-mono">Irish Language</span>
+                          <p className="text-lg font-black text-amber-400 mt-0.5">{currentCell.census.irishSpeakersCount}</p>
+                          <span className="text-[10px] text-slate-400 font-mono">Bilingual speakers</span>
+                        </div>
+                      </div>
+
+                      {/* Great Famine Impact (1841 vs 1851) */}
+                      <div className="p-4 rounded-xl bg-gradient-to-r from-rose-950/30 via-slate-950 to-slate-950 border border-rose-500/30 space-y-1.5">
+                        <div className="flex items-center justify-between">
+                          <span className="text-xs font-mono font-bold uppercase text-rose-400 flex items-center gap-1.5">
+                            <span className="w-2 h-2 rounded-full bg-rose-500 animate-pulse"></span>
+                            The Great Famine Depopulation (1841–1851)
+                          </span>
+                          <span className="px-2 py-0.5 rounded bg-rose-500/20 text-rose-300 font-mono font-bold text-xs">
+                            {currentCell.census.famineImpact.changePct} Decline
+                          </span>
+                        </div>
+                        <p className="text-xs text-slate-300 leading-relaxed pt-1">
+                          {currentCell.census.famineImpact.narrative}
+                        </p>
+                        <div className="text-[11px] font-mono text-slate-400 pt-1 flex items-center justify-between border-t border-slate-800/80">
+                          <span>1841 Population: <b className="text-white">{currentCell.census.famineImpact.pop1841.toLocaleString()}</b></span>
+                          <span>1851 Population: <b className="text-rose-300">{currentCell.census.famineImpact.pop1851.toLocaleString()}</b></span>
+                        </div>
+                      </div>
+
+                      {/* Top 1911 Occupations */}
+                      <div>
+                        <h5 className="text-xs font-mono text-slate-400 uppercase mb-2">1911 Trades & Living Occupations</h5>
+                        <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+                          {currentCell.census.topOccupations.map((trade, i) => (
+                            <div key={i} className="p-2.5 rounded-lg bg-slate-950 border border-slate-800/80 text-xs text-slate-200 flex items-center gap-2">
+                              <span className="w-1.5 h-1.5 rounded-full bg-indigo-400"></span>
+                              <span>{trade}</span>
+                            </div>
+                          ))}
+                        </div>
+                      </div>
+
+                      {/* Griffith's Valuation (1852/1853) & Landlord */}
+                      <div className="p-4 rounded-xl bg-slate-950 border border-slate-800 space-y-2">
+                        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-1 border-b border-slate-800 pb-2">
+                          <div>
+                            <span className="text-[10px] font-mono text-emerald-400 uppercase font-bold flex items-center gap-1.5">
+                              <FileText className="w-3 h-3" />
+                              <span>Griffith’s Primary Valuation of Tenements ({currentCell.census.griffithsValuation.yearRecorded})</span>
+                            </span>
+                            <h6 className="text-sm font-bold text-white mt-0.5">
+                              Principal Landlord / Immediate Lessor: {currentCell.census.griffithsValuation.primaryLessor}
+                            </h6>
+                          </div>
+                          <span className="text-xs font-mono text-slate-300">
+                            Total Valuation: <b className="text-emerald-400">{currentCell.census.griffithsValuation.annualValuationPounds}</b>
+                          </span>
+                        </div>
+                        <div className="text-xs text-slate-300">
+                          <span className="text-slate-400 font-mono">Predominant Family Surnames: </span>
+                          <span className="font-semibold text-slate-200">
+                            {currentCell.census.griffithsValuation.predominantFamilyNames.join(', ')}
+                          </span>
+                        </div>
+                      </div>
+
+                      {/* 1656 Down Survey (Trinity College Dublin) */}
+                      {currentCell.census.downSurvey1656 && (
+                        <div className="p-3.5 rounded-xl bg-slate-950/60 border border-slate-800/80 text-xs space-y-1">
+                          <div className="flex items-center justify-between text-[11px] font-mono text-amber-400">
+                            <span>1656 Down Survey (Sir William Petty / TCD GIS)</span>
+                            <span>Barony Parish Record</span>
+                          </div>
+                          <p className="text-slate-300 text-xs">
+                            <b className="text-slate-400 font-mono">1641 Catholic Landowner: </b>
+                            {currentCell.census.downSurvey1656.catholicLandowner1641} • <b className="text-slate-400 font-mono">1656 Grantee: </b>
+                            {currentCell.census.downSurvey1656.cromwellianGrantee1656}
+                          </p>
+                          <p className="text-slate-400 text-[11px] font-mono">
+                            {currentCell.census.downSurvey1656.terrainNotes}
+                          </p>
+                        </div>
+                      )}
                     </div>
                   )}
                 </>
