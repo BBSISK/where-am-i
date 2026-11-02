@@ -1,0 +1,4 @@
+h3==4.5.0
+shapely==2.1.2
+requests>=2.31
+pytest>=8

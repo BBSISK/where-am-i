@@ -23,3 +23,16 @@ dist-ssr
 *.sln
 *.sw?
 
+
+# Local secrets (never commit)
+.env
+.env.*
+!.env.example
+
+# Pipeline raw downloads / API cache (regenerable)
+pipeline/cache/
+
+# Python
+__pycache__/
+.pytest_cache/
+.venv/
