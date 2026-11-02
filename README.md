@@ -6,17 +6,18 @@ A hands-free, GPS-driven companion for driving in Ireland. As you move, the app 
 
 ## What works today
 - **Live GPS tracking** with screen wake lock, and H3 cell-entry detection (`h3-js`).
-- **Place name** for your location from OpenStreetMap (Nominatim), cached and rate-limited to its usage policy.
+- **Place-name teasers for Kildare and Dublin** built only from Logainm records (Irish name only if *validated*; glossary elements as Logainm lists them), with every sentence carrying its source ids. Areas: a town (CSO Urban Area matched to a Logainm town) or else the townland (Tailte Éireann boundaries). See `pipeline/`.
+- **Place name** elsewhere from OpenStreetMap (Nominatim), cached and rate-limited to its usage policy.
 - **Audio** via the device's built-in voice (Web Speech API). Accent preference en-IE > en-GB; the app makes no claims about voice gender.
 - **Voice commands** ("Tell me more", etc.) via the Web Speech API.
-- **Teaser policy**: one teaser per area per trip; never interrupts "Tell me more"; minimum 3-minute quiet gap; nothing queued (`src/services/teaserPolicy.ts`). Interim area = the OpenStreetMap place name, until the townland/settlement pipeline exists.
+- **Teaser policy**: one teaser per area per trip; never interrupts "Tell me more"; minimum 3-minute quiet gap; nothing queued (`src/services/teaserPolicy.ts`). Areas come from the pipeline in Kildare and Dublin; elsewhere the OpenStreetMap place name stands in.
 - **Simulated test route** (Lucan → Leixlip → Maynooth) for testing without driving.
 - **CI** (GitHub Actions): type check, build, unit tests (Vitest), and a *secret guard* that fails the build if an API key or a direct ElevenLabs call appears in the public bundle.
 
 ## Roadmap
 1. Areas from official boundaries: town/village in built-up areas, otherwise townland.
-2. Data pipeline: Tailte Éireann townland boundaries + CSO settlement boundaries → H3 cell → area; place-name records from **Logainm** (CC BY 4.0).
-3. Etymology teaser built **only** from Logainm records, with a citation for every sentence (enforced by a CI test).
+2. Extend the pipeline beyond Kildare and Dublin to all counties.
+3. Whole-name meanings, if Gaois can provide Logainm explanatory notes.
 4. Server-side text-to-speech proxy (the ElevenLabs key never reaches the browser).
 5. Further sources (National Monuments Service, NIAH, CSO small-area statistics), each added only after its licence is checked.
 

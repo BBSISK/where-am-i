@@ -35,9 +35,20 @@ jobs:
       - name: Run Test Suite
         run: npm test
 
+  pipeline-tests:
+    name: Data pipeline + area data integrity (pytest)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - run: pip install -r pipeline/requirements.txt
+      - run: cd pipeline && python -m pytest -q
+
   build:
     name: TypeScript Check & Production Build
-    needs: test
+    needs: [test, pipeline-tests]
     runs-on: ubuntu-latest
     steps:
       - name: Checkout Code

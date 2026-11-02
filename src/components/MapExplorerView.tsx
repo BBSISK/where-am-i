@@ -218,7 +218,9 @@ export const MapExplorerView: React.FC<MapExplorerViewProps> = ({
             <div>
               <span className="text-xs font-mono text-slate-500 uppercase">Irish Placename</span>
               <h3 className="text-xl font-black text-white">{currentCell.etymology.irishName}</h3>
-              <p className="text-xs text-amber-400 font-mono mt-0.5">{currentCell.etymology.phonetic}</p>
+              {currentCell.etymology.phonetic && (
+                <p className="text-xs text-amber-400 font-mono mt-0.5">{currentCell.etymology.phonetic}</p>
+              )}
             </div>
 
             <div className="p-3 rounded-xl bg-slate-950 border border-slate-800 space-y-1">

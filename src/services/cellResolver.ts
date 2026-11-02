@@ -1,4 +1,5 @@
 import { EnrichedH3Cell, GeoCoordinate, SourceRef } from '../types';
+import { loadAreaData, lookupArea, cellFromArea } from './areaData';
 
 /**
  * Verified-only cell resolver (rebuild, 2026-11).
@@ -82,6 +83,15 @@ async function reverseGeocode(coord: GeoCoordinate): Promise<{ name: string | nu
 export async function resolveCell(h3Index: string, coord: GeoCoordinate): Promise<EnrichedH3Cell> {
   const hit = cache.get(h3Index);
   if (hit) return hit;
+  // 1. Verified area data (Logainm + Tailte Éireann), where we have it
+  await loadAreaData();
+  const found = lookupArea(h3Index);
+  if (found) {
+    const cell = cellFromArea(found.area, found.registry, h3Index, coord);
+    cache.set(h3Index, cell);
+    return cell;
+  }
+  // 2. Otherwise: OpenStreetMap place name only
   const { name, county } = await reverseGeocode(coord);
   // Interim area model: the OSM place name (+county) stands in for the area until the townland/settlement pipeline exists.
   const areaId = name ? `osm:${name}|${county ?? ''}` : undefined;
@@ -92,5 +102,8 @@ export async function resolveCell(h3Index: string, coord: GeoCoordinate): Promis
 
 /** For simulated-route waypoints: uses the plain waypoint name, claims nothing else. */
 export function cellFromWaypoint(name: string, h3Index: string, coord: GeoCoordinate): EnrichedH3Cell {
+  // Use verified area data if it has already loaded for this cell
+  const found = lookupArea(h3Index);
+  if (found) return cellFromArea(found.area, found.registry, h3Index, coord);
   return buildVerifiedCell(h3Index, coord, name, null, [], `sim:${name}`);
 }

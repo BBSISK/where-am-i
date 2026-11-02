@@ -1210,9 +1210,11 @@ export const DriveModeView: React.FC<DriveModeViewProps> = ({
                         <div>
                           <span className="text-xs font-mono text-emerald-400 uppercase">Gaeilge (Irish Gaelic)</span>
                           <h4 className="text-2xl font-black text-white">{currentCell.etymology.irishName}</h4>
-                          <p className="text-xs font-mono text-slate-400 mt-0.5">
-                            Phonetic pronunciation: <span className="text-amber-400 font-bold">{currentCell.etymology.phonetic}</span>
-                          </p>
+                          {currentCell.etymology.phonetic && (
+                            <p className="text-xs font-mono text-slate-400 mt-0.5">
+                              Phonetic pronunciation: <span className="text-amber-400 font-bold">{currentCell.etymology.phonetic}</span>
+                            </p>
+                          )}
                         </div>
                         <div className="text-right">
                           <span className="text-xs font-mono text-slate-400">Anglicized Form</span>
