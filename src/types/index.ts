@@ -240,10 +240,11 @@ export interface EnrichedH3Cell {
   townland: string;
   parish: string;
   county: string;
-  etymology: EtymologyInfo;
+  // Rich layers are OPTIONAL: they appear only once a verified pipeline supplies them with sources.
+  etymology?: EtymologyInfo;
   monuments: NationalMonument[];
-  folklore: FolkloreStory;
-  geology: GeologicalFeature;
+  folklore?: FolkloreStory;
+  geology?: GeologicalFeature;
   history?: HistoryEvent;
   waterways?: WaterwayInfo;
   councilSource?: CouncilHeritageSource;
@@ -262,6 +263,8 @@ export interface EnrichedH3Cell {
   narrativeScript: string; // Full audio script
   threads: ThreadOption[]; // Interactive threads to pull
   keyHighlights: string[]; // 3 punchy bullet points
+  /** Every source behind what this cell displays or speaks. Empty means: say nothing beyond the place name. */
+  sources: SourceRef[];
   curatedByAgent: boolean;
   enrichmentLatencyMs: number;
   tokensConsumed: number;
@@ -293,4 +296,13 @@ export interface AgentTraceStep {
   outputSummary: string;
   tokensUsed: number;
   artifactsProduced: string[];
+}
+
+/** A citation for something the app displays or speaks. */
+export interface SourceRef {
+  id: string;          // stable id, e.g. 'osm-nominatim', 'logainm:31975'
+  name: string;        // human-readable source name
+  url?: string;        // link to the record or dataset
+  licence: string;     // e.g. 'ODbL 1.0', 'CC BY 4.0'
+  attribution: string; // exact attribution text required by the licence
 }

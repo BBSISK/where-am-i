@@ -1,7 +1,7 @@
 # ADR-004: Dual-Tier Speech Synthesis Architecture (ElevenLabs Emotive AI Voice + Native Fallback)
 
 ## Status
-**Accepted** (Sprint 1)
+**Revised** (2026-11): Tier 2 (device Web Speech voice) is implemented. Tier 1 (ElevenLabs) will run only through a server-side proxy; keys never go in the browser. Not implemented yet.
 
 ## Context
 "Where Am I?" functions as an ambient, hands-free travel companion (*Radio Éire*). The auditory experience is the primary user interface while driving. Native browser Web Speech API voices often sound mechanical, flat, and robotic, diminishing the emotional resonance of centuries-old Irish folklore, famine memories, and placename pronunciations.

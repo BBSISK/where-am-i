@@ -2,60 +2,34 @@ import React, { useState, useEffect, useRef } from 'react';
 import { Navbar } from './components/Navbar';
 import { DriveModeView } from './components/DriveModeView';
 import { MapExplorerView } from './components/MapExplorerView';
-import { DevShowcaseView } from './components/DevShowcaseView';
 import { VoiceSettingsModal } from './components/VoiceSettingsModal';
 import { TripScrapbookModal } from './components/TripScrapbookModal';
 import { SIMULATED_ROUTES } from './data/irelandRoutes';
-import { getEnrichedDataForWaypoint } from './data/heritageKnowledgeBase';
+import { resolveCell, cellFromWaypoint } from './services/cellResolver';
 import { coordinateToH3, calculateBearing } from './services/spatialEngine';
 import { audioService } from './services/audioNarrationService';
 import { realGpsService, RealGpsState } from './services/realGpsService';
 import { voiceCommandService, VoiceCommandState } from './services/voiceCommandService';
-import { DynamicHeritageService } from './services/dynamicHeritageService';
 import { EnrichedH3Cell, ThreadOption, SavedTripThread } from './types';
 import { Sparkles } from 'lucide-react';
 
 export const App: React.FC = () => {
-  const [activeTab, setActiveTab] = useState<'drive' | 'map' | 'dev'>('drive');
+  const [activeTab, setActiveTab] = useState<'drive' | 'map'>('drive');
   
   // Standby acquiring state before GPS satellite lock (Never show Galway by default)
   const INITIAL_ACQUIRING_CELL: EnrichedH3Cell = {
     h3Index: 'scanning...',
     center: { lat: 53.4, lng: -7.9 },
     townland: 'Acquiring GPS fix...',
-    parish: 'Standby',
-    county: 'Éire',
-    etymology: {
-      irishName: 'Ag Lorg Suímh',
-      englishName: 'Acquiring Location',
-      phonetic: 'egg lurg see-v',
-      rootWords: [{ root: 'Lorg', meaning: 'Search / trace' }],
-      explanation: 'Standing by for live vehicle drive mode. As soon as your physical coordinates are locked, authentic placename roots will populate here.',
-      source: 'Logainm.ie Placenames Database'
-    },
+    parish: '',
+    county: '',
     monuments: [],
-    folklore: {
-      title: 'Irish Folklore Standby',
-      informant: 'Oral Tradition',
-      schoolName: 'Irish National Folklore Collection',
-      parish: 'Standby',
-      county: 'Éire',
-      yearRecorded: 1937,
-      storySnippet: 'Folklore and oral history records will unfold once GPS locks onto your townland.',
-      category: 'Fairy Lore',
-      duchasVolumeId: 'NFC-STANDBY'
-    },
-    geology: {
-      name: 'Irish Terrain Standby',
-      type: 'Karst Limestone',
-      ageEpoch: 'Holocene',
-      scientificInsight: 'Geological data will activate upon location fix.'
-    },
-    teaserScript: 'Connecting to GPS satellites. Standing by to stream local oral history for your actual physical location.',
-    narrativeScript: 'Connecting to GPS satellites. Standing by to stream local oral history for your actual physical location.',
+    teaserScript: 'Connecting to GPS.',
+    narrativeScript: 'Connecting to GPS.',
     threads: [],
-    keyHighlights: ['GPS Satellite Connection Pending', 'Irish Heritage Engine Active', 'Hands-Free Driving Ready'],
-    curatedByAgent: true,
+    keyHighlights: [],
+    sources: [],
+    curatedByAgent: false,
     enrichmentLatencyMs: 0,
     tokensConsumed: 0
   };
@@ -139,7 +113,7 @@ export const App: React.FC = () => {
     if (mode === 'simulator') {
       const initWp = currentRoute.waypoints[currentWaypointIndex];
       const initH3 = coordinateToH3(initWp.coordinate, 8);
-      setCurrentCell(getEnrichedDataForWaypoint(initWp.name, initH3, initWp.coordinate));
+      setCurrentCell(cellFromWaypoint(initWp.name, initH3, initWp.coordinate));
     } else {
       if (gpsState.coordinate && gpsState.h3Index) {
         // Keep locked cell
@@ -164,7 +138,7 @@ export const App: React.FC = () => {
         state.h3Index &&
         state.h3Index !== lastSpokenCellH3Ref.current
       ) {
-        const cell = await DynamicHeritageService.resolveCell(state.h3Index, state.coordinate);
+        const cell = await resolveCell(state.h3Index, state.coordinate);
         setCurrentCell(cell);
         if (state.isTracking) {
           playCellTeaser(cell);
@@ -173,7 +147,7 @@ export const App: React.FC = () => {
     });
 
     const unsubCell = realGpsService.onCellEntry(async (newH3Id, coord) => {
-      const cell = await DynamicHeritageService.resolveCell(newH3Id, coord);
+      const cell = await resolveCell(newH3Id, coord);
       setCurrentCell(cell);
       setActiveThread(null);
       const state = realGpsService.getState();
@@ -189,7 +163,7 @@ export const App: React.FC = () => {
           const coord = { lat: pos.coords.latitude, lng: pos.coords.longitude };
           const h3 = coordinateToH3(coord, 8);
           realGpsService.updateLocationManually(coord, Math.round(pos.coords.accuracy) || 15);
-          const cell = await DynamicHeritageService.resolveCell(h3, coord);
+          const cell = await resolveCell(h3, coord);
           setCurrentCell(cell);
         },
         () => {},
@@ -212,7 +186,7 @@ export const App: React.FC = () => {
     // If satellite signal is ALREADY acquired / locked when user starts, auto-start teaser immediately!
     const state = realGpsService.getState();
     if (state.coordinate && state.h3Index) {
-      const cell = await DynamicHeritageService.resolveCell(state.h3Index, state.coordinate);
+      const cell = await resolveCell(state.h3Index, state.coordinate);
       setCurrentCell(cell);
       playCellTeaser(cell, true);
     } else if (currentCell && currentCell.teaserScript && currentCell.h3Index !== 'scanning...') {
@@ -236,7 +210,7 @@ export const App: React.FC = () => {
   useEffect(() => {
     if (drivingMode === 'simulator') {
       const h3Idx = coordinateToH3(simWaypoint.coordinate, 8);
-      const cell = getEnrichedDataForWaypoint(simWaypoint.name, h3Idx, simWaypoint.coordinate);
+      const cell = cellFromWaypoint(simWaypoint.name, h3Idx, simWaypoint.coordinate);
       setCurrentCell(cell);
       setActiveThread(null);
       if (!isAudioMuted && isPlaying && cell.teaserScript) {
@@ -311,7 +285,7 @@ export const App: React.FC = () => {
     setActiveThread(null);
     const wp = currentRoute.waypoints[index];
     const h3Idx = coordinateToH3(wp.coordinate, 8);
-    const cell = getEnrichedDataForWaypoint(wp.name, h3Idx);
+    const cell = cellFromWaypoint(wp.name, h3Idx, wp.coordinate);
     setCurrentCell(cell);
     if (!isAudioMuted && cell.teaserScript) {
       audioService.speak(cell.teaserScript);
@@ -491,9 +465,7 @@ export const App: React.FC = () => {
           />
         )}
 
-        {activeTab === 'dev' && (
-          <DevShowcaseView currentCell={currentCell} />
-        )}
+
       </main>
 
       {/* Voice Settings Studio Modal */}
@@ -520,7 +492,7 @@ export const App: React.FC = () => {
           </div>
 
           <div className="flex items-center gap-4">
-            <span className="text-slate-500">Hardware GPS • Uber H3 • LangGraph • ElevenLabs • Logainm</span>
+            <span className="text-slate-500">Hardware GPS • Uber H3 • Map data © OpenStreetMap contributors</span>
             <div className="flex items-center gap-1 text-emerald-400">
               <span>Autonomous Heritage Copilot</span>
               <Sparkles className="w-3.5 h-3.5" />

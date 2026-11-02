@@ -1,10 +1,10 @@
 import React from 'react';
-import { Volume2, VolumeX, Navigation, Map, Cpu, Sparkles, Mic } from 'lucide-react';
+import { Volume2, VolumeX, Navigation, Map, Sparkles, Mic } from 'lucide-react';
 import { audioService } from '../services/audioNarrationService';
 
 interface NavbarProps {
-  activeTab: 'drive' | 'map' | 'dev';
-  setActiveTab: (tab: 'drive' | 'map' | 'dev') => void;
+  activeTab: 'drive' | 'map';
+  setActiveTab: (tab: 'drive' | 'map') => void;
   isAudioMuted: boolean;
   onToggleMute: () => void;
   isSpeaking: boolean;
@@ -72,18 +72,6 @@ export const Navbar: React.FC<NavbarProps> = ({
             <span className="hidden xs:inline">H3 Hex Map</span>
           </button>
 
-          <button
-            onClick={() => setActiveTab('dev')}
-            className={`flex items-center gap-2 px-3 py-1.5 rounded-lg text-sm font-medium transition-all ${
-              activeTab === 'dev'
-                ? 'bg-amber-600 text-white shadow-md shadow-amber-600/30'
-                : 'text-amber-400 hover:text-white hover:bg-slate-800/50'
-            }`}
-          >
-            <Cpu className="w-4 h-4" />
-            <span>Behind the Build</span>
-            <span className="w-2 h-2 rounded-full bg-amber-400 animate-ping"></span>
-          </button>
         </nav>
 
         {/* Voice Studio Button & Audio Controls */}

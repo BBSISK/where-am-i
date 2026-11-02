@@ -349,7 +349,7 @@ export const DriveModeView: React.FC<DriveModeViewProps> = ({
         {voiceState.commandDetected === 'tell_me_more' && (
           <div className="p-3.5 rounded-2xl bg-gradient-to-r from-amber-500/20 via-emerald-500/20 to-slate-900 border border-amber-400 text-amber-200 text-xs sm:text-sm font-bold flex items-center gap-3 shadow-xl animate-pulse">
             <Sparkles className="w-5 h-5 text-amber-300 shrink-0" />
-            <span>Voice Command: "Tell Me More" — Unfolding authentic Irish heritage thread!</span>
+            <span>Voice Command: "Tell Me More"</span>
           </div>
         )}
 
@@ -659,7 +659,7 @@ export const DriveModeView: React.FC<DriveModeViewProps> = ({
               {isAcquiring
                 ? gpsState.status === 'requesting'
                   ? "🛰️ Connecting to GPS satellites... Standing by to stream local oral history and townland heritage for your actual physical location."
-                  : "Ready for live vehicle drive mode. Tap 'Start Live GPS Driving' above to lock onto your location and stream authentic heritage as you travel."
+                  : "Ready for live vehicle drive mode. Tap 'Start Live GPS Driving' above to lock onto your location."
                 : `"${currentCell.teaserScript}"`}
             </p>
 
@@ -712,7 +712,7 @@ export const DriveModeView: React.FC<DriveModeViewProps> = ({
                     </h4>
                     <p className="text-xs text-slate-400 max-w-md mx-auto mt-1 leading-relaxed">
                       {gpsState.status === 'requesting'
-                        ? 'Acquiring satellite telemetry. Once your physical townland is resolved, authentic local threads (folklore, monuments, and etymology) will appear here automatically.'
+                        ? 'Acquiring GPS. Only verified information is shown; for most areas there is none yet.'
                         : 'Tap "Start Live GPS Driving" above to stream local oral history and townland heritage as you travel.'}
                     </p>
                   </div>
@@ -956,7 +956,7 @@ export const DriveModeView: React.FC<DriveModeViewProps> = ({
                 }`}
               >
                 <BookOpen className="w-4 h-4" />
-                <span>Placename Etymology (Logainm)</span>
+                <span>Placename Etymology</span>
               </button>
 
               <button
@@ -980,7 +980,7 @@ export const DriveModeView: React.FC<DriveModeViewProps> = ({
                 }`}
               >
                 <Sparkles className="w-4 h-4" />
-                <span>Folklore & Legends (Dúchas)</span>
+                <span>Folklore & Legends</span>
               </button>
 
               <button
@@ -1194,12 +1194,17 @@ export const DriveModeView: React.FC<DriveModeViewProps> = ({
                   <div className="text-xl">🛰️</div>
                   <p className="text-slate-300 font-bold">Townland Etymology & Cultural Heritage Standby</p>
                   <p className="text-slate-500 max-w-md mx-auto">
-                    Waiting for satellite fix. As soon as your physical coordinates are locked, authentic placename roots, national monuments, and Dúchas folklore for your townland will populate here.
+                    Waiting for a GPS fix. Only verified information is shown; for most areas there is none yet.
                   </p>
                 </div>
               ) : (
                 <>
-                  {activeCardTab === 'etymology' && (
+                  {activeCardTab === 'etymology' && !currentCell.etymology && (
+                    <div className="p-4 rounded-xl bg-slate-950 border border-slate-800 text-xs text-slate-400">
+                      No verified information for this area yet.
+                    </div>
+                  )}
+                  {activeCardTab === 'etymology' && currentCell.etymology && (
                     <div className="space-y-4">
                       <div className="flex flex-col sm:flex-row sm:items-baseline justify-between gap-2 border-b border-slate-800 pb-3">
                         <div>
@@ -1254,7 +1259,12 @@ export const DriveModeView: React.FC<DriveModeViewProps> = ({
                     </div>
                   )}
 
-                  {activeCardTab === 'folklore' && (
+                  {activeCardTab === 'folklore' && !currentCell.folklore && (
+                    <div className="p-4 rounded-xl bg-slate-950 border border-slate-800 text-xs text-slate-400">
+                      No verified information for this area yet.
+                    </div>
+                  )}
+                  {activeCardTab === 'folklore' && currentCell.folklore && (
                     <div className="space-y-4">
                       <h4 className="text-lg font-bold text-white">{currentCell.folklore.title}</h4>
                       <blockquote className="p-4 rounded-xl bg-slate-950 border-l-4 border-amber-500 text-sm text-slate-300 italic leading-relaxed">
@@ -1289,7 +1299,7 @@ export const DriveModeView: React.FC<DriveModeViewProps> = ({
                         </>
                       ) : (
                         <div className="p-4 rounded-xl bg-slate-950 border border-slate-800 text-xs text-slate-400">
-                          Historical clan chronicles and battle records are being indexed for this territory.
+                          No verified information for this area yet.
                         </div>
                       )}
                     </div>
@@ -1314,13 +1324,18 @@ export const DriveModeView: React.FC<DriveModeViewProps> = ({
                         </>
                       ) : (
                         <div className="p-4 rounded-xl bg-slate-950 border border-slate-800 text-xs text-slate-400">
-                          Hydrological, canal, and natural spring records are being indexed for this territory.
+                          No verified information for this area yet.
                         </div>
                       )}
                     </div>
                   )}
 
-                  {activeCardTab === 'geology' && (
+                  {activeCardTab === 'geology' && !currentCell.geology && (
+                    <div className="p-4 rounded-xl bg-slate-950 border border-slate-800 text-xs text-slate-400">
+                      No verified information for this area yet.
+                    </div>
+                  )}
+                  {activeCardTab === 'geology' && currentCell.geology && (
                     <div className="space-y-4">
                       <h4 className="text-lg font-bold text-white">{currentCell.geology.name}</h4>
                       <p className="text-sm text-slate-300 leading-relaxed p-4 rounded-xl bg-slate-950 border border-slate-800">
@@ -1600,7 +1615,7 @@ export const DriveModeView: React.FC<DriveModeViewProps> = ({
                         <div>
                           <div className="flex items-center gap-2">
                             <BarChart3 className="w-4 h-4 text-sky-400" />
-                            <span className="text-xs font-mono text-sky-400 uppercase font-bold">CSO Live 2022 Census & Modern Demographics</span>
+                            <span className="text-xs font-mono text-sky-400 uppercase font-bold">CSO Census 2022</span>
                           </div>
                           <h4 className="text-xl font-bold text-white mt-1">{currentCell.townland} Contemporary Profile</h4>
                         </div>

@@ -1,7 +1,7 @@
 # ADR-001: Selection of Spatial Indexing System (Uber H3 vs Geohash vs S2 vs Rectangular Grid)
 
 ## Status
-**Accepted** (Sprint 1)
+**Accepted** (implemented: H3 resolution 8 via `h3-js`)
 
 ## Context
 "Where Am I?" partitions Ireland into discrete spatial units of approximately 1 km² to aggregate cultural heritage, archaeological monuments, placename etymology, and folklore. As a user travels by car or bicycle at varying velocities, the engine must:

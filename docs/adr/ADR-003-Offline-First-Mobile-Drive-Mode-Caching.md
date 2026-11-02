@@ -1,7 +1,7 @@
 # ADR-003: Offline-First Drive Mode & Corridor Pre-fetching
 
 ## Status
-**Accepted** (Sprint 1)
+**Proposed** (not implemented yet)
 
 ## Context
 Rural Ireland (e.g., Connemara, West Cork, the Wicklow Mountains) frequently suffers from intermittent or nonexistent cellular connectivity (2G/3G dead zones). An app that relies on real-time internet requests for every kilometer driven will fail or stutter awkwardly.

@@ -1,3 +1,5 @@
+> **Superseded (2026-11).** This backlog predates the rebuild and describes plans, not what was built. See the README *Roadmap* for current status.
+
 # Where Am I? (Anseo) - Jira/Linear Sprint Backlog & Methodology
 
 ## Project Overview

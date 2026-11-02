@@ -213,6 +213,8 @@ export const MapExplorerView: React.FC<MapExplorerViewProps> = ({
               </span>
             </div>
 
+            {currentCell.etymology ? (
+              <>
             <div>
               <span className="text-xs font-mono text-slate-500 uppercase">Irish Placename</span>
               <h3 className="text-xl font-black text-white">{currentCell.etymology.irishName}</h3>
@@ -225,6 +227,11 @@ export const MapExplorerView: React.FC<MapExplorerViewProps> = ({
                 {currentCell.etymology.explanation}
               </p>
             </div>
+
+              </>
+            ) : (
+              <p className="text-xs text-slate-400">No verified place-name information for this area yet.</p>
+            )}
 
             <div>
               <span className="text-xs font-mono text-slate-500 uppercase">Archaeological SMR Sites ({currentCell.monuments.length})</span>

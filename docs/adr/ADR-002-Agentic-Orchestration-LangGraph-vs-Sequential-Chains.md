@@ -1,7 +1,7 @@
 # ADR-002: Agentic Orchestration Architecture (LangGraph State Machine vs Linear RAG Chains)
 
 ## Status
-**Accepted** (Sprint 1)
+**Withdrawn** (2026-11). Never implemented: the app only contained a simulated trace, which has been removed. Any future narration design will get a new ADR.
 
 ## Context
 Enriching a 1 km² H3 cell requires orchestrating heterogeneous data sources:
