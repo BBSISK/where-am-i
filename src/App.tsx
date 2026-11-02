@@ -6,6 +6,7 @@ import { VoiceSettingsModal } from './components/VoiceSettingsModal';
 import { TripScrapbookModal } from './components/TripScrapbookModal';
 import { SIMULATED_ROUTES } from './data/irelandRoutes';
 import { resolveCell, cellFromWaypoint } from './services/cellResolver';
+import { TeaserGate, DEFAULT_QUIET_GAP_MS } from './services/teaserPolicy';
 import { coordinateToH3, calculateBearing } from './services/spatialEngine';
 import { audioService } from './services/audioNarrationService';
 import { realGpsService, RealGpsState } from './services/realGpsService';
@@ -89,27 +90,29 @@ export const App: React.FC = () => {
     };
   }, []);
 
-  // Audio teaser tracker to prevent mid-cell interruptions or duplication
-  const lastSpokenCellH3Ref = useRef<string>('');
+  // Teaser gate: once per area per trip, never over "Tell me more", minimum quiet gap (see teaserPolicy.ts)
+  const teaserGateRef = useRef(new TeaserGate(DEFAULT_QUIET_GAP_MS));
 
   /**
-   * Dispatches ambient audio teaser when signal is acquired or new cell entered.
-   * Prevents speech breaking up by ignoring repeated ticks within the same H3 cell.
+   * Plays the area teaser if the agreed policy allows it. `userRequested` = explicit tap (e.g. Replay).
+   * Automatic triggers never queue: if blocked, nothing plays now.
    */
-  const playCellTeaser = (cell: EnrichedH3Cell, force: boolean = false) => {
+  const playCellTeaser = (cell: EnrichedH3Cell, userRequested: boolean = false) => {
     if (isAudioMuted || !cell.teaserScript) return;
-    if (cell.h3Index === 'scanning...' || cell.townland === 'Acquiring GPS fix...') return;
-    if (!force && cell.h3Index === lastSpokenCellH3Ref.current) return;
-
-    lastSpokenCellH3Ref.current = cell.h3Index;
-    audioService.speak(cell.teaserScript, { trackId: `ambient-teaser-${cell.h3Index}` });
+    if (cell.h3Index === 'scanning...') return;
+    const now = Date.now();
+    const decision = teaserGateRef.current.decide(cell.areaId, audioService.isLongFormActive(), now, userRequested);
+    if (!decision.play) return;
+    teaserGateRef.current.markPlayed(cell.areaId as string, now);
+    audioService.speak(cell.teaserScript, { trackId: `ambient-teaser-${cell.areaId}` });
   };
 
   // Handle switching between Real GPS and Simulator
   const handleSetDrivingMode = (mode: 'real-gps' | 'simulator') => {
     setDrivingMode(mode);
     audioService.stop();
-    lastSpokenCellH3Ref.current = '';
+    teaserGateRef.current.reset();
+    teaserGateRef.current.quietGapMs = mode === 'simulator' ? 0 : DEFAULT_QUIET_GAP_MS;
     if (mode === 'simulator') {
       const initWp = currentRoute.waypoints[currentWaypointIndex];
       const initH3 = coordinateToH3(initWp.coordinate, 8);
@@ -135,8 +138,7 @@ export const App: React.FC = () => {
       if (
         state.status === 'locked' &&
         state.coordinate &&
-        state.h3Index &&
-        state.h3Index !== lastSpokenCellH3Ref.current
+        state.h3Index
       ) {
         const cell = await resolveCell(state.h3Index, state.coordinate);
         setCurrentCell(cell);
@@ -188,9 +190,9 @@ export const App: React.FC = () => {
     if (state.coordinate && state.h3Index) {
       const cell = await resolveCell(state.h3Index, state.coordinate);
       setCurrentCell(cell);
-      playCellTeaser(cell, true);
+      playCellTeaser(cell);
     } else if (currentCell && currentCell.teaserScript && currentCell.h3Index !== 'scanning...') {
-      playCellTeaser(currentCell, true);
+      playCellTeaser(currentCell);
     }
   };
 
@@ -198,7 +200,7 @@ export const App: React.FC = () => {
     voiceCommandService.stopListening();
     realGpsService.stopTracking();
     audioService.stop();
-    lastSpokenCellH3Ref.current = '';
+    teaserGateRef.current.reset();
   };
 
   // Simulator: derived waypoints & bearing
@@ -213,8 +215,8 @@ export const App: React.FC = () => {
       const cell = cellFromWaypoint(simWaypoint.name, h3Idx, simWaypoint.coordinate);
       setCurrentCell(cell);
       setActiveThread(null);
-      if (!isAudioMuted && isPlaying && cell.teaserScript) {
-        audioService.speak(cell.teaserScript);
+      if (isPlaying) {
+        playCellTeaser(cell);
       }
     }
   }, [currentWaypointIndex, currentRoute.id, drivingMode]);
@@ -254,9 +256,7 @@ export const App: React.FC = () => {
     if (nextState) {
       audioService.unlockMobileAudio();
       voiceCommandService.startListening();
-      if (!isAudioMuted && currentCell.teaserScript) {
-        audioService.speak(currentCell.teaserScript);
-      }
+      playCellTeaser(currentCell);
     } else {
       audioService.stop();
       voiceCommandService.stopListening();
@@ -287,9 +287,7 @@ export const App: React.FC = () => {
     const h3Idx = coordinateToH3(wp.coordinate, 8);
     const cell = cellFromWaypoint(wp.name, h3Idx, wp.coordinate);
     setCurrentCell(cell);
-    if (!isAudioMuted && cell.teaserScript) {
-      audioService.speak(cell.teaserScript);
-    }
+    playCellTeaser(cell, true);
   };
 
   const saveThreadToScrapbook = (thread: ThreadOption) => {
@@ -376,7 +374,7 @@ export const App: React.FC = () => {
       if (cmd === 'wake_word') {
         audioService.speak("Dia dhuit! Ask 'Where am I', or say 'Tell me more'.");
       } else if (cmd === 'where_am_i') {
-        const text = `You are in the townland of ${currentCell.townland}, County ${currentCell.county}. ${currentCell.teaserScript}`;
+        const text = currentCell.teaserScript;
         audioService.speak(text);
       } else if (cmd === 'tell_me_more') {
         handlePullNextThread();

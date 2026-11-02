@@ -9,11 +9,12 @@ A hands-free, GPS-driven companion for driving in Ireland. As you move, the app 
 - **Place name** for your location from OpenStreetMap (Nominatim), cached and rate-limited to its usage policy.
 - **Audio** via the device's built-in voice (Web Speech API). Accent preference en-IE > en-GB; the app makes no claims about voice gender.
 - **Voice commands** ("Tell me more", etc.) via the Web Speech API.
+- **Teaser policy**: one teaser per area per trip; never interrupts "Tell me more"; minimum 3-minute quiet gap; nothing queued (`src/services/teaserPolicy.ts`). Interim area = the OpenStreetMap place name, until the townland/settlement pipeline exists.
 - **Simulated test route** (Lucan → Leixlip → Maynooth) for testing without driving.
 - **CI** (GitHub Actions): type check, build, unit tests (Vitest), and a *secret guard* that fails the build if an API key or a direct ElevenLabs call appears in the public bundle.
 
 ## Roadmap
-1. Teaser plays once per area (town/village in built-up areas, otherwise townland), never interrupts "Tell me more", with a minimum quiet gap.
+1. Areas from official boundaries: town/village in built-up areas, otherwise townland.
 2. Data pipeline: Tailte Éireann townland boundaries + CSO settlement boundaries → H3 cell → area; place-name records from **Logainm** (CC BY 4.0).
 3. Etymology teaser built **only** from Logainm records, with a citation for every sentence (enforced by a CI test).
 4. Server-side text-to-speech proxy (the ElevenLabs key never reaches the browser).

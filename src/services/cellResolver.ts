@@ -30,11 +30,13 @@ export function buildVerifiedCell(
   center: GeoCoordinate,
   placeName: string | null,
   county: string | null,
-  sources: SourceRef[]
+  sources: SourceRef[],
+  areaId?: string
 ): EnrichedH3Cell {
   return {
     h3Index,
     center,
+    areaId,
     townland: placeName ?? 'Unnamed area',
     parish: '',
     county: county ?? '',
@@ -81,12 +83,14 @@ export async function resolveCell(h3Index: string, coord: GeoCoordinate): Promis
   const hit = cache.get(h3Index);
   if (hit) return hit;
   const { name, county } = await reverseGeocode(coord);
-  const cell = buildVerifiedCell(h3Index, coord, name, county, name ? [OSM_SOURCE] : []);
+  // Interim area model: the OSM place name (+county) stands in for the area until the townland/settlement pipeline exists.
+  const areaId = name ? `osm:${name}|${county ?? ''}` : undefined;
+  const cell = buildVerifiedCell(h3Index, coord, name, county, name ? [OSM_SOURCE] : [], areaId);
   cache.set(h3Index, cell);
   return cell;
 }
 
 /** For simulated-route waypoints: uses the plain waypoint name, claims nothing else. */
 export function cellFromWaypoint(name: string, h3Index: string, coord: GeoCoordinate): EnrichedH3Cell {
-  return buildVerifiedCell(h3Index, coord, name, null, []);
+  return buildVerifiedCell(h3Index, coord, name, null, [], `sim:${name}`);
 }

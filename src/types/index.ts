@@ -237,6 +237,8 @@ export interface SavedTripThread {
 export interface EnrichedH3Cell {
   h3Index: string;
   center: GeoCoordinate;
+  /** Stable id of the area this cell belongs to (one teaser per area per trip). Absent = unknown area. */
+  areaId?: string;
   townland: string;
   parish: string;
   county: string;

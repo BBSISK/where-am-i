@@ -234,6 +234,13 @@ class AudioNarrationService {
     return this.playbackState;
   }
 
+  /** True while "Tell me more" (long-form) audio is loading, playing or paused. Teasers must not interrupt it. */
+  public isLongFormActive(): boolean {
+    const id = this.currentTrack?.trackId;
+    const longForm = !!id && (id.startsWith('thread-') || id.startsWith('cell-narrative-'));
+    return longForm && this.playbackState !== 'idle';
+  }
+
   public getCurrentTrackId(): string | null {
     return this.currentTrack?.trackId || null;
   }
