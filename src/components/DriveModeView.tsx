@@ -40,7 +40,8 @@ import { EnrichedH3Cell, SimulatedRoute, ThreadOption } from '../types';
 import { RealGpsState } from '../services/realGpsService';
 import { VoiceCommandState } from '../services/voiceCommandService';
 import { audioService } from '../services/audioNarrationService';
-import { ThreadImageFigure, imageForTrack } from './ThreadImageFigure';
+import { ThreadImageFigure } from './ThreadImageFigure';
+import { NowSpeakingScreen } from './NowSpeakingScreen';
 
 interface DriveModeViewProps {
   // GPS & Driving Modes
@@ -83,6 +84,8 @@ interface DriveModeViewProps {
   speedKmh: number;
   onPullThread: (thread: ThreadOption) => void;
   activeThread: ThreadOption | null;
+  /** Name of the river / canal / protected area being announced, for the focus screen. */
+  crossingName?: string | null;
   onOpenScrapbook: () => void;
   savedThreadsCount: number;
 }
@@ -121,6 +124,7 @@ export const DriveModeView: React.FC<DriveModeViewProps> = ({
   speedKmh,
   onPullThread,
   activeThread,
+  crossingName = null,
   onOpenScrapbook,
   savedThreadsCount
 }) => {
@@ -422,17 +426,15 @@ export const DriveModeView: React.FC<DriveModeViewProps> = ({
           </div>
         </button>
 
-        {/* Now showing: the photo for whatever is being spoken, large */}
-        {(() => {
-          const playing = audioPlaybackState === 'playing' || audioPlaybackState === 'paused';
-          const shown = playing ? imageForTrack(currentTrackId, currentCell.threads, currentCell.teaserImage) : null;
-          return shown ? (
-            <div className="p-3 rounded-2xl bg-slate-900 border border-amber-500/40 space-y-2">
-              <div className="text-[10px] font-mono uppercase tracking-wide text-amber-300">Now speaking: {shown.subject}</div>
-              <ThreadImageFigure key={shown.image.url} image={shown.image} size="hero" subject={shown.subject} />
-            </div>
-          ) : null;
-        })()}
+        <NowSpeakingScreen
+          trackId={currentTrackId}
+          playbackState={audioPlaybackState}
+          cell={currentCell}
+          crossingName={crossingName}
+          isListening={voiceState.isListening}
+          onTapToTalk={() => onToggleVoiceListening?.()}
+          onStop={() => audioService.stop()}
+        />
 
         {/* ElevenLabs High-Fidelity Audio Indicator */}
         {audioLastError ? (

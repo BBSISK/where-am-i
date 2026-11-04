@@ -22,6 +22,7 @@ from shapely.geometry import shape, Point
 from shapely.ops import nearest_points
 from compose import compose, english_name, validated_irish
 from heritage import select_threads
+from features import build_features
 
 ROOT = Path(__file__).resolve().parent
 CACHE = ROOT / "cache"
@@ -58,6 +59,15 @@ SOURCES = {
                     "url": "https://www.buildingsofireland.ie/terms-and-conditions/",
                     "licence": "NIAH terms: educational/private use with credit; commercial use needs prior written agreement",
                     "attribution": "Photographs: National Inventory of Architectural Heritage.", "nonCommercialOnly": True},
+    "npws": {"name": "NPWS designated sites (SAC, SPA, NHA, proposed NHA)",
+             "url": "https://www.arcgis.com/home/item.html?id=41c7209da92341e6b7014087c8229f46", "licence": "CC BY 4.0",
+             "attribution": "Copyright Government of Ireland. Created by National Parks and Wildlife Service, Department of Housing, Local Government and Heritage. Licensed under CC BY 4.0."},
+    "epa-rivers": {"name": "EPA WFD River Network Routes (river names reviewed before use)",
+                   "url": "https://data.gov.ie/dataset/inspire-water-framework-directive-river-network-routes",
+                   "licence": "CC BY 4.0", "attribution": "Contains Environmental Protection Agency data, licensed under CC BY 4.0."},
+    "wi-canals": {"name": "Waterways Ireland Canal Polygons (via EPA)",
+                  "url": "https://data.gov.ie/dataset/waterways-ireland-canal-polygons",
+                  "licence": "CC BY 4.0", "attribution": "Contains Waterways Ireland data, licensed under CC BY 4.0."},
     "cso-census": {"name": "CSO Census of Population 2022, Small Area Population Statistics (table SAP2022T1T1TOWN22)",
                    "url": "https://data.cso.ie/table/SAP2022T1T1TOWN22", "licence": "CC BY 4.0",
                    "attribution": "Source: Central Statistics Office, Census of Population 2022 (CC BY 4.0)."},
@@ -206,7 +216,8 @@ def add_census(areas, census):
         a["sources"] = sorted(set(a["sources"]) | {"cso-census"})
 
 
-def build_doc(tl, ua, recs, county, smr=(), niah=(), census=None, mtv=()):
+def build_doc(tl, ua, recs, county, smr=(), niah=(), census=None, mtv=(), npws=None,
+              rivers=None, canals=None, approved_rivers=None):
     """Pure: townland features, urban-area features, Logainm records -> (doc, report)."""
     towns = towns_by_name(recs)
     areas, cell_area = {}, {}
@@ -293,8 +304,10 @@ def build_doc(tl, ua, recs, county, smr=(), niah=(), census=None, mtv=()):
     areas = {k: v for k, v in areas.items() if k in used}
     attach_heritage(areas, cell_area, smr, niah, county, mtv)
     add_census(areas, census or {})
+    features, feature_cells = build_features(npws, set(cell_area), rivers, canals, approved_rivers)
     doc = {"county": county, "h3Resolution": RES, "builtAt": time.strftime("%Y-%m-%dT%H:%M:%SZ", time.gmtime()),
-           "sources": SOURCES, "areas": areas, "cells": cell_area}
+           "sources": SOURCES, "areas": areas, "cells": cell_area,
+           "features": features, "featureCells": feature_cells}
     return doc, report
 
 
@@ -303,13 +316,19 @@ def build(county):
     tl = json.loads((CACHE / "boundaries" / f"{county}_townlands.geojson").read_text())["features"]
     ua = json.loads((CACHE / "boundaries" / f"{county}_urban_areas.geojson").read_text())["features"]
     smr, niah, mtv = load_heritage()
-    doc, report = build_doc(tl, ua, recs, county, smr, niah, load_census(), mtv)
+    feat = {}
+    for kind in ("npws", "rivers", "canals"):
+        p = CACHE / "features" / f"{county}_{kind}.geojson"
+        feat[kind] = json.loads(p.read_text()) if p.exists() else None
+    approved = json.loads((Path(__file__).resolve().parent / "review" / "rivers.json").read_text())["rivers"]
+    doc, report = build_doc(tl, ua, recs, county, smr, niah, load_census(), mtv, feat["npws"],
+                            feat["rivers"], feat["canals"], approved)
     OUT.mkdir(parents=True, exist_ok=True)
     (OUT / f"{county}.json").write_text(json.dumps(doc, ensure_ascii=False, separators=(",", ":")))
     (CACHE / f"report_{county}.json").write_text(json.dumps(report, ensure_ascii=False, indent=1))
     areas = doc["areas"]
     kinds = {k: sum(1 for a in areas.values() if a["kind"] == k) for k in ("town", "townland")}
-    print(f"{county}: {len(doc['cells'])} cells, {len(areas)} areas {kinds}; "
+    print(f"{county}: {len(doc["features"])} crossing features; {len(doc["cells"])} cells, {len(areas)} areas {kinds}; "
           f"urban areas unmatched {len(report['urbanAreasUnmatched'])}, matched by distance {len(report['matchedByDistance'])}, "
           f"suburb towns {[t['town'] for t in report['suburbTowns']]}")
     return doc

@@ -92,3 +92,22 @@ def test_images_are_exact_join_credited_and_flagged(doc):
             assert img["sourceId"] in a["sources"], t["id"]
             if reg.get("nonCommercialOnly"):
                 assert img["sourceId"] in readme, f"{img['sourceId']} must be logged in SOURCES.md licensing decisions"
+
+
+def test_crossing_features_are_sourced_and_cells_belong_to_this_county(doc):
+    feats, fcells = doc.get("features", {}), doc.get("featureCells", {})
+    for fid, f in feats.items():
+        assert f["spoken"].startswith("You're "), fid
+        assert f["sourceIds"] and all(s in doc["sources"] for s in f["sources"]), fid
+    for cell, entries in fcells.items():
+        assert cell in doc["cells"], cell
+        for fid, coords in entries:
+            assert fid in feats and len(coords) >= 4 and len(coords) % 2 == 0
+
+
+def test_only_reviewed_river_names_are_spoken(doc):
+    approved = {r["epaName"] for r in json.loads((Path(__file__).resolve().parent / "review" / "rivers.json").read_text())["rivers"]
+                if r.get("approved")}
+    for f in doc.get("features", {}).values():
+        if f["kind"] == "river":
+            assert f["name"] in approved, f["name"]

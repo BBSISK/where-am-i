@@ -7,6 +7,8 @@ import { TripScrapbookModal } from './components/TripScrapbookModal';
 import { TripLogPanel, TripLogEntry } from './components/TripLogPanel';
 import { SIMULATED_ROUTES } from './data/irelandRoutes';
 import { resolveCell, cellFromWaypoint } from './services/cellResolver';
+import { CrossingGate, detectCrossings, metresBetween, MAX_GPS_SEGMENT_M } from './services/crossings';
+import { loadAreaData } from './services/areaData';
 import { TeaserGate, DEFAULT_QUIET_GAP_MS } from './services/teaserPolicy';
 import { coordinateToH3, calculateBearing } from './services/spatialEngine';
 import { audioService } from './services/audioNarrationService';
@@ -123,11 +125,41 @@ export const App: React.FC = () => {
     audioService.speak(cell.teaserScript, { trackId: `ambient-teaser-${cell.areaId}` });
   };
 
+  const crossingGateRef = useRef(new CrossingGate());
+  const lastPositionRef = useRef<{ lat: number; lng: number } | null>(null);
+  const [lastCrossing, setLastCrossing] = useState<{ name: string; source: string; url?: string } | null>(null);
+
+  /**
+   * Called with every new position. Announces an exact crossing (river, canal, protected area) if the
+   * crossing policy allows. `maxSegmentM` guards real GPS against jumps (tunnels, lost signal).
+   */
+  const handlePosition = async (coord: { lat: number; lng: number }, maxSegmentM: number) => {
+    const prev = lastPositionRef.current;
+    lastPositionRef.current = coord;
+    if (!prev || isAudioMuted) return;
+    if (metresBetween(prev, coord) > maxSegmentM) return;
+    await loadAreaData();
+    const events = detectCrossings(prev, coord);
+    if (!events.length) return;
+    const now = Date.now();
+    const speaking = audioService.isLongFormActive() || audioService.getPlaybackState() === 'playing';
+    const d = crossingGateRef.current.decide(events, speaking, now);
+    const time = new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', second: '2-digit' });
+    const name = (d.event ?? events[0]).feature.displayName ?? (d.event ?? events[0]).feature.name;
+    setTripLog((p) => [...p.slice(-199), { time, area: name, kind: 'crossing', outcome: d.event ? 'spoken' : `silent: ${d.reason}` }]);
+    if (!d.event) return;
+    crossingGateRef.current.markPlayed(d.event, now);
+    setLastCrossing({ name, source: d.event.feature.sources.join(', '), url: d.event.feature.url });
+    audioService.speak(d.event.feature.spoken, { trackId: `crossing-${d.event.featureId}` });
+  };
+
   // Handle switching between Real GPS and Simulator
   const handleSetDrivingMode = (mode: 'real-gps' | 'simulator') => {
     setDrivingMode(mode);
     audioService.stop();
     teaserGateRef.current.reset();
+    crossingGateRef.current.reset();
+    lastPositionRef.current = null;
     teaserGateRef.current.quietGapMs = mode === 'simulator' ? 0 : DEFAULT_QUIET_GAP_MS;
     if (mode === 'simulator') {
       const initWp = currentRoute.waypoints[currentWaypointIndex];
@@ -142,7 +174,17 @@ export const App: React.FC = () => {
     }
   };
 
+  // Tap to talk works during narration: the narration pauses while the mic is open and resumes
+  // if nothing was recognised (a recognised command decides what plays next).
+  const pausedForTalkRef = useRef(false);
+  const commandHeardRef = useRef(false);
+  const wasListeningRef = useRef(false);
   const handleToggleVoiceListening = () => {
+    if (!voiceCommandService.getState().isListening && audioService.getPlaybackState() === 'playing') {
+      audioService.pause();
+      pausedForTalkRef.current = true;
+      commandHeardRef.current = false;
+    }
     voiceCommandService.toggleListening();
   };
 
@@ -150,6 +192,9 @@ export const App: React.FC = () => {
   useEffect(() => {
     const unsubGps = realGpsService.subscribe(async (state) => {
       setGpsState(state);
+      if (state.isTracking && state.coordinate) {
+        handlePosition(state.coordinate, MAX_GPS_SEGMENT_M);
+      }
       // Auto-start ambient audio teaser the moment satellite signal is ACQUIRED
       if (
         state.status === 'locked' &&
@@ -216,6 +261,8 @@ export const App: React.FC = () => {
     realGpsService.stopTracking();
     audioService.stop();
     teaserGateRef.current.reset();
+    crossingGateRef.current.reset();
+    lastPositionRef.current = null;
   };
 
   // Simulator: derived waypoints & bearing
@@ -232,6 +279,10 @@ export const App: React.FC = () => {
       setActiveThread(null);
       if (isPlaying) {
         playCellTeaser(cell);
+        // simulated route: straight lines between waypoints, so no jump limit
+        handlePosition(simWaypoint.coordinate, Infinity);
+      } else {
+        lastPositionRef.current = simWaypoint.coordinate;
       }
     }
   }, [currentWaypointIndex, currentRoute.id, drivingMode]);
@@ -382,9 +433,17 @@ export const App: React.FC = () => {
   useEffect(() => {
     const unsubVoice = voiceCommandService.subscribe((state) => {
       setVoiceState(state);
+      if (wasListeningRef.current && !state.isListening && pausedForTalkRef.current) {
+        setTimeout(() => {
+          if (pausedForTalkRef.current && !commandHeardRef.current && audioService.isPaused()) audioService.resume();
+          pausedForTalkRef.current = false;
+        }, 400);
+      }
+      wasListeningRef.current = state.isListening;
     });
 
     const unsubCmd = voiceCommandService.onCommand((cmd) => {
+      commandHeardRef.current = true;
       if (cmd === 'wake_word') {
         audioService.speak("Dia dhuit! Ask 'Where am I', or say 'Tell me more'.");
       } else if (cmd === 'where_am_i') {
@@ -430,6 +489,7 @@ export const App: React.FC = () => {
       <main className="flex-1 pb-16">
         {activeTab === 'drive' && (
           <DriveModeView
+              crossingName={lastCrossing?.name ?? null}
             drivingMode={drivingMode}
             setDrivingMode={handleSetDrivingMode}
             gpsState={gpsState}
@@ -466,6 +526,12 @@ export const App: React.FC = () => {
             onOpenScrapbook={() => setIsScrapbookOpen(true)}
             savedThreadsCount={savedThreads.length}
           />
+        )}
+        {activeTab === 'drive' && lastCrossing && (
+          <div className="mt-4 px-4 py-2.5 rounded-2xl bg-sky-500/10 border border-sky-500/30 text-xs text-sky-200 font-mono">
+            Last crossing: <strong>{lastCrossing.name}</strong> (source: {lastCrossing.source}
+            {lastCrossing.url && (<>, <a className="underline" href={lastCrossing.url} target="_blank" rel="noopener noreferrer">record</a></>)})
+          </div>
         )}
         {activeTab === 'drive' && <TripLogPanel entries={tripLog} onClear={() => setTripLog([])} />}
 
@@ -505,7 +571,7 @@ export const App: React.FC = () => {
           </div>
 
           <div className="flex items-center gap-4">
-            <span className="text-slate-500">Placenames: Logainm © Government of Ireland (CC BY 4.0) • Monuments: National Monuments Service, and buildings: NIAH, © Government of Ireland (CC BY 4.0) • Building photos: National Inventory of Architectural Heritage (non-commercial use) • Boundaries © Tailte Éireann (CC BY 4.0) • Map data © OpenStreetMap contributors</span>
+            <span className="text-slate-500">Placenames: Logainm © Government of Ireland (CC BY 4.0) • Monuments: National Monuments Service, and buildings: NIAH, © Government of Ireland (CC BY 4.0) • Building photos: National Inventory of Architectural Heritage (non-commercial use) • Protected areas: NPWS © Government of Ireland (CC BY 4.0) • Boundaries © Tailte Éireann (CC BY 4.0) • Map data © OpenStreetMap contributors</span>
             <div className="flex items-center gap-1 text-emerald-400">
               <span>Autonomous Heritage Copilot</span>
               <Sparkles className="w-3.5 h-3.5" />

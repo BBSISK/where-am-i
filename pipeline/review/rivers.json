@@ -1,0 +1,138 @@
+{
+ "_about": "Rivers whose EPA name may be SPOKEN. EPA_Name is often a segment label (townland + catchment number), not a river's name, so nothing is spoken unless listed here with approved=true. spoken = how it is read out (no facts added, only the name). Edit by hand; the pipeline never edits this file.",
+ "reviewLog": [
+  "2026-11-04: list proposed by Claude from EPA names in Kildare and Dublin (names, not labels); Barry to confirm. 'Grifeen' is the EPA spelling; spoken as Griffeen (same pronunciation)."
+ ],
+ "rivers": [
+  {
+   "epaName": "Liffey",
+   "spoken": "the river Liffey",
+   "approved": true
+  },
+  {
+   "epaName": "Rye Water",
+   "spoken": "the Rye Water",
+   "approved": true
+  },
+  {
+   "epaName": "Tolka",
+   "spoken": "the river Tolka",
+   "approved": true
+  },
+  {
+   "epaName": "Camac",
+   "spoken": "the river Camac",
+   "approved": true
+  },
+  {
+   "epaName": "Dodder",
+   "spoken": "the river Dodder",
+   "approved": true
+  },
+  {
+   "epaName": "Grifeen",
+   "spoken": "the Griffeen river",
+   "approved": true
+  },
+  {
+   "epaName": "Lyreen 09",
+   "spoken": "the river Lyreen",
+   "approved": true
+  },
+  {
+   "epaName": "Morell",
+   "spoken": "the river Morell",
+   "approved": true
+  },
+  {
+   "epaName": "Slate",
+   "spoken": "the river Slate",
+   "approved": true
+  },
+  {
+   "epaName": "Barrow",
+   "spoken": "the river Barrow",
+   "approved": true
+  },
+  {
+   "epaName": "Boyne",
+   "spoken": "the river Boyne",
+   "approved": true
+  },
+  {
+   "epaName": "Slaney",
+   "spoken": "the river Slaney",
+   "approved": true
+  },
+  {
+   "epaName": "Figile",
+   "spoken": "the river Figile",
+   "approved": true
+  },
+  {
+   "epaName": "Poddle",
+   "spoken": "the river Poddle",
+   "approved": true
+  },
+  {
+   "epaName": "Santry",
+   "spoken": "the river Santry",
+   "approved": true
+  },
+  {
+   "epaName": "Ward",
+   "spoken": "the river Ward",
+   "approved": true
+  },
+  {
+   "epaName": "Broadmeadow 08",
+   "spoken": "the Broadmeadow river",
+   "approved": true
+  },
+  {
+   "epaName": "Dargle",
+   "spoken": "the river Dargle",
+   "approved": true
+  },
+  {
+   "epaName": "Owenadoher",
+   "spoken": "the Owenadoher river",
+   "approved": true
+  },
+  {
+   "epaName": "Pinkeen",
+   "spoken": "the Pinkeen river",
+   "approved": true
+  },
+  {
+   "epaName": "Maynooth stream",
+   "spoken": "the Maynooth stream",
+   "approved": true
+  },
+  {
+   "epaName": "Straffan stream",
+   "spoken": "the Straffan stream",
+   "approved": true
+  },
+  {
+   "epaName": "Lerr",
+   "spoken": "the river Lerr",
+   "approved": true
+  },
+  {
+   "epaName": "Greese",
+   "spoken": "the river Greese",
+   "approved": true
+  },
+  {
+   "epaName": "Fushoge",
+   "spoken": "the river Fushoge",
+   "approved": true
+  },
+  {
+   "epaName": "Glencree",
+   "spoken": "the Glencree river",
+   "approved": true
+  }
+ ]
+}

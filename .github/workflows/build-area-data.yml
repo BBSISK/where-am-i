@@ -47,6 +47,13 @@ jobs:
           COUNTIES: ${{ inputs.counties }}
         run: python pipeline/fetch_heritage.py $(echo "$COUNTIES" | tr '[:lower:]' '[:upper:]')
 
+      - name: Fetch NPWS protected areas, EPA rivers and Waterways Ireland canals
+        env:
+          COUNTIES: ${{ inputs.counties }}
+        run: |
+          python pipeline/fetch_npws.py $(echo "$COUNTIES" | tr '[:upper:]' '[:lower:]')
+          python pipeline/fetch_waterways.py $(echo "$COUNTIES" | tr '[:upper:]' '[:lower:]')
+
       - name: Fetch CSO Census 2022 town populations
         run: python pipeline/fetch_census.py
 
