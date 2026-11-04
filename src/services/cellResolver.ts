@@ -38,6 +38,8 @@ export function buildVerifiedCell(
     h3Index,
     center,
     areaId,
+    areaKind: 'place',
+    inBuiltUpArea: false,
     townland: placeName ?? 'Unnamed area',
     parish: '',
     county: county ?? '',

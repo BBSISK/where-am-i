@@ -239,6 +239,10 @@ export interface EnrichedH3Cell {
   center: GeoCoordinate;
   /** Stable id of the area this cell belongs to (one teaser per area per trip). Absent = unknown area. */
   areaId?: string;
+  /** 'town' teasers always win; townland/place teasers wait for the quiet gap. */
+  areaKind?: 'town' | 'townland' | 'place';
+  /** True when this area lies in a built-up area: townland teasers are not spoken there. */
+  inBuiltUpArea?: boolean;
   townland: string;
   parish: string;
   county: string;

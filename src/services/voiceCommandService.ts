@@ -7,6 +7,9 @@ export interface VoiceCommandState {
   commandDetected: VoiceCommandType | null;
 }
 
+/** How long one tap keeps the microphone open. */
+export const TAP_TO_TALK_WINDOW_MS = 7000;
+
 class VoiceCommandService {
   private recognition: any = null;
   private isListeningActive: boolean = false;
@@ -29,7 +32,9 @@ class VoiceCommandService {
         this.currentState.isSupported = true;
         try {
           const rec = new SpeechRecognition();
-          rec.continuous = true;
+          // Tap-to-talk: ONE short listening session per tap. Continuous listening with auto-restart
+          // made Android grab audio focus every few seconds and interrupt the car radio (drive test 2026-11-03).
+          rec.continuous = false;
           rec.interimResults = true;
           try {
             rec.lang = 'en-IE';
@@ -45,31 +50,12 @@ class VoiceCommandService {
           rec.onresult = (event: any) => this.handleSpeechResult(event);
 
           rec.onend = () => {
-            // HARD GUARD: If audio narration is speaking, stay dormant!
-            // Restarting microphone capture while playing audio causes CoreAudio/WebAudio buffer renegotiation
-            // which produces stutter and drops audio output ("sounds like losing signal").
-            if (this.isAudioSpeaking) {
-              this.currentState.isListening = false;
-              this.notify();
-              return;
-            }
-
-            // Auto-restart if user still wants listening active while driving
-            if (this.isListeningActive) {
-              if (this.restartTimeout) clearTimeout(this.restartTimeout);
-              this.restartTimeout = setTimeout(() => {
-                if (this.isListeningActive && !this.isAudioSpeaking) {
-                  try {
-                    rec.start();
-                    this.currentState.isListening = true;
-                    this.notify();
-                  } catch (err) {}
-                }
-              }, 400);
-            } else {
-              this.currentState.isListening = false;
-              this.notify();
-            }
+            // Never auto-restart. The session is over until the user taps again.
+            if (this.restartTimeout) clearTimeout(this.restartTimeout);
+            this.restartTimeout = null;
+            this.isListeningActive = false;
+            this.currentState.isListening = false;
+            this.notify();
           };
 
           rec.onerror = (err: any) => {
@@ -105,8 +91,9 @@ class VoiceCommandService {
     this.listeners.forEach(fn => fn({ ...this.currentState }));
   }
 
+  /** Listen once (tap-to-talk). Stops by itself after a short window or when speech ends. */
   public startListening() {
-    if (!this.recognition) return;
+    if (!this.recognition || this.isAudioSpeaking) return;
     this.isListeningActive = true;
     try {
       this.recognition.start();
@@ -115,10 +102,16 @@ class VoiceCommandService {
     } catch (e) {
       // Already running
     }
+    if (this.restartTimeout) clearTimeout(this.restartTimeout);
+    this.restartTimeout = setTimeout(() => this.stopListening(), TAP_TO_TALK_WINDOW_MS);
   }
 
   public stopListening() {
     this.isListeningActive = false;
+    if (this.restartTimeout) {
+      clearTimeout(this.restartTimeout);
+      this.restartTimeout = null;
+    }
     if (this.recognition) {
       try {
         this.recognition.stop();
@@ -144,36 +137,9 @@ class VoiceCommandService {
 
   public setAudioSpeaking(speaking: boolean) {
     this.isAudioSpeaking = speaking;
-
-    if (speaking) {
-      if (this.restartTimeout) {
-        clearTimeout(this.restartTimeout);
-        this.restartTimeout = null;
-      }
-      // Audio narration has started: immediately stop microphone capture so the browser / OS
-      // does not renegotiate audio session buffers or stutter output audio
-      if (this.recognition && this.currentState.isListening) {
-        try {
-          this.recognition.stop();
-        } catch (e) {}
-      }
-      this.currentState.isListening = false;
-      this.notify();
-    } else {
-      // Audio narration ended: wait a brief moment for audio hardware pipeline to settle,
-      // then resume hands-free listening if user kept it active
-      if (this.isListeningActive && this.recognition) {
-        if (this.restartTimeout) clearTimeout(this.restartTimeout);
-        this.restartTimeout = setTimeout(() => {
-          if (this.isListeningActive && !this.isAudioSpeaking) {
-            try {
-              this.recognition.start();
-              this.currentState.isListening = true;
-              this.notify();
-            } catch (err) {}
-          }
-        }, 400);
-      }
+    // If narration starts while the mic is open, close it. Never reopen automatically.
+    if (speaking && this.currentState.isListening) {
+      this.stopListening();
     }
   }
 

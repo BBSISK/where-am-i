@@ -4,6 +4,7 @@ import { DriveModeView } from './components/DriveModeView';
 import { MapExplorerView } from './components/MapExplorerView';
 import { VoiceSettingsModal } from './components/VoiceSettingsModal';
 import { TripScrapbookModal } from './components/TripScrapbookModal';
+import { TripLogPanel, TripLogEntry } from './components/TripLogPanel';
 import { SIMULATED_ROUTES } from './data/irelandRoutes';
 import { resolveCell, cellFromWaypoint } from './services/cellResolver';
 import { TeaserGate, DEFAULT_QUIET_GAP_MS } from './services/teaserPolicy';
@@ -93,6 +94,17 @@ export const App: React.FC = () => {
   // Teaser gate: once per area per trip, never over "Tell me more", minimum quiet gap (see teaserPolicy.ts)
   const teaserGateRef = useRef(new TeaserGate(DEFAULT_QUIET_GAP_MS));
 
+  // Trip log for drive tests: one line per area entered (plus every spoken teaser)
+  const [tripLog, setTripLog] = useState<TripLogEntry[]>([]);
+  const lastLoggedAreaRef = useRef<string>('');
+  const logTrip = (cell: EnrichedH3Cell, outcome: string) => {
+    const key = cell.areaId ?? cell.h3Index;
+    if (key === lastLoggedAreaRef.current && !outcome.startsWith('spoken')) return;
+    lastLoggedAreaRef.current = key;
+    const time = new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', second: '2-digit' });
+    setTripLog((prev) => [...prev.slice(-199), { time, area: cell.townland, kind: cell.areaKind ?? '?', outcome }]);
+  };
+
   /**
    * Plays the area teaser if the agreed policy allows it. `userRequested` = explicit tap (e.g. Replay).
    * Automatic triggers never queue: if blocked, nothing plays now.
@@ -101,7 +113,11 @@ export const App: React.FC = () => {
     if (isAudioMuted || !cell.teaserScript) return;
     if (cell.h3Index === 'scanning...') return;
     const now = Date.now();
-    const decision = teaserGateRef.current.decide(cell.areaId, audioService.isLongFormActive(), now, userRequested);
+    const decision = teaserGateRef.current.decide(
+      { areaId: cell.areaId, kind: cell.areaKind, inBuiltUpArea: cell.inBuiltUpArea },
+      audioService.isLongFormActive(), now, userRequested
+    );
+    logTrip(cell, decision.play ? (userRequested ? 'spoken (tap)' : 'spoken') : `silent: ${decision.reason}`);
     if (!decision.play) return;
     teaserGateRef.current.markPlayed(cell.areaId as string, now);
     audioService.speak(cell.teaserScript, { trackId: `ambient-teaser-${cell.areaId}` });
@@ -182,7 +198,6 @@ export const App: React.FC = () => {
   // Handle Real GPS Start/Stop
   const handleStartGps = async () => {
     audioService.unlockMobileAudio();
-    voiceCommandService.startListening();
     await realGpsService.startTracking();
 
     // If satellite signal is ALREADY acquired / locked when user starts, auto-start teaser immediately!
@@ -255,7 +270,6 @@ export const App: React.FC = () => {
     setIsPlaying(nextState);
     if (nextState) {
       audioService.unlockMobileAudio();
-      voiceCommandService.startListening();
       playCellTeaser(currentCell);
     } else {
       audioService.stop();
@@ -453,6 +467,7 @@ export const App: React.FC = () => {
             savedThreadsCount={savedThreads.length}
           />
         )}
+        {activeTab === 'drive' && <TripLogPanel entries={tripLog} onClear={() => setTripLog([])} />}
 
         {activeTab === 'map' && (
           <MapExplorerView

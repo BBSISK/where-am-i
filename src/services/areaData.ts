@@ -16,6 +16,8 @@ export interface AreaRecord {
   teaser: string;
   sentences: AreaSentence[];
   sources: string[];
+  /** Townland mostly inside a CSO urban area (built-up). */
+  builtUp?: boolean;
 }
 export interface SourceRegistryEntry { name: string; url: string; licence: string; attribution: string }
 export interface AreaFile {
@@ -78,6 +80,8 @@ export function cellFromArea(
     h3Index,
     center,
     areaId: area.id,
+    areaKind: area.kind,
+    inBuiltUpArea: area.kind === 'townland' ? !!area.builtUp : false,
     townland: area.name,
     parish: '',
     county: '',

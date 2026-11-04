@@ -364,7 +364,7 @@ export const DriveModeView: React.FC<DriveModeViewProps> = ({
                   ? 'bg-emerald-500/20 text-emerald-300 border border-emerald-500/40 hover:bg-emerald-500/30'
                   : 'bg-slate-800 text-slate-400 border border-slate-700 hover:bg-slate-700'
               }`}
-              title={voiceState.isListening ? 'Voice Copilot active: tap to mute' : 'Voice Copilot paused: tap to listen'}
+              title={voiceState.isListening ? 'Listening: tap to cancel' : 'Tap to talk'}
             >
               {voiceState.isListening ? (
                 <Mic className="w-4 h-4 animate-pulse text-emerald-400" />
@@ -376,7 +376,7 @@ export const DriveModeView: React.FC<DriveModeViewProps> = ({
             <div>
               <div className="flex items-center gap-2 flex-wrap">
                 <span className={`font-bold ${voiceState.isListening ? 'text-emerald-400' : 'text-slate-400'}`}>
-                  {voiceState.isListening ? '🎙️ Hands-Free Voice Copilot Active' : '🎙️ Voice Copilot Standby (Tap Mic)'}
+                  {voiceState.isListening ? '🎙️ Listening… say "Tell me more" or "Where am I"' : '🎙️ Tap to talk'}
                 </span>
                 {voiceState.isListening && (
                   <span className="flex h-2 w-2 relative">
@@ -391,7 +391,7 @@ export const DriveModeView: React.FC<DriveModeViewProps> = ({
                 )}
               </div>
               <p className="text-[11px] text-slate-400 mt-0.5">
-                Say <strong className="text-amber-300">"Hey Anseo"</strong> • <strong className="text-cyan-300">"Where am I"</strong> • <strong className="text-emerald-300">"Tell me more"</strong> • <strong className="text-slate-300">"Stop audio"</strong>
+                Tap, then say <strong className="text-cyan-300">"Where am I"</strong> • <strong className="text-emerald-300">"Tell me more"</strong> • <strong className="text-slate-300">"Stop audio"</strong>
               </p>
             </div>
           </div>
@@ -411,7 +411,7 @@ export const DriveModeView: React.FC<DriveModeViewProps> = ({
                   : 'bg-slate-800 text-slate-300 border-slate-700 hover:bg-slate-700'
               }`}
             >
-              {voiceState.isListening ? 'Mute Mic' : 'Turn On Mic'}
+              {voiceState.isListening ? 'Cancel' : 'Tap to talk'}
             </button>
           </div>
         </div>
