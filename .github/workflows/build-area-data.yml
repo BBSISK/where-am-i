@@ -23,6 +23,8 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0   # full history, so the final rebase onto newer pushes always works
 
       - uses: actions/setup-python@v5
         with:
@@ -99,5 +101,8 @@ jobs:
             echo "Area data unchanged."
           else
             git commit -m "data: rebuild area files (${{ inputs.counties }}) via Build area data workflow"
+            # code may have been pushed while this run was building: replay the data commit on top
+            # (the workflow is the only writer of these files, so this cannot conflict with code changes)
+            git pull --rebase origin main
             git push
           fi
