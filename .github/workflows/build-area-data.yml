@@ -42,6 +42,11 @@ jobs:
           COUNTIES: ${{ inputs.counties }}
         run: python pipeline/fetch_boundaries.py $(echo "$COUNTIES" | tr '[:lower:]' '[:upper:]')
 
+      - name: Fetch National Monuments (SMR) and NIAH records
+        env:
+          COUNTIES: ${{ inputs.counties }}
+        run: python pipeline/fetch_heritage.py $(echo "$COUNTIES" | tr '[:lower:]' '[:upper:]')
+
       - name: Build area files
         env:
           COUNTIES: ${{ inputs.counties }}

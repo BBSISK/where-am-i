@@ -7,6 +7,7 @@ A hands-free, GPS-driven companion for driving in Ireland. As you move, the app 
 ## What works today
 - **Live GPS tracking** with screen wake lock, and H3 cell-entry detection (`h3-js`).
 - **Place-name teasers for Kildare and Dublin** built only from Logainm records (Irish name only if *validated*; glossary elements as Logainm lists them), with every sentence carrying its source ids. Areas: a town (CSO Urban Area matched to a Logainm town) or else the townland (Tailte Éireann boundaries). See `pipeline/`.
+- **"Tell me more" for Lucan, Leixlip and Maynooth (testbed)**: up to 8 threads per town from the National Monuments Service and the National Inventory of Architectural Heritage (National-rated buildings), spoken in the official records' own wording, each linked to its record.
 - **Place name** elsewhere from OpenStreetMap (Nominatim), cached and rate-limited to its usage policy.
 - **Audio** via the device's built-in voice (Web Speech API). Accent preference en-IE > en-GB; the app makes no claims about voice gender.
 - **Voice commands** ("Tell me more", etc.) via the Web Speech API.

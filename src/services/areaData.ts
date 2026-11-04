@@ -1,10 +1,21 @@
-import { EnrichedH3Cell, GeoCoordinate, SourceRef } from '../types';
+import { EnrichedH3Cell, GeoCoordinate, SourceRef, ThreadOption } from '../types';
 
 /**
  * Verified area data built offline by pipeline/build_areas.py (Logainm + Tailte Éireann, CC BY 4.0).
  * Every sentence carries the ids of the records it was built from.
  */
 export interface AreaSentence { text: string; sourceIds: string[] }
+/** A "Tell me more" item: the official record's own wording (SMR / NIAH), with its record id. */
+export interface AreaThread {
+  id: string;
+  category: 'monument' | 'architecture';
+  title: string;
+  hookSnippet: string;
+  spokenNarrative: string;
+  detailMarkdown: string;
+  sourceIds: string[];
+  sources: string[];
+}
 export interface AreaRecord {
   id: string;
   kind: 'town' | 'townland';
@@ -16,6 +27,7 @@ export interface AreaRecord {
   teaser: string;
   sentences: AreaSentence[];
   sources: string[];
+  threads?: AreaThread[];
   /** Townland mostly inside a CSO urban area (built-up). */
   builtUp?: boolean;
 }
@@ -98,7 +110,16 @@ export function cellFromArea(
     monuments: [],
     teaserScript: area.teaser,
     narrativeScript: area.teaser,
-    threads: [],
+    threads: (area.threads ?? []).map(
+      (t): ThreadOption => ({
+        id: t.id,
+        title: t.title,
+        category: t.category,
+        hookSnippet: t.hookSnippet,
+        spokenNarrative: t.spokenNarrative,
+        detailMarkdown: t.detailMarkdown
+      })
+    ),
     keyHighlights: [],
     sources,
     curatedByAgent: false,

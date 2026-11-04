@@ -21,11 +21,15 @@ import h3
 from shapely.geometry import shape, Point
 from shapely.ops import nearest_points
 from compose import compose, english_name, validated_irish
+from heritage import select_threads
 
 ROOT = Path(__file__).resolve().parent
 CACHE = ROOT / "cache"
 OUT = ROOT.parent / "public" / "data" / "areas"
 RES = 8
+# Testbed (Barry, 2026-11-04): heritage threads only for these Logainm town ids until quality is reviewed.
+HERITAGE_TOWNS = {17131: 'Lucan', 1416490: 'Leixlip', 1416489: 'Maynooth'}
+THREADS_PER_TOWN = 8
 MATCH_KM = 1.5
 SUBURB_KM = 2.0
 BUILT_UP_SHARE = 0.5
@@ -37,6 +41,12 @@ SOURCES = {
     "tailte-townlands": {"name": "Tailte Éireann, Townlands NSB 2019 (generalised 20m)",
                          "url": "https://www.arcgis.com/home/item.html?id=1dc58c98ab004234ad0445e79a0f9af7",
                          "licence": "CC BY 4.0", "attribution": "© Tailte Éireann"},
+    "nms-smr": {"name": "Archaeological Survey of Ireland: Sites and Monuments Record (National Monuments Service)",
+                "url": "https://maps.archaeology.ie/historicenvironment", "licence": "CC BY 4.0",
+                "attribution": "Copyright Government of Ireland. Created by National Monuments Service, Department of Housing, Local Government and Heritage. Licensed under CC BY 4.0."},
+    "niah": {"name": "National Inventory of Architectural Heritage", "url": "https://www.buildingsofireland.ie",
+             "licence": "CC BY 4.0",
+             "attribution": "Copyright Government of Ireland. Created by National Inventory of Architectural Heritage, Department of Housing, Local Government and Heritage. Licensed under CC BY 4.0."},
     "tailte-urban": {"name": "Tailte Éireann / CSO, Urban Areas 2022 (generalised 20m)",
                      "url": "https://www.arcgis.com/home/item.html?id=5468708d36454d1f95a3ff23cbaeb2f5",
                      "licence": "CC BY 4.0", "attribution": "© Tailte Éireann"},
@@ -123,7 +133,34 @@ def townland_area(f, recs, report):
             "sources": ["tailte-townlands"]}
 
 
-def build_doc(tl, ua, recs, county):
+def load_heritage():
+    smr, niah = [], []
+    for f in (CACHE / "heritage").glob("*_smr.json"):
+        smr += json.loads(f.read_text())["results"]
+    for f in (CACHE / "heritage").glob("*_niah.json"):
+        niah += json.loads(f.read_text())["results"]
+    return smr, niah
+
+
+def attach_heritage(areas, cell_area, smr, niah):
+    """Give testbed towns ranked 'Tell me more' threads from records located in their cells."""
+    by_area = {}
+    for kind, rows in (("smr", smr), ("niah", niah)):
+        for r in rows:
+            if r.get("LATITUDE") is None or r.get("LONGITUDE") is None:
+                continue
+            aid = cell_area.get(h3.latlng_to_cell(r["LATITUDE"], r["LONGITUDE"], RES))
+            if aid:
+                by_area.setdefault(aid, {"smr": [], "niah": []})[kind].append(r)
+    for aid, a in areas.items():
+        if a["kind"] == "town" and a.get("logainmId") in HERITAGE_TOWNS and aid in by_area:
+            threads = select_threads(by_area[aid]["smr"], by_area[aid]["niah"], limit=THREADS_PER_TOWN)
+            if threads:
+                a["threads"] = threads
+                a["sources"] = sorted(set(a["sources"]) | {s for t in threads for s in t["sources"]})
+
+
+def build_doc(tl, ua, recs, county, smr=(), niah=()):
     """Pure: townland features, urban-area features, Logainm records -> (doc, report)."""
     towns = towns_by_name(recs)
     areas, cell_area = {}, {}
@@ -196,7 +233,8 @@ def build_doc(tl, ua, recs, county):
     for aid in sorted(town_core):
         for c in town_core[aid]:
             for n in h3.grid_disk(c, 1):
-                if n not in all_core and (n not in cell_area or cell_area[n].startswith("townland:")):
+                # only cells of THIS county's townlands, so towns never spill into a neighbouring county's file
+                if n not in all_core and n in cell_area and cell_area[n].startswith("townland:"):
                     cell_area[n] = aid
 
     # builtUp flag on townlands
@@ -206,6 +244,7 @@ def build_doc(tl, ua, recs, county):
 
     used = set(cell_area.values())
     areas = {k: v for k, v in areas.items() if k in used}
+    attach_heritage(areas, cell_area, smr, niah)
     doc = {"county": county, "h3Resolution": RES, "builtAt": time.strftime("%Y-%m-%dT%H:%M:%SZ", time.gmtime()),
            "sources": SOURCES, "areas": areas, "cells": cell_area}
     return doc, report
@@ -215,7 +254,8 @@ def build(county):
     recs = load_logainm()
     tl = json.loads((CACHE / "boundaries" / f"{county}_townlands.geojson").read_text())["features"]
     ua = json.loads((CACHE / "boundaries" / f"{county}_urban_areas.geojson").read_text())["features"]
-    doc, report = build_doc(tl, ua, recs, county)
+    smr, niah = load_heritage()
+    doc, report = build_doc(tl, ua, recs, county, smr, niah)
     OUT.mkdir(parents=True, exist_ok=True)
     (OUT / f"{county}.json").write_text(json.dumps(doc, ensure_ascii=False, separators=(",", ":")))
     (CACHE / f"report_{county}.json").write_text(json.dumps(report, ensure_ascii=False, indent=1))

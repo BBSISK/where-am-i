@@ -505,7 +505,7 @@ export const App: React.FC = () => {
           </div>
 
           <div className="flex items-center gap-4">
-            <span className="text-slate-500">Placenames: Logainm © Government of Ireland (CC BY 4.0) • Boundaries © Tailte Éireann (CC BY 4.0) • Map data © OpenStreetMap contributors</span>
+            <span className="text-slate-500">Placenames: Logainm © Government of Ireland (CC BY 4.0) • Monuments: National Monuments Service, and buildings: NIAH, © Government of Ireland (CC BY 4.0) • Boundaries © Tailte Éireann (CC BY 4.0) • Map data © OpenStreetMap contributors</span>
             <div className="flex items-center gap-1 text-emerald-400">
               <span>Autonomous Heritage Copilot</span>
               <Sparkles className="w-3.5 h-3.5" />
