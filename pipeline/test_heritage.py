@@ -26,6 +26,9 @@ def test_titles():
     t = smr_thread({"SMRS": "DU017-002001-", "MONUMENT_CLASS": "Ritual site - holy well", "WEB_NOTES": "Two wells.",
                     "TOWNLAND": "COLDBLOW,LUCAN DEMESNE", "WEBSITE_LINK": "x"})
     assert t["title"] == "Holy well in Coldblow"
+    t2 = smr_thread({"SMRS": "KD011-1", "MONUMENT_CLASS": "Ritual site - holy well", "WEB_NOTES": "A well.",
+                     "TOWNLAND": "NEWTOWN (LEIXLIP ED)", "WEBSITE_LINK": "x"})
+    assert t2["title"] == "Holy well in Newtown"
     assert "for this holy well:" in t["spokenNarrative"]
 
 def test_sentence_split_respects_abbreviations():

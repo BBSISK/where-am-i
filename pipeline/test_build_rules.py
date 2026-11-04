@@ -95,3 +95,21 @@ def test_towns_never_overwrite_each_other():
 def test_every_sentence_sourced():
     for a in DOC["areas"].values():
         assert all(s["sourceIds"] for s in a["sentences"])
+
+
+def test_boundary_record_attaches_to_own_county_town():
+    """A Kildare record whose cell centre lies just over the county line still reaches the Kildare town."""
+    from build_areas import attach_heritage
+    town_cell = h3.latlng_to_cell(53.3657, -6.4955, 8)
+    neighbour = [n for n in h3.grid_disk(town_cell, 1) if n != town_cell][0]
+    lat, lng = h3.cell_to_latlng(neighbour)
+    areas = {"town:logainm:1416490": {"id": "town:logainm:1416490", "kind": "town", "logainmId": 1416490,
+                                      "sources": ["logainm"]}}
+    cell_area = {town_cell: "town:logainm:1416490"}          # neighbour cell belongs to the other county's file
+    niah = [{"REG_NO": 11804045, "NAME": "Leixlip Castle", "RATING": "National", "APPRAISAL": "A fine castle.",
+             "COUNTY": "KILDARE", "LATITUDE": lat, "LONGITUDE": lng, "ORIGINAL_TYPE": "country house",
+             "DATEFROM": 1835, "DATETO": 1840, "WEBSITE_LINK": "x"},
+            {"REG_NO": 1, "NAME": "Dublin House", "RATING": "National", "APPRAISAL": "Other county.",
+             "COUNTY": "DUBLIN", "LATITUDE": lat, "LONGITUDE": lng, "WEBSITE_LINK": "y"}]
+    attach_heritage(areas, cell_area, [], niah, "kildare")
+    assert [t["title"] for t in areas["town:logainm:1416490"]["threads"]] == ["Leixlip Castle"]

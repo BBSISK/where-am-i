@@ -142,14 +142,28 @@ def load_heritage():
     return smr, niah
 
 
-def attach_heritage(areas, cell_area, smr, niah):
-    """Give testbed towns ranked 'Tell me more' threads from records located in their cells."""
+def area_for_record(lat, lng, cell_area, areas):
+    """The record's own cell, or (on a county boundary, e.g. the Liffey at Leixlip) the nearest
+    neighbouring cell of THIS county, preferring a town."""
+    c = h3.latlng_to_cell(lat, lng, RES)
+    if c in cell_area:
+        return cell_area[c]
+    ring = [n for n in h3.grid_disk(c, 1) if n in cell_area]
+    towns = [n for n in ring if areas.get(cell_area[n], {}).get("kind") == "town"]
+    pick = sorted(towns or ring)
+    return cell_area[pick[0]] if pick else None
+
+
+def attach_heritage(areas, cell_area, smr, niah, county=None):
+    """Give testbed towns ranked 'Tell me more' threads from records of this county located in their cells."""
     by_area = {}
     for kind, rows in (("smr", smr), ("niah", niah)):
         for r in rows:
             if r.get("LATITUDE") is None or r.get("LONGITUDE") is None:
                 continue
-            aid = cell_area.get(h3.latlng_to_cell(r["LATITUDE"], r["LONGITUDE"], RES))
+            if county and (r.get("COUNTY") or "").upper() != county.upper():
+                continue
+            aid = area_for_record(r["LATITUDE"], r["LONGITUDE"], cell_area, areas)
             if aid:
                 by_area.setdefault(aid, {"smr": [], "niah": []})[kind].append(r)
     for aid, a in areas.items():
@@ -244,7 +258,7 @@ def build_doc(tl, ua, recs, county, smr=(), niah=()):
 
     used = set(cell_area.values())
     areas = {k: v for k, v in areas.items() if k in used}
-    attach_heritage(areas, cell_area, smr, niah)
+    attach_heritage(areas, cell_area, smr, niah, county)
     doc = {"county": county, "h3Resolution": RES, "builtAt": time.strftime("%Y-%m-%dT%H:%M:%SZ", time.gmtime()),
            "sources": SOURCES, "areas": areas, "cells": cell_area}
     return doc, report

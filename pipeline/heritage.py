@@ -95,7 +95,7 @@ GENERIC_MAIN = {"Ritual site", "Habitation site", "Water mill", "House"}
 
 
 def title_case(s):
-    first = (s or "").split(",")[0]
+    first = re.sub(r"\s*\(.*?\)", "", (s or "").split(",")[0])
     return " ".join(w.capitalize() for w in first.split())
 
 

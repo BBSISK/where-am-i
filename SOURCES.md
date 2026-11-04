@@ -21,3 +21,6 @@ All earlier curated heritage content (folklore, census, archive, art, military a
 
 ## Editing rules for spoken heritage text
 Monument and building threads use the official record's own words. The only edits (see `pipeline/heritage.py`, all unit-tested) are: removing the "Compiled by / Date of upload" footer; removing parenthetical bibliographic references, record codes and measurements; "c. 1780" → "circa 1780"; compass shorthand → words. Each thread links to its official record.
+
+## Licensing status (decision log)
+- **2026-11-04: non-commercial for now (Barry).** Dúchas (National Folklore Collection) is licensed CC BY-NC 4.0, which forbids commercial use. The app may use Dúchas material while it is non-commercial. **Before any commercial use**, either obtain permission from the National Folklore Collection (UCD) / Gaois, or remove Dúchas content (it will sit behind a single build switch). All other sources listed above are CC BY 4.0 or ODbL and allow commercial use with attribution.
