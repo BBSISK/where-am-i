@@ -127,3 +127,46 @@ def test_images_switch_and_untrusted_hosts():
     assert "image" not in t
     [t] = select_threads([], [dict(NIAH_REC, IMAGE_LINK="https://example.com/x.jpg")])
     assert "image" not in t
+
+
+# --- Records of Protected Structures (2026-11-04) ------------------------------------------------
+from heritage import rps_eligible, rps_thread
+
+RPS = {"council": "Kildare County Council", "councilKey": "kcc", "rpsNo": "B11-127", "name": "Louisa's Bridge",
+       "descr": "Canal Bridge", "niahNo": None, "smrNo": None, "lat": 53.37, "lng": -6.5, "url": "u"}
+
+
+def test_rps_thread_wording_is_the_councils():
+    t = rps_thread(RPS)
+    assert t["spokenNarrative"] == ("Kildare County Council's Record of Protected Structures lists Louisa's Bridge, "
+                                    "recorded as: canal bridge.")
+    assert t["sourceIds"] == ["rps:kcc:B11-127"] and t["sources"] == ["rps-kcc"]
+
+
+def test_rps_skips_homes_and_items_already_covered():
+    assert rps_eligible(RPS)
+    assert not rps_eligible(dict(RPS, descr="Two Storey House Terrace"))   # private homes are never narrated
+    assert not rps_eligible(dict(RPS, descr="Shop"))
+    assert not rps_eligible(dict(RPS, niahNo=11803101))                    # NIAH covers it
+    assert not rps_eligible(dict(RPS, smrNo="KD011-040"))                  # SMR covers it
+    assert not rps_eligible(RPS, niah_points=[(53.37005, -6.5)])           # NIAH building within 25 m
+
+
+def test_rps_drops_record_of_monuments_marker():
+    t = rps_thread(dict(RPS, councilKey="sdcc", council="South Dublin County Council",
+                        name="Lucan Weir", descr="Weir, Salmon Pass, Sluice Gates & Fishery Site (RM)"))
+    assert "(RM)" not in t["spokenNarrative"] and t["spokenNarrative"].endswith("fishery site.")
+
+
+def test_gsi_thread_is_verbatim_and_skips_name_only_summary():
+    from heritage import gsi_thread
+    t = gsi_thread({"SITECODE": "KE017", "SITENAME": "Louisa Bridge Warm Spring", "DESIGNAT": "CGS", "REPORT": "r",
+                    "DESCRIPT": "A warm spring formerly used as a spa", "GEOLOGICAL": "Louisa Bridge warm spring"})
+    assert t["spokenNarrative"] == ("From Geological Survey Ireland, on the Louisa Bridge Warm Spring County "
+                                    "Geological Site: A warm spring formerly used as a spa.")
+    assert t["sourceIds"] == ["gsi:KE017"] and t["category"] == "geology"
+
+
+def test_rps_no_repetition_when_name_equals_description():
+    t = rps_thread(dict(RPS, name="Lime Kiln", descr="Lime Kiln"))
+    assert t["spokenNarrative"] == "Kildare County Council's Record of Protected Structures lists Lime Kiln."

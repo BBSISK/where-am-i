@@ -9,7 +9,7 @@ export interface AreaSentence { text: string; sourceIds: string[] }
 /** A "Tell me more" item: the official record's own wording (SMR / NIAH), with its record id. */
 export interface AreaThread {
   id: string;
-  category: 'monument' | 'architecture';
+  category: 'monument' | 'architecture' | 'geology' | 'history';
   title: string;
   hookSnippet: string;
   spokenNarrative: string;

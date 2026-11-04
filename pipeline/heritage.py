@@ -131,6 +131,64 @@ def niah_image(r):
             "sourceUrl": r.get("WEBSITE_LINK"), "sourceId": "niah-images"}
 
 
+# RPS: only structures that are not homes, shops or offices (no narrating private addresses), and only
+# where NIAH / SMR do not already cover them (exact cross-reference numbers; for South Dublin, which has
+# none, an NIAH building within 25 m suppresses the RPS entry; suppression only, never a claim).
+RPS_EXCLUDE = re.compile(r"house|cottage|dwelling|lodge|terrace|residence|apartment|flat|shop|office|"
+                         r"garda|outbuilding|barn|stable|coach|railings|walls?\b|gate|piers?\b|building", re.I)
+
+
+def rps_eligible(r, niah_points=()):
+    descr = (r.get("descr") or "").strip()
+    if not descr or not r.get("name") or RPS_EXCLUDE.search(descr):
+        return False
+    if r.get("niahNo") or r.get("smrNo"):
+        return False
+    import math
+    for lat, lng in niah_points:
+        dy = (r["lat"] - lat) * 111320
+        dx = (r["lng"] - lng) * 111320 * math.cos(math.radians(lat))
+        if dx * dx + dy * dy < 25 * 25:
+            return False
+    return True
+
+
+def rps_thread(r):
+    name = re.sub(r",\s*Co\.?\s+\w+$", "", r["name"].strip())
+    descr = re.sub(r"\s*\(RM\)", "", r["descr"].strip())  # "(RM)" = also in the Record of Monuments
+    d = descr.lower()
+    spoken = (f"{r['council']}'s Record of Protected Structures lists {name}."
+              if d == name.lower() else
+              f"{r['council']}'s Record of Protected Structures lists {name}, recorded as: {d}.")
+    return {
+        "id": f"rps-{r['councilKey']}-{r['rpsNo']}", "category": "architecture", "title": name,
+        "hookSnippet": f"A protected structure: {d}.",
+        "spokenNarrative": spoken,
+        "detailMarkdown": f"**{name}**: {descr}. {r['council']} Record of Protected Structures no. {r['rpsNo']}.\n\n"
+                          f"[Source dataset]({r['url']}). Contains Irish Public Sector Data licensed under CC BY 4.0.",
+        "sourceIds": [f"rps:{r['councilKey']}:{r['rpsNo']}"], "sources": [f"rps-{r['councilKey']}"], "score": 40,
+        "group": f"rps:{name.lower()}",
+    }
+
+
+def gsi_thread(r):
+    """GSI County Geological Site: its own one-line description and geological summary, verbatim."""
+    name = r["SITENAME"].strip()
+    parts = [p.strip().rstrip(".") for p in (r.get("DESCRIPT"), r.get("GEOLOGICAL")) if p and p.strip()]
+    # skip a summary that only repeats the site name (e.g. "Louisa Bridge warm spring")
+    parts = [p for i, p in enumerate(parts) if not (i and p.lower() == name.lower())]
+    body = ". ".join(p[0].upper() + p[1:] for p in parts) + "."
+    return {
+        "id": f"gsi-{r['SITECODE']}", "category": "geology", "title": name,
+        "hookSnippet": parts[0][0].upper() + parts[0][1:] + "." if parts else name,
+        "spokenNarrative": f"From Geological Survey Ireland, on the {name} County Geological Site: {body}",
+        "detailMarkdown": f"**{name}** (County Geological Site {r['SITECODE']}; {r.get('DESIGNAT')}).\n\n{body}\n\n"
+                          f"[Site report (PDF)]({r.get('REPORT')}). Source: Geological Survey Ireland (CC BY 4.0).",
+        "sourceIds": [f"gsi:{r['SITECODE']}"], "sources": ["gsi"], "score": 65,
+        "group": f"gsi:{r['SITECODE']}",
+    }
+
+
 def smr_score(r):
     notes = r.get("WEB_NOTES") or ""
     cls = (r.get("MONUMENT_CLASS") or "").lower()
@@ -203,7 +261,8 @@ def niah_thread(r):
     }
 
 
-def select_threads(smr_records, niah_records, limit=8, per_group=1, mtv_records=(), images=True):
+def select_threads(smr_records, niah_records, limit=8, per_group=1, mtv_records=(), images=True, rps_records=(),
+                   gsi_records=()):
     """Rank candidate threads; at most `per_group` per SMR complex / NIAH name; drop score 0.
     A Monuments to Visit entry joins its SMR record exactly (SMRS) and is added as a separate passage;
     with no SMR candidate it becomes its own thread. `images=False` strips non-commercial-only images."""
@@ -219,6 +278,9 @@ def select_threads(smr_records, niah_records, limit=8, per_group=1, mtv_records=
             cands.append(t)
     cands += [mtv_thread(m) for k, m in mtv_by_smrs.items() if k not in used_mtv]
     cands += [niah_thread(r) for r in niah_records if niah_score(r) > 0]
+    niah_points = [(r["LATITUDE"], r["LONGITUDE"]) for r in niah_records if r.get("LATITUDE") is not None]
+    cands += [rps_thread(r) for r in rps_records if rps_eligible(r, niah_points)]
+    cands += [gsi_thread(r) for r in gsi_records if r.get("SITENAME") and (r.get("DESCRIPT") or r.get("GEOLOGICAL"))]
     cands.sort(key=lambda t: (-t["score"], t["id"]))
     seen, out = {}, []
     for t in cands:

@@ -54,6 +54,14 @@ jobs:
           python pipeline/fetch_npws.py $(echo "$COUNTIES" | tr '[:upper:]' '[:lower:]')
           python pipeline/fetch_waterways.py $(echo "$COUNTIES" | tr '[:upper:]' '[:lower:]')
 
+      - name: Fetch Records of Protected Structures (Kildare, South Dublin)
+        run: python pipeline/fetch_rps.py
+
+      - name: Fetch Geological Survey Ireland County Geological Sites
+        env:
+          COUNTIES: ${{ inputs.counties }}
+        run: python pipeline/fetch_gsi.py $(echo "$COUNTIES" | tr '[:upper:]' '[:lower:]')
+
       - name: Fetch CSO Census 2022 town populations
         run: python pipeline/fetch_census.py
 

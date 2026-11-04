@@ -48,8 +48,10 @@ def test_irish_name_only_spoken_when_present_as_validated(doc):
 def test_heritage_threads_are_sourced_and_attributed(doc):
     for a in doc["areas"].values():
         for t in a.get("threads", []):
-            assert t["sourceIds"] and all(x.startswith(("smr:", "niah:", "nms-mtv:")) for x in t["sourceIds"])
-            assert t["spokenNarrative"].startswith("From the National")
+            assert t["sourceIds"] and all(x.startswith(("smr:", "niah:", "nms-mtv:", "rps:", "gsi:")) for x in t["sourceIds"])
+            assert t["spokenNarrative"].startswith(("From the National", "From Geological Survey Ireland",
+                                                    "Kildare County Council's Record",
+                                                    "South Dublin County Council's Record"))
             for src in t["sources"]:
                 assert src in a["sources"] and doc["sources"][src]["licence"] == "CC BY 4.0"
 
