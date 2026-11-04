@@ -53,11 +53,21 @@ def parse_entry(page):
 
 
 def main():
+    """Incremental: entries already cached are kept (DIB entries rarely change); only new links are fetched.
+    Links that disappeared from Wikidata are dropped. Pass --full to refetch everything."""
     CACHE.mkdir(parents=True, exist_ok=True)
-    out = []
-    for i, link in enumerate(wikidata_links()):
-        if i:
+    path = CACHE / "dib.json"
+    old = {} if "--full" in sys.argv or not path.exists() else {
+        (r["dibId"], r["logainmId"]): r for r in json.loads(path.read_text())["results"]}
+    out, fetched = [], 0
+    for link in wikidata_links():
+        kept = old.get((link["dibId"], link["logainmId"]))
+        if kept:
+            out.append(kept)
+            continue
+        if fetched:
             time.sleep(CRAWL_DELAY)
+        fetched += 1
         doi = f"https://doi.org/10.3318/dib.{link['dibId']}.v1"
         r = requests.get(doi, headers=UA, timeout=120)
         if r.status_code != 200 or "dib.ie/biography/" not in r.url:
@@ -71,7 +81,7 @@ def main():
     (CACHE / "dib.json").write_text(json.dumps({
         "licence": "CC BY-NC 4.0", "pulledAt": time.strftime("%Y-%m-%dT%H:%M:%SZ", time.gmtime()),
         "count": len(out), "results": out}, ensure_ascii=False))
-    print(f"{len(out)} DIB entries")
+    print(f"{len(out)} DIB entries ({fetched} fetched, {len(out) - fetched} from cache)")
 
 
 if __name__ == "__main__":

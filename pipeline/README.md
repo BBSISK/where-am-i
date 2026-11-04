@@ -9,6 +9,12 @@ pip install -r pipeline/requirements.txt
 # put LOGAINM_API_KEY=... in the repo's .env (git-ignored)
 ```
 
+## When data is rebuilt
+- **App-only changes (src/**)**: no data build; Render deploys them directly.
+- **Pipeline or review changes (pipeline/**)**: pushing them triggers "Build area data" automatically; it rebuilds from the cached source downloads (about 1-2 minutes).
+- **Source refresh**: weekly (Monday 02:17 UTC, everything), or by hand from the Actions tab with `refresh` = `all` or source names (`logainm boundaries heritage npws waterways rps gsi commons dib census`).
+- `fetch_all.py` decides what to download: a source is fetched only if its cached copy is missing or it was asked for. DIB is incremental (only new people are fetched).
+
 ## Steps (run by the "Build area data" GitHub workflow)
 1. `fetch_logainm.py Kildare Dublin`: Logainm townlands and towns per county (needs `LOGAINM_API_KEY`).
 2. `fetch_boundaries.py`: Tailte Éireann townlands and CSO/Tailte urban areas.
