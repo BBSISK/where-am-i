@@ -1,0 +1,69 @@
+name: Build area data
+
+# Run manually from the Actions tab ("Run workflow").
+# Fetches Logainm + Tailte Éireann data, rebuilds public/data/areas/*.json, runs the data tests,
+# and commits the result. The Logainm key stays in the repository secret LOGAINM_API_KEY.
+on:
+  workflow_dispatch:
+    inputs:
+      counties:
+        description: 'Counties (space-separated, as Logainm names them)'
+        required: true
+        default: 'Kildare Dublin'
+
+permissions:
+  contents: write
+
+concurrency:
+  group: build-area-data
+  cancel-in-progress: false
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+
+      - name: Install pipeline dependencies
+        run: pip install -r pipeline/requirements.txt
+
+      - name: Fetch Logainm records
+        env:
+          LOGAINM_API_KEY: ${{ secrets.LOGAINM_API_KEY }}
+          COUNTIES: ${{ inputs.counties }}
+        run: python pipeline/fetch_logainm.py $COUNTIES
+
+      - name: Fetch Tailte Éireann boundaries
+        env:
+          COUNTIES: ${{ inputs.counties }}
+        run: python pipeline/fetch_boundaries.py $(echo "$COUNTIES" | tr '[:lower:]' '[:upper:]')
+
+      - name: Build area files
+        env:
+          COUNTIES: ${{ inputs.counties }}
+        run: cd pipeline && python build_areas.py $(echo "$COUNTIES" | tr '[:upper:]' '[:lower:]')
+
+      - name: Data tests (must pass before anything is committed)
+        run: cd pipeline && python -m pytest -q
+
+      - name: Keep the build reports
+        uses: actions/upload-artifact@v4
+        with:
+          name: area-build-reports
+          path: pipeline/cache/report_*.json
+
+      - name: Commit rebuilt area data
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add public/data/areas
+          if git diff --cached --quiet; then
+            echo "Area data unchanged."
+          else
+            git commit -m "data: rebuild area files (${{ inputs.counties }}) via Build area data workflow"
+            git push
+          fi

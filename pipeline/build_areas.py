@@ -227,6 +227,12 @@ def build(county):
     return doc
 
 
+def update_index():
+    counties = sorted(f.stem for f in OUT.glob("*.json") if f.name != "index.json")
+    (OUT / "index.json").write_text(json.dumps({"counties": counties}))
+
+
 if __name__ == "__main__":
     for c in (sys.argv[1:] or ["kildare", "dublin"]):
         build(c.lower())
+    update_index()
