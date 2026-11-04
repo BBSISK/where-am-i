@@ -12,6 +12,10 @@ describe('RealGpsService Tracking & Teaser Trigger State', () => {
       clearWatch: vi.fn()
     };
     (globalThis as any).window = globalThis;
+    // Node 20 has no global navigator (Node 21+ does): create one so the test runs on any CI Node version.
+    if (typeof (globalThis as any).navigator !== 'object' || (globalThis as any).navigator === null) {
+      Object.defineProperty(globalThis, 'navigator', { value: {}, configurable: true, writable: true });
+    }
     Object.defineProperty(globalThis.navigator, 'geolocation', {
       value: mockGeo,
       configurable: true,
