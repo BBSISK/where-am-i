@@ -3,7 +3,8 @@ Turn ONE Logainm place record into an etymology teaser, sentence by sentence, ea
 the ids of the records it is built from. Nothing is added that the record does not state.
 
 Tiers (agreed rules):
-  1. (not available: the Logainm API has no explanatory-notes field; requested from Gaois)
+  1. (never: Logainm explanatory notes are © Government of Ireland, outside CC BY, and must not be
+     reproduced, rephrased or summarised; Gaois, 2026-11-04. See SOURCES.md decision log.)
   2. Irish name is VALIDATED: say both names; name the glossary elements Logainm attaches to this record.
   3. Otherwise: English name (+ type / parish) only. Unvalidated Irish forms are never spoken.
 """

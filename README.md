@@ -19,7 +19,7 @@ A hands-free, GPS-driven companion for driving in Ireland. As you move, the app 
 ## Roadmap
 1. Areas from official boundaries: town/village in built-up areas, otherwise townland.
 2. Extend the pipeline beyond Kildare and Dublin to all counties.
-3. Whole-name meanings, if Gaois can provide Logainm explanatory notes.
+3. Whole-name meanings: not from Logainm explanatory notes (outside CC BY; Gaois, 2026-11-04). Only an open, citable source could supply these.
 4. Server-side text-to-speech proxy (the ElevenLabs key never reaches the browser).
 5. Further sources (National Monuments Service, NIAH, CSO small-area statistics), each added only after its licence is checked.
 
