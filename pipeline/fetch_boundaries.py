@@ -11,6 +11,7 @@ Usage:  python pipeline/fetch_boundaries.py KILDARE DUBLIN
 import json, sys, time
 from pathlib import Path
 import requests
+from http_util import get_json
 
 SERVICE = ("https://services-eu1.arcgis.com/FH5XCsx8rYXqnjF5/arcgis/rest/services/"
            "Townlands_OSi_National_Statutory_Boundaries___Generalised_20m/FeatureServer/0")
@@ -20,19 +21,15 @@ FIELDS = "TD_ID,ENGLISH,GAEILGE,LOGAINM_ID,COUNTY,AREA"
 
 
 def count(county):
-    r = requests.get(f"{SERVICE}/query", params={"where": f"COUNTY='{county}'", "returnCountOnly": "true", "f": "json"}, timeout=60)
-    r.raise_for_status()
-    return r.json()["count"]
+    return get_json(f"{SERVICE}/query", params={"where": f"COUNTY='{county}'", "returnCountOnly": "true", "f": "json"})["count"]
 
 
 def fetch(county):
     feats, offset = [], 0
     while True:
-        r = requests.get(f"{SERVICE}/query", params={
+        batch = get_json(f"{SERVICE}/query", params={
             "where": f"COUNTY='{county}'", "outFields": FIELDS, "outSR": 4326, "f": "geojson",
-            "orderByFields": "ESRI_OID", "resultOffset": offset, "resultRecordCount": 1000}, timeout=120)
-        r.raise_for_status()
-        batch = r.json().get("features", [])
+            "orderByFields": "ESRI_OID", "resultOffset": offset, "resultRecordCount": 1000}).get("features", [])
         feats += batch
         if len(batch) < 1000:
             return feats
@@ -49,9 +46,7 @@ def fetch_urban(county_title):
     """CSO Urban Areas 2022 (Tailte Éireann, CC BY 4.0) for one county, e.g. 'Kildare'."""
     params = {"where": f"COUNTY='{county_title}'", "outFields": "URBAN_AREA_GUID,URBAN_AREA_CODE,URBAN_AREA_NAME,COUNTY",
               "outSR": 4326, "f": "geojson", "resultRecordCount": 2000}
-    r = requests.get(f"{URBAN_SERVICE}/query", params=params, timeout=120)
-    r.raise_for_status()
-    return r.json().get("features", [])
+    return get_json(f"{URBAN_SERVICE}/query", params=params).get("features", [])
 
 
 def main(counties):

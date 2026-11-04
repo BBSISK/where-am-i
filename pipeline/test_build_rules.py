@@ -36,11 +36,12 @@ def setup():
         {"geometry": mapping(box(-6.47, 53.33, -6.40, 53.40)),
          "properties": {"URBAN_AREA_NAME": "Dublin city and suburbs", "URBAN_AREA_CODE": "D"}},
         {"geometry": mapping(box(-6.51, 53.358, -6.48, 53.372)),
-         "properties": {"URBAN_AREA_NAME": "Leixlip", "URBAN_AREA_CODE": "L"}},
+         "properties": {"URBAN_AREA_NAME": "Leixlip", "URBAN_AREA_CODE": "L", "URBAN_AREA_GUID": "g-leixlip"}},
         {"geometry": mapping(box(-6.585, 53.336, -6.575, 53.342)),
          "properties": {"URBAN_AREA_NAME": "Straffan", "URBAN_AREA_CODE": "S"}},
     ]
-    return build_doc(tl, ua, recs, "test")
+    census = {"g-leixlip": {"name": "Leixlip, Co Kildare", "population": 16733}}
+    return build_doc(tl, ua, recs, "test", census=census)
 
 
 DOC, REPORT = setup()
@@ -113,3 +114,16 @@ def test_boundary_record_attaches_to_own_county_town():
              "COUNTY": "DUBLIN", "LATITUDE": lat, "LONGITUDE": lng, "WEBSITE_LINK": "y"}]
     attach_heritage(areas, cell_area, [], niah, "kildare")
     assert [t["title"] for t in areas["town:logainm:1416490"]["threads"]] == ["Leixlip Castle"]
+
+
+def test_census_sentence_joined_by_urban_area_guid():
+    a = area_at(53.3657, -6.4955)
+    last = a["sentences"][-1]
+    assert last["text"] == "At the 2022 census, Leixlip had a population of 16,733."
+    assert last["sourceIds"] == ["cso:SAP2022T1T1TOWN22:g-leixlip"]
+    assert "cso-census" in a["sources"] and a["teaser"].endswith(last["text"])
+
+
+def test_no_census_sentence_without_a_cso_town():
+    lucan = area_at(53.3575, -6.4485)          # suburb town: no CSO town of its own
+    assert not any("census" in s["text"] for s in lucan["sentences"])

@@ -60,3 +60,10 @@ def test_no_cell_belongs_to_two_county_files():
         for cell in json.loads(f.read_text())["cells"]:
             assert cell not in seen, f"{cell} in both {seen.get(cell)} and {f.stem}"
             seen[cell] = f.stem
+
+
+def test_census_sentences_only_for_cso_towns(doc):
+    for a in doc["areas"].values():
+        for s in a["sentences"]:
+            if any(i.startswith("cso:") for i in s["sourceIds"]):
+                assert a["kind"] == "town" and a.get("urbanAreaGuid") and "cso-census" in a["sources"]

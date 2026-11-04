@@ -47,6 +47,9 @@ jobs:
           COUNTIES: ${{ inputs.counties }}
         run: python pipeline/fetch_heritage.py $(echo "$COUNTIES" | tr '[:lower:]' '[:upper:]')
 
+      - name: Fetch CSO Census 2022 town populations
+        run: python pipeline/fetch_census.py
+
       - name: Build area files
         env:
           COUNTIES: ${{ inputs.counties }}

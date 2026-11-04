@@ -10,7 +10,7 @@ Usage:  python pipeline/fetch_heritage.py KILDARE DUBLIN
 """
 import json, sys, time
 from pathlib import Path
-import requests
+from http_util import get_json
 
 BASE = "https://services-eu1.arcgis.com/HyjXgkV6KGMSF3jt/arcgis/rest/services/"
 DATASETS = {
@@ -24,12 +24,13 @@ CACHE = Path(__file__).resolve().parent / "cache" / "heritage"
 
 def query(service, where):
     url = f"{BASE}{service}/FeatureServer/0/query"
-    count = requests.get(url, params={"where": where, "returnCountOnly": "true", "f": "json"}, timeout=60).json()["count"]
+    count = get_json(url, params={"where": where, "returnCountOnly": "true", "f": "json"})["count"]
     rows, offset = [], 0
     while len(rows) < count:
-        d = requests.get(url, params={"where": where, "outFields": "*", "returnGeometry": "false", "f": "json",
-                                      "orderByFields": "OBJECTID" if service.startswith("SMR") else "OBJECTID_1",
-                                      "resultOffset": offset, "resultRecordCount": 2000}, timeout=120).json()
+        # pages of 500: large pages were cut off mid-transfer by the server (workflow run, 2026-11-04)
+        d = get_json(url, params={"where": where, "outFields": "*", "returnGeometry": "false", "f": "json",
+                                  "orderByFields": "OBJECTID" if service.startswith("SMR") else "OBJECTID_1",
+                                  "resultOffset": offset, "resultRecordCount": 500})
         batch = [f["attributes"] for f in d.get("features", [])]
         if not batch:
             break

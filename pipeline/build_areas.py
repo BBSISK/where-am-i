@@ -47,6 +47,9 @@ SOURCES = {
     "niah": {"name": "National Inventory of Architectural Heritage", "url": "https://www.buildingsofireland.ie",
              "licence": "CC BY 4.0",
              "attribution": "Copyright Government of Ireland. Created by National Inventory of Architectural Heritage, Department of Housing, Local Government and Heritage. Licensed under CC BY 4.0."},
+    "cso-census": {"name": "CSO Census of Population 2022, Small Area Population Statistics (table SAP2022T1T1TOWN22)",
+                   "url": "https://data.cso.ie/table/SAP2022T1T1TOWN22", "licence": "CC BY 4.0",
+                   "attribution": "Source: Central Statistics Office, Census of Population 2022 (CC BY 4.0)."},
     "tailte-urban": {"name": "Tailte Éireann / CSO, Urban Areas 2022 (generalised 20m)",
                      "url": "https://www.arcgis.com/home/item.html?id=5468708d36454d1f95a3ff23cbaeb2f5",
                      "licence": "CC BY 4.0", "attribution": "© Tailte Éireann"},
@@ -174,7 +177,24 @@ def attach_heritage(areas, cell_area, smr, niah, county=None):
                 a["sources"] = sorted(set(a["sources"]) | {s for t in threads for s in t["sources"]})
 
 
-def build_doc(tl, ua, recs, county, smr=(), niah=()):
+def load_census():
+    f = CACHE / "census" / "towns_2022.json"
+    return json.loads(f.read_text())["towns"] if f.exists() else {}
+
+
+def add_census(areas, census):
+    """Append one sourced census sentence to towns whose urban area is a CSO town (exact GUID join)."""
+    for a in areas.values():
+        guid = a.get("urbanAreaGuid")
+        if a["kind"] != "town" or not guid or guid not in census:
+            continue
+        text = f"At the 2022 census, {a['name']} had a population of {census[guid]['population']:,}."
+        a["sentences"].append({"text": text, "sourceIds": [f"cso:SAP2022T1T1TOWN22:{guid}"]})
+        a["teaser"] = " ".join(s["text"] for s in a["sentences"])
+        a["sources"] = sorted(set(a["sources"]) | {"cso-census"})
+
+
+def build_doc(tl, ua, recs, county, smr=(), niah=(), census=None):
     """Pure: townland features, urban-area features, Logainm records -> (doc, report)."""
     towns = towns_by_name(recs)
     areas, cell_area = {}, {}
@@ -213,6 +233,7 @@ def build_doc(tl, ua, recs, county, smr=(), niah=()):
                                                 "km": round(km_to_polygon(logainm_point(r), g), 2)})
         a = area_from_logainm(r, "town", ["tailte-urban"])
         a["urbanAreaCode"] = p["URBAN_AREA_CODE"]
+        a["urbanAreaGuid"] = p.get("URBAN_AREA_GUID")
         areas[a["id"]] = a
         town_core[a["id"]] = set(cells_for(g))
 
@@ -259,6 +280,7 @@ def build_doc(tl, ua, recs, county, smr=(), niah=()):
     used = set(cell_area.values())
     areas = {k: v for k, v in areas.items() if k in used}
     attach_heritage(areas, cell_area, smr, niah, county)
+    add_census(areas, census or {})
     doc = {"county": county, "h3Resolution": RES, "builtAt": time.strftime("%Y-%m-%dT%H:%M:%SZ", time.gmtime()),
            "sources": SOURCES, "areas": areas, "cells": cell_area}
     return doc, report
@@ -269,7 +291,7 @@ def build(county):
     tl = json.loads((CACHE / "boundaries" / f"{county}_townlands.geojson").read_text())["features"]
     ua = json.loads((CACHE / "boundaries" / f"{county}_urban_areas.geojson").read_text())["features"]
     smr, niah = load_heritage()
-    doc, report = build_doc(tl, ua, recs, county, smr, niah)
+    doc, report = build_doc(tl, ua, recs, county, smr, niah, load_census())
     OUT.mkdir(parents=True, exist_ok=True)
     (OUT / f"{county}.json").write_text(json.dumps(doc, ensure_ascii=False, separators=(",", ":")))
     (CACHE / f"report_{county}.json").write_text(json.dumps(report, ensure_ascii=False, indent=1))
