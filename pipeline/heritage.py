@@ -121,6 +121,30 @@ def mtv_thread(r):
     }
 
 
+COMMONS_HOSTS = ("https://upload.wikimedia.org/", "https://thumb.wikimedia.org/")
+
+
+def commons_image(c, subject):
+    """A Wikimedia Commons photo joined by exact SMR/NIAH number via Wikidata; openly licensed, credited."""
+    if not c or not c.get("thumb", "").startswith(COMMONS_HOSTS):
+        return None
+    who = c.get("artist")
+    return {"url": c["thumb"], "alt": f"Photograph of {subject} (Wikimedia Commons)",
+            "credit": f"Photo: {who}, via Wikimedia Commons" if who else "Photo: Wikimedia Commons",
+            "licence": c["licence"], "sourceUrl": c["page"], "sourceId": "commons"}
+
+
+def commons_index(commons_records):
+    """{'smr:KD005-015': rec, 'niah:11804045': rec}; SMR numbers compared without trailing dashes."""
+    idx = {}
+    for c in commons_records or ():
+        if c.get("smr"):
+            idx.setdefault(f"smr:{c['smr'].rstrip('-')}", c)
+        if c.get("niah"):
+            idx.setdefault(f"niah:{c['niah']}", c)
+    return idx
+
+
 def niah_image(r):
     url = r.get("IMAGE_LINK") or ""
     if not url.startswith(NIAH_IMAGE_PREFIX):
@@ -186,6 +210,45 @@ def gsi_thread(r):
                           f"[Site report (PDF)]({r.get('REPORT')}). Source: Geological Survey Ireland (CC BY 4.0).",
         "sourceIds": [f"gsi:{r['SITECODE']}"], "sources": ["gsi"], "score": 65,
         "group": f"gsi:{r['SITECODE']}",
+    }
+
+
+def dib_spoken(first_paragraph, town):
+    """The DIB entry's first sentence, with tested mechanical edits only:
+      - parentheses without digits are dropped (name variants, "(qv)", "(née …)"); dates stay;
+      - "Co." -> "County";
+      - a long sentence (> 45 words) is cut at the end of the clause naming the birthplace town.
+    Returns None unless the DIB text itself says the person was born in `town` (cross-check of the
+    Wikidata link: DIB wins, otherwise nothing is spoken)."""
+    first = sentences(first_paragraph)[0] if first_paragraph else ""
+    t = re.sub(r"\s*\((?![^()]*\d)[^()]*\)", "", first)
+    t = re.sub(r"\bCo\.\s", "County ", t)
+    t = re.sub(r"\s+", " ", t).strip()
+    m = re.search(rf"\bborn\b[^.;]*?\b{re.escape(town)}\b", t)
+    if not m:
+        return None
+    if len(t.split()) > 45:
+        rest = t[m.end():]
+        stop = re.search(r",(?!\s*County\b)", rest)
+        t = (t[:m.end()] + (rest[:stop.start()] if stop else rest)).rstrip(",;") + "."
+    return t if t.endswith(".") else t + "."
+
+
+def dib_thread(r):
+    spoken = dib_spoken(r.get("firstParagraph"), r["town"])
+    if not spoken:
+        return None
+    name = re.sub(r"\s*\((?![^()]*\d)[^()]*\)", "", r["title"]).strip()
+    return {
+        "id": f"dib-{r['dibId']}", "category": "history", "title": name,
+        "hookSnippet": f"Born in {r['town']}: {name}",
+        "spokenNarrative": f"From the Dictionary of Irish Biography, by {r['contributor']}: {spoken}",
+        "detailMarkdown": f"**{r['title']}**. Dictionary of Irish Biography entry by {r['contributor']}.\n\n"
+                          f"{r['firstParagraph']}\n\n[Read the full entry]({r['url']}) ({r['doi']}). "
+                          f"Royal Irish Academy, licensed CC BY-NC 4.0. Linked to {r['town']} through Wikidata "
+                          f"{r['wikidata']} (place of birth), confirmed by the DIB text.",
+        "sourceIds": [f"dib:{r['dibId']}", f"wikidata:{r['wikidata']}"], "sources": ["dib"], "score": 80,
+        "group": f"dib:{r['dibId']}",
     }
 
 
@@ -262,7 +325,7 @@ def niah_thread(r):
 
 
 def select_threads(smr_records, niah_records, limit=8, per_group=1, mtv_records=(), images=True, rps_records=(),
-                   gsi_records=()):
+                   gsi_records=(), dib_records=(), commons_records=()):
     """Rank candidate threads; at most `per_group` per SMR complex / NIAH name; drop score 0.
     A Monuments to Visit entry joins its SMR record exactly (SMRS) and is added as a separate passage;
     with no SMR candidate it becomes its own thread. `images=False` strips non-commercial-only images."""
@@ -281,13 +344,24 @@ def select_threads(smr_records, niah_records, limit=8, per_group=1, mtv_records=
     niah_points = [(r["LATITUDE"], r["LONGITUDE"]) for r in niah_records if r.get("LATITUDE") is not None]
     cands += [rps_thread(r) for r in rps_records if rps_eligible(r, niah_points)]
     cands += [gsi_thread(r) for r in gsi_records if r.get("SITENAME") and (r.get("DESCRIPT") or r.get("GEOLOGICAL"))]
+    cands += [t for t in (dib_thread(r) for r in dib_records) if t]
+    # Openly licensed Commons photo (exact SMR/NIAH join) is preferred over the NIAH survey photo.
+    cidx = commons_index(commons_records)
+    for t in cands:
+        for sid in t["sourceIds"]:
+            c = cidx.get(sid.rstrip("-")) if sid.startswith(("smr:", "niah:")) else None
+            if c:
+                t["image"] = commons_image(c, t["title"])
+                break
     cands.sort(key=lambda t: (-t["score"], t["id"]))
     seen, out = {}, []
     for t in cands:
         if seen.get(t["group"], 0) >= per_group:
             continue
         seen[t["group"]] = seen.get(t["group"], 0) + 1
-        t = {k: v for k, v in t.items() if k not in ("score", "group") and not (k == "image" and (v is None or not images))}
+        img = t.get("image")
+        keep_img = img is not None and (images or img.get("sourceId") != "niah-images")
+        t = {k: v for k, v in t.items() if k not in ("score", "group") and not (k == "image" and not keep_img)}
         out.append(t)
         if len(out) >= limit:
             break

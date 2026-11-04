@@ -68,6 +68,13 @@ SOURCES = {
     "wi-canals": {"name": "Waterways Ireland Canal Polygons (via EPA)",
                   "url": "https://data.gov.ie/dataset/waterways-ireland-canal-polygons",
                   "licence": "CC BY 4.0", "attribution": "Contains Waterways Ireland data, licensed under CC BY 4.0."},
+    "commons": {"name": "Wikimedia Commons photographs, linked to SMR/NIAH records through Wikidata",
+                "url": "https://commons.wikimedia.org", "licence": "CC BY / CC BY-SA / CC0 / public domain (per file)",
+                "attribution": "Photographer and licence shown with each photo."},
+    "dib": {"name": "Dictionary of Irish Biography (Royal Irish Academy), linked via Wikidata place of birth",
+            "url": "https://www.dib.ie", "licence": "CC BY-NC 4.0",
+            "attribution": "Dictionary of Irish Biography, Royal Irish Academy; entry authors named on each item. Licensed CC BY-NC 4.0.",
+            "nonCommercialOnly": True},
     "gsi": {"name": "Geological Survey Ireland, audited geological heritage sites (County Geological Sites)",
             "url": "https://data.gov.ie/dataset/gsi-county-geological-heritage-sites-audited", "licence": "CC BY 4.0",
             "attribution": "Contains Geological Survey Ireland data, licensed under CC BY 4.0."},
@@ -167,11 +174,13 @@ def townland_area(f, recs, report):
 
 
 def load_heritage():
-    out = {"smr": [], "niah": [], "mtv": [], "rps": [], "gsi": []}
+    out = {"smr": [], "niah": [], "mtv": [], "rps": [], "gsi": [], "commons": []}
     for kind in out:
         for f in (CACHE / "heritage").glob(f"*_{kind}.json"):
             out[kind] += json.loads(f.read_text())["results"]
-    return out["smr"], out["niah"], out["mtv"], out["rps"], out["gsi"]
+    dib_path = CACHE / "heritage" / "dib.json"
+    dib = json.loads(dib_path.read_text())["results"] if dib_path.exists() else []
+    return out["smr"], out["niah"], out["mtv"], out["rps"], out["gsi"], dib, out["commons"]
 
 
 def area_for_record(lat, lng, cell_area, areas):
@@ -186,9 +195,15 @@ def area_for_record(lat, lng, cell_area, areas):
     return cell_area[pick[0]] if pick else None
 
 
-def attach_heritage(areas, cell_area, smr, niah, county=None, mtv=(), rps=(), gsi=()):
-    """Give testbed towns ranked 'Tell me more' threads from records of this county located in their cells."""
+def attach_heritage(areas, cell_area, smr, niah, county=None, mtv=(), rps=(), gsi=(), dib=(), commons=()):
+    """Give testbed towns ranked 'Tell me more' threads from records of this county located in their cells.
+    DIB people attach by exact Logainm id (place of birth), not by location."""
     by_area = {}
+    by_logainm = {a.get("logainmId"): aid for aid, a in areas.items() if a["kind"] == "town" and a.get("logainmId")}
+    for r in (dib if NON_COMMERCIAL_SOURCES else ()):  # DIB is CC BY-NC 4.0
+        aid = by_logainm.get(r.get("logainmId"))
+        if aid:
+            by_area.setdefault(aid, {"smr": [], "niah": [], "mtv": [], "rps": [], "gsi": [], "dib": []})["dib"].append(r)
     for kind, rows in (("smr", smr), ("niah", niah), ("mtv", mtv), ("rps", rps), ("gsi", gsi)):
         for r in rows:
             if r.get("LATITUDE") is None or r.get("LONGITUDE") is None:
@@ -197,12 +212,13 @@ def attach_heritage(areas, cell_area, smr, niah, county=None, mtv=(), rps=(), gs
                 continue
             aid = area_for_record(r["LATITUDE"], r["LONGITUDE"], cell_area, areas)
             if aid:
-                by_area.setdefault(aid, {"smr": [], "niah": [], "mtv": [], "rps": [], "gsi": []})[kind].append(r)
+                by_area.setdefault(aid, {"smr": [], "niah": [], "mtv": [], "rps": [], "gsi": [], "dib": []})[kind].append(r)
     for aid, a in areas.items():
         if a["kind"] == "town" and a.get("logainmId") in HERITAGE_TOWNS and aid in by_area:
             threads = select_threads(by_area[aid]["smr"], by_area[aid]["niah"], limit=THREADS_PER_TOWN,
                                      mtv_records=by_area[aid]["mtv"], images=NON_COMMERCIAL_SOURCES,
-                                     rps_records=by_area[aid]["rps"], gsi_records=by_area[aid]["gsi"])
+                                     rps_records=by_area[aid]["rps"], gsi_records=by_area[aid]["gsi"],
+                                     dib_records=by_area[aid]["dib"], commons_records=commons)
             if threads:
                 a["threads"] = threads
                 a["sources"] = sorted(set(a["sources"]) | {s for t in threads for s in t["sources"]}
@@ -227,7 +243,7 @@ def add_census(areas, census):
 
 
 def build_doc(tl, ua, recs, county, smr=(), niah=(), census=None, mtv=(), npws=None,
-              rivers=None, canals=None, approved_rivers=None, rps=(), gsi=()):
+              rivers=None, canals=None, approved_rivers=None, rps=(), gsi=(), dib=(), commons=()):
     """Pure: townland features, urban-area features, Logainm records -> (doc, report)."""
     towns = towns_by_name(recs)
     areas, cell_area = {}, {}
@@ -312,7 +328,7 @@ def build_doc(tl, ua, recs, county, smr=(), niah=(), census=None, mtv=(), npws=N
 
     used = set(cell_area.values())
     areas = {k: v for k, v in areas.items() if k in used}
-    attach_heritage(areas, cell_area, smr, niah, county, mtv, rps, gsi)
+    attach_heritage(areas, cell_area, smr, niah, county, mtv, rps, gsi, dib, commons)
     add_census(areas, census or {})
     features, feature_cells = build_features(npws, set(cell_area), rivers, canals, approved_rivers)
     doc = {"county": county, "h3Resolution": RES, "builtAt": time.strftime("%Y-%m-%dT%H:%M:%SZ", time.gmtime()),
@@ -325,14 +341,14 @@ def build(county):
     recs = load_logainm()
     tl = json.loads((CACHE / "boundaries" / f"{county}_townlands.geojson").read_text())["features"]
     ua = json.loads((CACHE / "boundaries" / f"{county}_urban_areas.geojson").read_text())["features"]
-    smr, niah, mtv, rps, gsi = load_heritage()
+    smr, niah, mtv, rps, gsi, dib, commons = load_heritage()
     feat = {}
     for kind in ("npws", "rivers", "canals"):
         p = CACHE / "features" / f"{county}_{kind}.geojson"
         feat[kind] = json.loads(p.read_text()) if p.exists() else None
     approved = json.loads((Path(__file__).resolve().parent / "review" / "rivers.json").read_text())["rivers"]
     doc, report = build_doc(tl, ua, recs, county, smr, niah, load_census(), mtv, feat["npws"],
-                            feat["rivers"], feat["canals"], approved, rps, gsi)
+                            feat["rivers"], feat["canals"], approved, rps, gsi, dib, commons)
     OUT.mkdir(parents=True, exist_ok=True)
     (OUT / f"{county}.json").write_text(json.dumps(doc, ensure_ascii=False, separators=(",", ":")))
     (CACHE / f"report_{county}.json").write_text(json.dumps(report, ensure_ascii=False, indent=1))

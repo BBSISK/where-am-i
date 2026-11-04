@@ -62,6 +62,14 @@ jobs:
           COUNTIES: ${{ inputs.counties }}
         run: python pipeline/fetch_gsi.py $(echo "$COUNTIES" | tr '[:upper:]' '[:lower:]')
 
+      - name: Fetch Commons photos linked by SMR/NIAH number (Wikidata IDs only)
+        env:
+          COUNTIES: ${{ inputs.counties }}
+        run: python pipeline/fetch_commons.py $(echo "$COUNTIES" | tr '[:upper:]' '[:lower:]')
+
+      - name: Fetch Dictionary of Irish Biography entries for people born in the testbed towns (30 s between requests)
+        run: python pipeline/fetch_dib.py
+
       - name: Fetch CSO Census 2022 town populations
         run: python pipeline/fetch_census.py
 

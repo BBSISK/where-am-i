@@ -48,12 +48,17 @@ def test_irish_name_only_spoken_when_present_as_validated(doc):
 def test_heritage_threads_are_sourced_and_attributed(doc):
     for a in doc["areas"].values():
         for t in a.get("threads", []):
-            assert t["sourceIds"] and all(x.startswith(("smr:", "niah:", "nms-mtv:", "rps:", "gsi:")) for x in t["sourceIds"])
+            assert t["sourceIds"] and all(x.startswith(("smr:", "niah:", "nms-mtv:", "rps:", "gsi:", "dib:", "wikidata:")) for x in t["sourceIds"])
             assert t["spokenNarrative"].startswith(("From the National", "From Geological Survey Ireland",
+                                                    "From the Dictionary of Irish Biography, by ",
                                                     "Kildare County Council's Record",
                                                     "South Dublin County Council's Record"))
             for src in t["sources"]:
-                assert src in a["sources"] and doc["sources"][src]["licence"] == "CC BY 4.0"
+                reg = doc["sources"][src]
+                assert src in a["sources"]
+                # CC BY 4.0, or a non-commercial-only source logged in SOURCES.md
+                assert reg["licence"] == "CC BY 4.0" or (reg.get("nonCommercialOnly") and src in (
+                    Path(__file__).resolve().parent.parent / "SOURCES.md").read_text()), src
 
 
 def test_no_cell_belongs_to_two_county_files():
@@ -88,7 +93,8 @@ def test_images_are_exact_join_credited_and_flagged(doc):
             img = t.get("image")
             if not img:
                 continue
-            assert img["url"].startswith("https://www.buildingsofireland.ie/"), t["id"]
+            assert img["url"].startswith(("https://www.buildingsofireland.ie/", "https://upload.wikimedia.org/",
+                                          "https://thumb.wikimedia.org/")), t["id"]
             assert img["credit"] and img["licence"] and img["sourceUrl"], t["id"]
             reg = doc["sources"][img["sourceId"]]
             assert img["sourceId"] in a["sources"], t["id"]

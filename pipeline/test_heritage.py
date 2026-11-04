@@ -170,3 +170,42 @@ def test_gsi_thread_is_verbatim_and_skips_name_only_summary():
 def test_rps_no_repetition_when_name_equals_description():
     t = rps_thread(dict(RPS, name="Lime Kiln", descr="Lime Kiln"))
     assert t["spokenNarrative"] == "Kildare County Council's Record of Protected Structures lists Lime Kiln."
+
+
+# --- Dictionary of Irish Biography (2026-11-04) -------------------------------------------------
+from heritage import dib_spoken, dib_thread
+
+DIB_P = ("Ó Buachalla (Ua Buachalla), Domhnall (Donal/Daniel Richard Buckley) (1866–1963), republican and last "
+         "governor general of the Irish Free State, was born 3 February 1866 in Maynooth, Co. Kildare, one of four "
+         "sons and a daughter of Cornelius Buckley, shopkeeper and native Irish-speaker from Co. Kerry, and Sarah "
+         "Buckley (née Jacob), whose father, Joshua Jacob (qv), was the founder of a sect.")
+
+
+def test_dib_spoken_mechanical_edits_and_birthplace_cut():
+    assert dib_spoken(DIB_P, "Maynooth") == (
+        "Ó Buachalla, Domhnall (1866–1963), republican and last governor general of the Irish Free State, "
+        "was born 3 February 1866 in Maynooth, County Kildare.")
+
+
+def test_dib_says_nothing_unless_its_own_text_confirms_the_birthplace():
+    assert dib_spoken(DIB_P, "Leixlip") is None   # Wikidata link not confirmed by DIB -> silent
+
+
+def test_dib_thread_credits_author_and_licence():
+    t = dib_thread({"dibId": "006284", "wikidata": "Q727370", "town": "Maynooth", "contributor": "Marie Coleman",
+                    "title": "Ó Buachalla (Ua Buachalla), Domhnall (Donal/Daniel Richard Buckley)",
+                    "firstParagraph": DIB_P, "url": "https://www.dib.ie/biography/x-a6284",
+                    "doi": "https://doi.org/10.3318/dib.006284.v1"})
+    assert t["spokenNarrative"].startswith("From the Dictionary of Irish Biography, by Marie Coleman: Ó Buachalla")
+    assert t["sourceIds"] == ["dib:006284", "wikidata:Q727370"] and "CC BY-NC 4.0" in t["detailMarkdown"]
+
+
+def test_commons_photo_is_preferred_and_survives_the_non_commercial_switch():
+    commons = [{"smr": "KD005-015----", "niah": None, "thumb": "https://upload.wikimedia.org/x.jpg",
+                "page": "https://commons.wikimedia.org/wiki/File:x.jpg", "licence": "CC BY-SA 3.0", "artist": "A. Person"}]
+    [t] = select_threads([SMR_MAYNOOTH], [], commons_records=commons, images=False)
+    assert t["image"]["credit"] == "Photo: A. Person, via Wikimedia Commons"
+    assert t["image"]["licence"] == "CC BY-SA 3.0" and t["image"]["sourceId"] == "commons"
+    commons[0]["thumb"] = "https://example.com/x.jpg"
+    [t] = select_threads([SMR_MAYNOOTH], [], commons_records=commons)
+    assert "image" not in t
