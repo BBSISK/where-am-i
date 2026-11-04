@@ -40,7 +40,7 @@ import { EnrichedH3Cell, SimulatedRoute, ThreadOption } from '../types';
 import { RealGpsState } from '../services/realGpsService';
 import { VoiceCommandState } from '../services/voiceCommandService';
 import { audioService } from '../services/audioNarrationService';
-import { ThreadImageFigure } from './ThreadImageFigure';
+import { ThreadImageFigure, imageForTrack } from './ThreadImageFigure';
 
 interface DriveModeViewProps {
   // GPS & Driving Modes
@@ -355,24 +355,31 @@ export const DriveModeView: React.FC<DriveModeViewProps> = ({
         )}
 
         {/* Hands-Free Voice Copilot Bar */}
-        <div className="flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-3 p-3 sm:px-4 rounded-2xl bg-slate-900 border border-slate-800 text-xs font-mono">
+        <button
+          type="button"
+          onClick={onToggleVoiceListening}
+          aria-pressed={voiceState.isListening}
+          title={voiceState.isListening ? 'Listening: tap to cancel' : 'Tap to talk'}
+          className={`w-full text-left flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-3 p-4 sm:px-5 min-h-[72px] rounded-2xl border text-xs font-mono cursor-pointer transition-all active:scale-[0.99] ${
+            voiceState.isListening
+              ? 'bg-emerald-950/40 border-emerald-500/50'
+              : 'bg-slate-900 border-slate-800 hover:border-slate-600 hover:bg-slate-800/60'
+          }`}
+        >
           <div className="flex items-center gap-3">
-            <button
-              onClick={onToggleVoiceListening}
-              type="button"
-              className={`p-2 rounded-xl flex items-center justify-center transition-all cursor-pointer hover:scale-105 active:scale-95 ${
+            <span
+              className={`p-2 rounded-xl flex items-center justify-center ${
                 voiceState.isListening
                   ? 'bg-emerald-500/20 text-emerald-300 border border-emerald-500/40 hover:bg-emerald-500/30'
                   : 'bg-slate-800 text-slate-400 border border-slate-700 hover:bg-slate-700'
               }`}
-              title={voiceState.isListening ? 'Listening: tap to cancel' : 'Tap to talk'}
             >
               {voiceState.isListening ? (
                 <Mic className="w-4 h-4 animate-pulse text-emerald-400" />
               ) : (
                 <MicOff className="w-4 h-4" />
               )}
-            </button>
+            </span>
 
             <div>
               <div className="flex items-center gap-2 flex-wrap">
@@ -392,7 +399,7 @@ export const DriveModeView: React.FC<DriveModeViewProps> = ({
                 )}
               </div>
               <p className="text-[11px] text-slate-400 mt-0.5">
-                Tap, then say <strong className="text-cyan-300">"Where am I"</strong> • <strong className="text-emerald-300">"Tell me more"</strong> • <strong className="text-slate-300">"Stop audio"</strong>
+                Tap anywhere here, then say <strong className="text-cyan-300">"Where am I"</strong> • <strong className="text-emerald-300">"Tell me more"</strong> • <strong className="text-slate-300">"Stop audio"</strong>
               </p>
             </div>
           </div>
@@ -403,19 +410,29 @@ export const DriveModeView: React.FC<DriveModeViewProps> = ({
                 Heard: "{voiceState.lastHeardPhrase}"
               </span>
             )}
-            <button
-              onClick={onToggleVoiceListening}
-              type="button"
-              className={`text-[10px] px-2.5 py-1 rounded-lg border font-bold cursor-pointer transition-all ${
+            <span
+              className={`text-[10px] px-2.5 py-1 rounded-lg border font-bold ${
                 voiceState.isListening
                   ? 'bg-emerald-500/10 text-emerald-400 border-emerald-500/30 hover:bg-emerald-500/20'
                   : 'bg-slate-800 text-slate-300 border-slate-700 hover:bg-slate-700'
               }`}
             >
               {voiceState.isListening ? 'Cancel' : 'Tap to talk'}
-            </button>
+            </span>
           </div>
-        </div>
+        </button>
+
+        {/* Now showing: the photo for whatever is being spoken, large */}
+        {(() => {
+          const playing = audioPlaybackState === 'playing' || audioPlaybackState === 'paused';
+          const shown = playing ? imageForTrack(currentTrackId, currentCell.threads, currentCell.teaserImage) : null;
+          return shown ? (
+            <div className="p-3 rounded-2xl bg-slate-900 border border-amber-500/40 space-y-2">
+              <div className="text-[10px] font-mono uppercase tracking-wide text-amber-300">Now speaking: {shown.subject}</div>
+              <ThreadImageFigure key={shown.image.url} image={shown.image} size="hero" subject={shown.subject} />
+            </div>
+          ) : null;
+        })()}
 
         {/* ElevenLabs High-Fidelity Audio Indicator */}
         {audioLastError ? (
@@ -655,6 +672,16 @@ export const DriveModeView: React.FC<DriveModeViewProps> = ({
               )}
             </div>
 
+            {!isAcquiring && currentCell.teaserImage && (
+              <div className="mt-4">
+                <ThreadImageFigure
+                  key={currentCell.teaserImage.image.url}
+                  image={currentCell.teaserImage.image}
+                  subject={currentCell.teaserImage.subject}
+                />
+              </div>
+            )}
+
             {/* Teaser Breadcrumb */}
             <p className="mt-4 text-base sm:text-lg text-slate-200 leading-relaxed font-serif italic">
               {isAcquiring
@@ -740,7 +767,7 @@ export const DriveModeView: React.FC<DriveModeViewProps> = ({
                           : `Pull thread: ${thread.title}`
                       }
                     >
-                      {thread.image && <ThreadImageFigure image={thread.image} compact />}
+                      {thread.image && <ThreadImageFigure image={thread.image} size="thumb" />}
                       <div className="space-y-1 flex-1 min-w-0">
                         <div className="flex flex-wrap items-center gap-2">
                           <span className={`text-[10px] font-mono px-2 py-0.5 rounded font-bold uppercase ${
@@ -917,7 +944,7 @@ export const DriveModeView: React.FC<DriveModeViewProps> = ({
                   </div>
                 </div>
 
-                {activeThread.image && <ThreadImageFigure image={activeThread.image} />}
+                {activeThread.image && <ThreadImageFigure key={activeThread.image.url} image={activeThread.image} />}
 
                 <blockquote className="text-sm sm:text-base text-slate-200 leading-relaxed font-serif italic">
                   "{activeThread.spokenNarrative}"

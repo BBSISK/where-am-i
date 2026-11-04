@@ -58,6 +58,7 @@ describe('areaData', () => {
     expect(cell.threads[0].image).toBeUndefined();
     expect(cell.threads[1].image?.credit).toBe('Photo: NIAH');
     expect(cell.threads[1].image?.sourceUrl).toBe('https://www.buildingsofireland.ie/niah/x');
+    expect(cell.teaserImage).toEqual({ image: cell.threads[1].image, subject: 'Carton House' });
     expect(cell.threads[0].spokenNarrative).toMatch(/^From the National Monuments Service record/);
     expect(cell.sources[0].url).toBe('https://www.logainm.ie/1416490.aspx');
   });
@@ -66,6 +67,7 @@ describe('areaData', () => {
     const f = lookupArea('88ccc')!;
     const cell = cellFromArea(f.area, f.registry, '88ccc', { lat: 53.33, lng: -6.67 });
     expect(cell.etymology).toBeUndefined();
+    expect(cell.teaserImage).toBeUndefined();
     expect(cell.teaserScript).not.toContain('In Irish');
   });
 });

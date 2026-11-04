@@ -44,6 +44,12 @@ export interface AreaFile {
 const cellIndex = new Map<string, { area: AreaRecord; registry: Record<string, SourceRegistryEntry> }>();
 let loading: Promise<void> | null = null;
 
+/** The area's teaser image: its first thread that has an exact-join image (none means no image). */
+export function teaserImageFor(area: AreaRecord): { image: ThreadImage; subject: string } | undefined {
+  const t = (area.threads ?? []).find((x) => x.image);
+  return t?.image ? { image: t.image, subject: t.title } : undefined;
+}
+
 export function indexAreaFile(doc: AreaFile): void {
   for (const [cell, areaId] of Object.entries(doc.cells)) {
     const area = doc.areas[areaId];
@@ -122,6 +128,7 @@ export function cellFromArea(
         ...(t.image ? { image: t.image } : {})
       })
     ),
+    ...(teaserImageFor(area) ? { teaserImage: teaserImageFor(area)! } : {}),
     keyHighlights: [],
     sources,
     curatedByAgent: false,

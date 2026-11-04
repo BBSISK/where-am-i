@@ -279,6 +279,8 @@ export interface EnrichedH3Cell {
   teaserScript: string; // 10-second ambient audio teaser breadcrumb
   narrativeScript: string; // Full audio script
   threads: ThreadOption[]; // Interactive threads to pull
+  /** Image shown with the area teaser: the first thread image, captioned with what it shows. */
+  teaserImage?: { image: ThreadImage; subject: string };
   keyHighlights: string[]; // 3 punchy bullet points
   /** Every source behind what this cell displays or speaks. Empty means: say nothing beyond the place name. */
   sources: SourceRef[];
