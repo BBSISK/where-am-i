@@ -758,7 +758,7 @@ export const DriveModeView: React.FC<DriveModeViewProps> = ({
                     <div
                       key={thread.id}
                       onClick={() => onPullThread(thread)}
-                      className={`w-full text-left p-4 rounded-2xl border text-sm transition-all flex items-start justify-between gap-3 cursor-pointer ${
+                      className={`relative w-full text-left p-3 sm:p-4 rounded-2xl border text-sm transition-all flex flex-wrap sm:flex-nowrap items-start justify-between gap-3 cursor-pointer ${
                         isPulled
                           ? 'bg-gradient-to-r from-amber-950/40 to-slate-900 border-amber-500 text-white shadow-lg shadow-amber-500/10 ring-1 ring-amber-500'
                           : 'bg-slate-950/70 border-slate-800 text-slate-300 hover:border-slate-700 hover:bg-slate-950'
@@ -770,8 +770,9 @@ export const DriveModeView: React.FC<DriveModeViewProps> = ({
                       }
                     >
                       {thread.image && <ThreadImageFigure image={thread.image} size="thumb" />}
-                      <div className="space-y-1 flex-1 min-w-0">
-                        <div className="flex flex-wrap items-center gap-2">
+                      {/* On phones the text takes the full card width on its own row; actions stay top-right */}
+                      <div className="space-y-1 basis-full order-last sm:order-none sm:basis-auto sm:flex-1 min-w-0">
+                        <div className="flex flex-wrap items-center gap-2 pr-24 sm:pr-0 min-h-[40px] sm:min-h-0">
                           <span className={`text-[10px] font-mono px-2 py-0.5 rounded font-bold uppercase ${
                             thread.category === 'folklore'
                               ? 'bg-amber-500/20 text-amber-300 border border-amber-500/30'
@@ -838,7 +839,7 @@ export const DriveModeView: React.FC<DriveModeViewProps> = ({
                         <p className="text-xs text-slate-400 leading-relaxed">{thread.hookSnippet}</p>
                       </div>
 
-                      <div className="flex items-center gap-2 shrink-0">
+                      <div className="flex items-center gap-2 shrink-0 absolute top-3 right-3 sm:static sm:ml-auto">
                         <button
                           type="button"
                           onClick={(e) => {
