@@ -8,6 +8,7 @@ export function subjectForTrack(trackId: string | null, cell: EnrichedH3Cell, cr
   if (!trackId) return null;
   if (trackId.startsWith('thread-')) return cell.threads.find((t) => `thread-${t.id}` === trackId)?.title ?? null;
   if (trackId.startsWith('ambient-teaser-') || trackId.startsWith('cell-narrative-')) return cell.townland;
+  if (trackId.startsWith('crossing-ahead-')) return 'Coming up';
   if (trackId.startsWith('crossing-')) return crossingName ?? 'Crossing';
   return null;
 }

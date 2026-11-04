@@ -26,6 +26,35 @@ export interface CrossingEvent {
   featureId: string;
   feature: CrossingFeature;
   direction: 'enter' | 'leave' | 'cross';
+  /** Fraction (0..1] along the movement where the first crossing happens. */
+  t: number;
+  /** A recorded, named bridge within BRIDGE_MATCH_M of the crossing point (rivers and canals only). */
+  bridge?: { name: string; sourceId: string };
+}
+
+/** [lng, lat, name, sourceId] per cell, from pipeline/bridges.py */
+type BridgePoint = [number, number, string, string];
+const bridgeCells = new Map<string, BridgePoint[]>();
+export const BRIDGE_MATCH_M = 40;
+
+export function indexBridges(bridges: Record<string, BridgePoint[]> | undefined): void {
+  for (const [cell, pts] of Object.entries(bridges ?? {})) bridgeCells.set(cell, [...(bridgeCells.get(cell) ?? []), ...pts]);
+}
+
+function nearestBridge(p: GeoCoordinate): { name: string; sourceId: string } | undefined {
+  let best: { name: string; sourceId: string; d: number } | undefined;
+  for (const c of gridDisk(latLngToCell(p.lat, p.lng, 8), 1)) {
+    for (const [lng, lat, name, sourceId] of bridgeCells.get(c) ?? []) {
+      const d = metresBetween(p, { lat, lng });
+      if (d <= BRIDGE_MATCH_M && (!best || d < best.d)) best = { name, sourceId, d };
+    }
+  }
+  return best ? { name: best.name, sourceId: best.sourceId } : undefined;
+}
+
+/** What to say for a crossing: the feature's own line, plus the bridge if one was matched. */
+export function spokenFor(e: CrossingEvent): string {
+  return e.bridge ? e.feature.spoken.replace(/\.$/, `, on ${e.bridge.name}.`) : e.feature.spoken;
 }
 
 type Polyline = [string, number[]];
@@ -45,6 +74,7 @@ export function indexCrossingFeatures(
 export function _resetCrossingIndex(): void {
   featureIndex.clear();
   cellLines.clear();
+  bridgeCells.clear();
 }
 
 const cross = (ax: number, ay: number, bx: number, by: number) => ax * by - ay * bx;
@@ -53,15 +83,22 @@ const cross = (ax: number, ay: number, bx: number, by: number) => ax * by - ay *
 export function segmentCrossing(
   p1: [number, number], p2: [number, number], q1: [number, number], q2: [number, number]
 ): 0 | 1 | -1 {
+  return segmentIntersection(p1, p2, q1, q2).side;
+}
+
+/** As segmentCrossing, plus t: how far along p1→p2 the intersection is (0..1]. */
+export function segmentIntersection(
+  p1: [number, number], p2: [number, number], q1: [number, number], q2: [number, number]
+): { side: 0 | 1 | -1; t: number } {
   const rx = p2[0] - p1[0], ry = p2[1] - p1[1];
   const sx = q2[0] - q1[0], sy = q2[1] - q1[1];
   const denom = cross(rx, ry, sx, sy);
-  if (denom === 0) return 0; // parallel or collinear: not a crossing
+  if (denom === 0) return { side: 0, t: 0 }; // parallel or collinear: not a crossing
   const qpx = q1[0] - p1[0], qpy = q1[1] - p1[1];
   const t = cross(qpx, qpy, sx, sy) / denom;
   const u = cross(qpx, qpy, rx, ry) / denom;
-  if (t <= 0 || t > 1 || u < 0 || u > 1) return 0;
-  return cross(sx, sy, p2[0] - q1[0], p2[1] - q1[1]) > 0 ? 1 : -1;
+  if (t <= 0 || t > 1 || u < 0 || u > 1) return { side: 0, t: 0 };
+  return { side: cross(sx, sy, p2[0] - q1[0], p2[1] - q1[1]) > 0 ? 1 : -1, t };
 }
 
 function cellsBetween(a: GeoCoordinate, b: GeoCoordinate): Set<string> {
@@ -88,17 +125,87 @@ export function detectCrossings(prev: GeoCoordinate, cur: GeoCoordinate): Crossi
       const feature = featureIndex.get(fid);
       if (!feature) continue;
       for (let i = 0; i + 3 < coords.length; i += 2) {
-        const side = segmentCrossing(p1, p2, [coords[i], coords[i + 1]], [coords[i + 2], coords[i + 3]]);
+        const { side, t } = segmentIntersection(p1, p2, [coords[i], coords[i + 1]], [coords[i + 2], coords[i + 3]]);
         if (!side) continue;
         const direction = !feature.closed ? 'cross' : side > 0 ? 'enter' : 'leave';
         const before = found.get(fid);
         // a segment that clips a corner enters and leaves: the net effect is what counts
         if (before && before.direction !== direction) found.delete(fid);
-        else found.set(fid, { featureId: fid, feature, direction });
+        else found.set(fid, { featureId: fid, feature, direction, t: before ? Math.min(before.t, t) : t });
       }
     }
   }
-  return [...found.values()];
+  const events = [...found.values()];
+  for (const e of events) {
+    if (e.feature.kind === 'river' || e.feature.kind === 'canal') {
+      const at = { lat: prev.lat + (cur.lat - prev.lat) * e.t, lng: prev.lng + (cur.lng - prev.lng) * e.t };
+      const bridge = nearestBridge(at);
+      if (bridge) e.bridge = bridge;
+    }
+  }
+  return events;
+}
+
+/** Point `metres` from `from` along compass bearing `bearingDeg` (fine for a few km). */
+export function project(from: GeoCoordinate, bearingDeg: number, metres: number): GeoCoordinate {
+  const k = Math.PI / 180;
+  const dLat = (metres * Math.cos(bearingDeg * k)) / 6371000 / k;
+  const dLng = (metres * Math.sin(bearingDeg * k)) / (6371000 * Math.cos(from.lat * k)) / k;
+  return { lat: from.lat + dLat, lng: from.lng + dLng };
+}
+
+export const HEADS_UP_MIN_KMH = 25;
+export const HEADS_UP_MIN_M = 250;
+
+/**
+ * "Coming up": the nearest river or canal on a straight line ahead in the direction of travel
+ * (about 60 seconds at current speed, 400 m to 1.5 km). It states a fact about what lies ahead on
+ * that heading, not a promise about the road.
+ */
+export function lookAhead(pos: GeoCoordinate, headingDeg: number, speedKmh: number): { event: CrossingEvent; metres: number } | null {
+  if (!(speedKmh >= HEADS_UP_MIN_KMH) || !Number.isFinite(headingDeg)) return null;
+  const range = Math.min(1500, Math.max(400, (speedKmh / 3.6) * 60));
+  const ahead = detectCrossings(pos, project(pos, headingDeg, range))
+    .filter((e) => e.feature.kind === 'river' || e.feature.kind === 'canal')
+    .map((e) => ({ event: e, metres: e.t * range }))
+    .filter((x) => x.metres >= HEADS_UP_MIN_M)
+    .sort((a, b) => a.metres - b.metres);
+  return ahead[0] ?? null;
+}
+
+/** "the river Liffey" from "You're crossing the river Liffey." */
+export function featurePhrase(f: CrossingFeature): string {
+  const m = /^You're crossing (.+?)\.?$/.exec(f.spoken);
+  return m ? m[1] : f.name;
+}
+
+export function roundedDistance(m: number): string {
+  if (m < 950) return `about ${Math.max(300, Math.round(m / 100) * 100)} metres`;
+  if (m < 1250) return 'about a kilometre';
+  return 'about one and a half kilometres';
+}
+
+export function headsUpLine(x: { event: CrossingEvent; metres: number }): string {
+  const what = featurePhrase(x.event.feature);
+  const bridge = x.event.bridge ? `, at ${x.event.bridge.name}` : '';
+  return `Coming up, ${roundedDistance(x.metres)} ahead: ${what}${bridge}.`;
+}
+
+/** Heads-up policy: once per feature per 30 minutes; never over speech; not after it was just crossed. */
+export class HeadsUpGate {
+  private last = new Map<string, number>();
+  decide(featureId: string, speaking: boolean, now: number, crossedRecently: boolean): { play: boolean; reason: string } {
+    if (now - (this.last.get(featureId) ?? -Infinity) < FEATURE_COOLDOWN_MS) return { play: false, reason: 'already announced' };
+    if (crossedRecently) return { play: false, reason: 'just crossed it' };
+    if (speaking) return { play: false, reason: 'speech in progress' };
+    return { play: true, reason: 'ok' };
+  }
+  markPlayed(featureId: string, now: number): void {
+    this.last.set(featureId, now);
+  }
+  reset(): void {
+    this.last.clear();
+  }
 }
 
 /** Distance in metres (equirectangular; fine for a few hundred metres). */

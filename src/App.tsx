@@ -7,7 +7,7 @@ import { TripScrapbookModal } from './components/TripScrapbookModal';
 import { TripLogPanel, TripLogEntry } from './components/TripLogPanel';
 import { SIMULATED_ROUTES } from './data/irelandRoutes';
 import { resolveCell, cellFromWaypoint } from './services/cellResolver';
-import { CrossingGate, detectCrossings, metresBetween, MAX_GPS_SEGMENT_M } from './services/crossings';
+import { CrossingGate, HeadsUpGate, detectCrossings, lookAhead, headsUpLine, spokenFor, metresBetween, MAX_GPS_SEGMENT_M } from './services/crossings';
 import { loadAreaData } from './services/areaData';
 import { TeaserGate, DEFAULT_QUIET_GAP_MS } from './services/teaserPolicy';
 import { coordinateToH3, calculateBearing } from './services/spatialEngine';
@@ -126,31 +126,58 @@ export const App: React.FC = () => {
   };
 
   const crossingGateRef = useRef(new CrossingGate());
+  const headsUpGateRef = useRef(new HeadsUpGate());
+  const crossedAtRef = useRef(new Map<string, number>());
   const lastPositionRef = useRef<{ lat: number; lng: number } | null>(null);
   const [lastCrossing, setLastCrossing] = useState<{ name: string; source: string; url?: string } | null>(null);
 
+  const logLine = (area: string, kind: string, outcome: string) => {
+    const time = new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', second: '2-digit' });
+    setTripLog((p) => [...p.slice(-199), { time, area, kind, outcome }]);
+  };
+
   /**
-   * Called with every new position. Announces an exact crossing (river, canal, protected area) if the
-   * crossing policy allows. `maxSegmentM` guards real GPS against jumps (tunnels, lost signal).
+   * Called with every new position. (1) Announces an exact crossing (river, canal, protected area),
+   * naming the bridge when one is recorded at the crossing point. (2) Otherwise, a "coming up" heads-up
+   * for the nearest river or canal straight ahead on the current heading. Nothing is queued.
+   * `maxSegmentM` guards real GPS against jumps (tunnels, lost signal).
    */
-  const handlePosition = async (coord: { lat: number; lng: number }, maxSegmentM: number) => {
+  const handlePosition = async (coord: { lat: number; lng: number }, maxSegmentM: number, headingDeg: number, speedKmh: number) => {
     const prev = lastPositionRef.current;
     lastPositionRef.current = coord;
     if (!prev || isAudioMuted) return;
     if (metresBetween(prev, coord) > maxSegmentM) return;
     await loadAreaData();
-    const events = detectCrossings(prev, coord);
-    if (!events.length) return;
     const now = Date.now();
-    const speaking = audioService.isLongFormActive() || audioService.getPlaybackState() === 'playing';
-    const d = crossingGateRef.current.decide(events, speaking, now);
-    const time = new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', second: '2-digit' });
-    const name = (d.event ?? events[0]).feature.displayName ?? (d.event ?? events[0]).feature.name;
-    setTripLog((p) => [...p.slice(-199), { time, area: name, kind: 'crossing', outcome: d.event ? 'spoken' : `silent: ${d.reason}` }]);
-    if (!d.event) return;
-    crossingGateRef.current.markPlayed(d.event, now);
-    setLastCrossing({ name, source: d.event.feature.sources.join(', '), url: d.event.feature.url });
-    audioService.speak(d.event.feature.spoken, { trackId: `crossing-${d.event.featureId}` });
+    const speaking = () => audioService.isLongFormActive() || audioService.getPlaybackState() === 'playing';
+
+    const events = detectCrossings(prev, coord);
+    events.forEach((e) => { if (e.direction !== 'leave') crossedAtRef.current.set(e.featureId, now); });
+    if (events.length) {
+      const d = crossingGateRef.current.decide(events, speaking(), now);
+      const ev = d.event ?? events[0];
+      const name = (ev.feature.displayName ?? ev.feature.name) + (ev.bridge ? ` (${ev.bridge.name})` : '');
+      logLine(name, 'crossing', d.event ? 'spoken' : `silent: ${d.reason}`);
+      if (d.event) {
+        crossingGateRef.current.markPlayed(d.event, now);
+        setLastCrossing({ name, source: [...d.event.feature.sources, ...(d.event.bridge ? [d.event.bridge.sourceId] : [])].join(', '), url: d.event.feature.url });
+        audioService.speak(spokenFor(d.event), { trackId: `crossing-${d.event.featureId}` });
+        return;
+      }
+    }
+
+    const ahead = lookAhead(coord, headingDeg, speedKmh);
+    if (ahead) {
+      const fid = ahead.event.featureId;
+      const recently = now - (crossedAtRef.current.get(fid) ?? -Infinity) < 10 * 60 * 1000;
+      const h = headsUpGateRef.current.decide(fid, speaking(), now, recently);
+      if (h.reason === 'already announced') return;
+      logLine(ahead.event.feature.displayName ?? ahead.event.feature.name, 'coming up', h.play ? 'spoken' : `silent: ${h.reason}`);
+      if (h.play) {
+        headsUpGateRef.current.markPlayed(fid, now);
+        audioService.speak(headsUpLine(ahead), { trackId: `crossing-ahead-${fid}` });
+      }
+    }
   };
 
   // Handle switching between Real GPS and Simulator
@@ -159,6 +186,8 @@ export const App: React.FC = () => {
     audioService.stop();
     teaserGateRef.current.reset();
     crossingGateRef.current.reset();
+    headsUpGateRef.current.reset();
+    crossedAtRef.current.clear();
     lastPositionRef.current = null;
     teaserGateRef.current.quietGapMs = mode === 'simulator' ? 0 : DEFAULT_QUIET_GAP_MS;
     if (mode === 'simulator') {
@@ -193,7 +222,7 @@ export const App: React.FC = () => {
     const unsubGps = realGpsService.subscribe(async (state) => {
       setGpsState(state);
       if (state.isTracking && state.coordinate) {
-        handlePosition(state.coordinate, MAX_GPS_SEGMENT_M);
+        handlePosition(state.coordinate, MAX_GPS_SEGMENT_M, state.heading, state.speedKmh);
       }
       // Auto-start ambient audio teaser the moment satellite signal is ACQUIRED
       if (
@@ -262,6 +291,8 @@ export const App: React.FC = () => {
     audioService.stop();
     teaserGateRef.current.reset();
     crossingGateRef.current.reset();
+    headsUpGateRef.current.reset();
+    crossedAtRef.current.clear();
     lastPositionRef.current = null;
   };
 
@@ -280,7 +311,7 @@ export const App: React.FC = () => {
       if (isPlaying) {
         playCellTeaser(cell);
         // simulated route: straight lines between waypoints, so no jump limit
-        handlePosition(simWaypoint.coordinate, Infinity);
+        handlePosition(simWaypoint.coordinate, Infinity, simBearing, Math.round(simWaypoint.speedLimitKmh * 0.95));
       } else {
         lastPositionRef.current = simWaypoint.coordinate;
       }

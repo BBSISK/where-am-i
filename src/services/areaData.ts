@@ -1,4 +1,4 @@
-import { indexCrossingFeatures, CrossingFeature } from './crossings';
+import { indexCrossingFeatures, indexBridges, CrossingFeature } from './crossings';
 import { EnrichedH3Cell, GeoCoordinate, SourceRef, ThreadImage, ThreadOption } from '../types';
 
 /**
@@ -43,6 +43,7 @@ export interface AreaFile {
   /** Crossing features (rivers, canals, protected areas) and their per-cell geometry. */
   features?: Record<string, CrossingFeature>;
   featureCells?: Record<string, [string, number[]][]>;
+  bridges?: Record<string, [number, number, string, string][]>;
 }
 
 const cellIndex = new Map<string, { area: AreaRecord; registry: Record<string, SourceRegistryEntry> }>();
@@ -56,6 +57,7 @@ export function teaserImageFor(area: AreaRecord): { image: ThreadImage; subject:
 
 export function indexAreaFile(doc: AreaFile): void {
   indexCrossingFeatures(doc.features, doc.featureCells);
+  indexBridges(doc.bridges);
   for (const [cell, areaId] of Object.entries(doc.cells)) {
     const area = doc.areas[areaId];
     if (area) cellIndex.set(cell, { area, registry: doc.sources });

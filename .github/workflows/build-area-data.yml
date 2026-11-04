@@ -81,6 +81,9 @@ jobs:
       - name: Data tests (must pass before anything is committed)
         run: cd pipeline && python -m pytest -q
 
+      - name: Spoken-lines audit page (public/audit.html)
+        run: python pipeline/audit_report.py
+
       - name: Keep the build reports
         uses: actions/upload-artifact@v4
         with:
@@ -91,7 +94,7 @@ jobs:
         run: |
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
-          git add public/data/areas
+          git add public/data/areas public/audit.html
           if git diff --cached --quiet; then
             echo "Area data unchanged."
           else

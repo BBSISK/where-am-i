@@ -127,3 +127,20 @@ def test_census_sentence_joined_by_urban_area_guid():
 def test_no_census_sentence_without_a_cso_town():
     lucan = area_at(53.3575, -6.4485)          # suburb town: no CSO town of its own
     assert not any("census" in s["text"] for s in lucan["sentences"])
+
+
+def test_bridge_points_named_bridges_only():
+    import h3
+    from bridges import bridge_points
+    keep = set(h3.grid_disk(h3.latlng_to_cell(53.36, -6.5, 8), 3))
+    niah = [{"NAME": "Leixlip Bridge", "ORIGINAL_TYPE": "bridge", "LATITUDE": 53.36, "LONGITUDE": -6.5, "REG_NO": 1},
+            {"NAME": "Celbridge Mills", "ORIGINAL_TYPE": "mill (water)", "LATITUDE": 53.36, "LONGITUDE": -6.5, "REG_NO": 2},
+            {"NAME": "Lucan House", "ORIGINAL_TYPE": "bridge", "LATITUDE": 53.36, "LONGITUDE": -6.5, "REG_NO": 3},
+            {"NAME": "The Abbey Bridge", "ORIGINAL_TYPE": "foot bridge", "LATITUDE": 53.36, "LONGITUDE": -6.5, "REG_NO": 4}]
+    rps = [{"name": "Leixlip Bridge, Leixlip, Co. Kildare", "descr": "Bridge", "lat": 53.36001, "lng": -6.50001,
+            "councilKey": "kcc", "rpsNo": "B11-83"},
+           {"name": "William Bridge, Maynooth, Co. Kildare", "descr": "Bridge", "lat": 53.361, "lng": -6.5,
+            "councilKey": "kcc", "rpsNo": "B05-53"}]
+    pts = [p for v in bridge_points(niah, rps, keep).values() for p in v]
+    assert sorted(p[2] for p in pts) == ["Leixlip Bridge", "William Bridge"]
+    assert {p[2]: p[3] for p in pts}["Leixlip Bridge"] == "niah:1"   # NIAH wins over the council duplicate

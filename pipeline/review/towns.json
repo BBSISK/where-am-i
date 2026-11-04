@@ -1,0 +1,4 @@
+{
+ "_about": "Sign-off per area after reading public/audit.html. Add an entry like \"town:logainm:1416489\": {\"by\": \"Barry\", \"date\": \"2026-11-05\", \"notes\": \"\"}. Edit by hand; the pipeline never edits this file.",
+ "towns": {}
+}

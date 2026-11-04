@@ -119,3 +119,11 @@ def test_only_reviewed_river_names_are_spoken(doc):
     for f in doc.get("features", {}).values():
         if f["kind"] == "river":
             assert f["name"] in approved, f["name"]
+
+
+def test_bridges_are_named_sourced_and_in_this_county(doc):
+    for cell, pts in doc.get("bridges", {}).items():
+        assert cell in doc["cells"]
+        for lng, lat, name, sid in pts:
+            assert "ridge" in name or "queduct" in name or "quaduct" in name or "iaduct" in name, name
+            assert sid.startswith(("niah:", "rps:")), sid

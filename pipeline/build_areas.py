@@ -23,6 +23,7 @@ from shapely.ops import nearest_points
 from compose import compose, english_name, validated_irish
 from heritage import select_threads
 from features import build_features
+from bridges import bridge_points
 
 ROOT = Path(__file__).resolve().parent
 CACHE = ROOT / "cache"
@@ -331,9 +332,12 @@ def build_doc(tl, ua, recs, county, smr=(), niah=(), census=None, mtv=(), npws=N
     attach_heritage(areas, cell_area, smr, niah, county, mtv, rps, gsi, dib, commons)
     add_census(areas, census or {})
     features, feature_cells = build_features(npws, set(cell_area), rivers, canals, approved_rivers)
+    county_niah = [r for r in niah if (r.get("COUNTY") or "").upper() == county.upper()]
+    county_rps = [r for r in rps if (r.get("COUNTY") or "").upper() == county.upper()]
+    bridges = bridge_points(county_niah, county_rps, set(cell_area))
     doc = {"county": county, "h3Resolution": RES, "builtAt": time.strftime("%Y-%m-%dT%H:%M:%SZ", time.gmtime()),
            "sources": SOURCES, "areas": areas, "cells": cell_area,
-           "features": features, "featureCells": feature_cells}
+           "features": features, "featureCells": feature_cells, "bridges": bridges}
     return doc, report
 
 
