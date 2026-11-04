@@ -40,6 +40,7 @@ import { EnrichedH3Cell, SimulatedRoute, ThreadOption } from '../types';
 import { RealGpsState } from '../services/realGpsService';
 import { VoiceCommandState } from '../services/voiceCommandService';
 import { audioService } from '../services/audioNarrationService';
+import { ThreadImageFigure } from './ThreadImageFigure';
 
 interface DriveModeViewProps {
   // GPS & Driving Modes
@@ -739,6 +740,7 @@ export const DriveModeView: React.FC<DriveModeViewProps> = ({
                           : `Pull thread: ${thread.title}`
                       }
                     >
+                      {thread.image && <ThreadImageFigure image={thread.image} compact />}
                       <div className="space-y-1 flex-1 min-w-0">
                         <div className="flex flex-wrap items-center gap-2">
                           <span className={`text-[10px] font-mono px-2 py-0.5 rounded font-bold uppercase ${
@@ -914,6 +916,8 @@ export const DriveModeView: React.FC<DriveModeViewProps> = ({
                     </button>
                   </div>
                 </div>
+
+                {activeThread.image && <ThreadImageFigure image={activeThread.image} />}
 
                 <blockquote className="text-sm sm:text-base text-slate-200 leading-relaxed font-serif italic">
                   "{activeThread.spokenNarrative}"

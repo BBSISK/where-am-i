@@ -30,6 +30,10 @@ RES = 8
 # Testbed (Barry, 2026-11-04): heritage threads only for these Logainm town ids until quality is reviewed.
 HERITAGE_TOWNS = {17131: 'Lucan', 1416490: 'Leixlip', 1416489: 'Maynooth'}
 THREADS_PER_TOWN = 8
+# Non-commercial decision (Barry, 2026-11-04; README "Licensing status"). NIAH photographs are under the
+# buildingsofireland.ie terms (educational/private use with credit; commercial use needs written permission),
+# not the CC BY 4.0 dataset licence. Set False before any commercial use unless NIAH has given permission.
+NON_COMMERCIAL_SOURCES = True
 MATCH_KM = 1.5
 SUBURB_KM = 2.0
 BUILT_UP_SHARE = 0.5
@@ -47,6 +51,13 @@ SOURCES = {
     "niah": {"name": "National Inventory of Architectural Heritage", "url": "https://www.buildingsofireland.ie",
              "licence": "CC BY 4.0",
              "attribution": "Copyright Government of Ireland. Created by National Inventory of Architectural Heritage, Department of Housing, Local Government and Heritage. Licensed under CC BY 4.0."},
+    "nms-mtv": {"name": "Monuments to Visit (National Monuments Service)",
+                "url": "https://www.arcgis.com/home/item.html?id=1f88b406a2dc44efa1423e000f6ff92c", "licence": "CC BY 4.0",
+                "attribution": "Copyright Government of Ireland. Created by National Monuments Service, Department of Housing, Local Government and Heritage. Licensed under CC BY 4.0."},
+    "niah-images": {"name": "National Inventory of Architectural Heritage, survey photographs",
+                    "url": "https://www.buildingsofireland.ie/terms-and-conditions/",
+                    "licence": "NIAH terms: educational/private use with credit; commercial use needs prior written agreement",
+                    "attribution": "Photographs: National Inventory of Architectural Heritage.", "nonCommercialOnly": True},
     "cso-census": {"name": "CSO Census of Population 2022, Small Area Population Statistics (table SAP2022T1T1TOWN22)",
                    "url": "https://data.cso.ie/table/SAP2022T1T1TOWN22", "licence": "CC BY 4.0",
                    "attribution": "Source: Central Statistics Office, Census of Population 2022 (CC BY 4.0)."},
@@ -137,12 +148,11 @@ def townland_area(f, recs, report):
 
 
 def load_heritage():
-    smr, niah = [], []
-    for f in (CACHE / "heritage").glob("*_smr.json"):
-        smr += json.loads(f.read_text())["results"]
-    for f in (CACHE / "heritage").glob("*_niah.json"):
-        niah += json.loads(f.read_text())["results"]
-    return smr, niah
+    out = {"smr": [], "niah": [], "mtv": []}
+    for kind in out:
+        for f in (CACHE / "heritage").glob(f"*_{kind}.json"):
+            out[kind] += json.loads(f.read_text())["results"]
+    return out["smr"], out["niah"], out["mtv"]
 
 
 def area_for_record(lat, lng, cell_area, areas):
@@ -157,10 +167,10 @@ def area_for_record(lat, lng, cell_area, areas):
     return cell_area[pick[0]] if pick else None
 
 
-def attach_heritage(areas, cell_area, smr, niah, county=None):
+def attach_heritage(areas, cell_area, smr, niah, county=None, mtv=()):
     """Give testbed towns ranked 'Tell me more' threads from records of this county located in their cells."""
     by_area = {}
-    for kind, rows in (("smr", smr), ("niah", niah)):
+    for kind, rows in (("smr", smr), ("niah", niah), ("mtv", mtv)):
         for r in rows:
             if r.get("LATITUDE") is None or r.get("LONGITUDE") is None:
                 continue
@@ -168,13 +178,15 @@ def attach_heritage(areas, cell_area, smr, niah, county=None):
                 continue
             aid = area_for_record(r["LATITUDE"], r["LONGITUDE"], cell_area, areas)
             if aid:
-                by_area.setdefault(aid, {"smr": [], "niah": []})[kind].append(r)
+                by_area.setdefault(aid, {"smr": [], "niah": [], "mtv": []})[kind].append(r)
     for aid, a in areas.items():
         if a["kind"] == "town" and a.get("logainmId") in HERITAGE_TOWNS and aid in by_area:
-            threads = select_threads(by_area[aid]["smr"], by_area[aid]["niah"], limit=THREADS_PER_TOWN)
+            threads = select_threads(by_area[aid]["smr"], by_area[aid]["niah"], limit=THREADS_PER_TOWN,
+                                     mtv_records=by_area[aid]["mtv"], images=NON_COMMERCIAL_SOURCES)
             if threads:
                 a["threads"] = threads
-                a["sources"] = sorted(set(a["sources"]) | {s for t in threads for s in t["sources"]})
+                a["sources"] = sorted(set(a["sources"]) | {s for t in threads for s in t["sources"]}
+                                      | {t["image"]["sourceId"] for t in threads if t.get("image")})
 
 
 def load_census():
@@ -194,7 +206,7 @@ def add_census(areas, census):
         a["sources"] = sorted(set(a["sources"]) | {"cso-census"})
 
 
-def build_doc(tl, ua, recs, county, smr=(), niah=(), census=None):
+def build_doc(tl, ua, recs, county, smr=(), niah=(), census=None, mtv=()):
     """Pure: townland features, urban-area features, Logainm records -> (doc, report)."""
     towns = towns_by_name(recs)
     areas, cell_area = {}, {}
@@ -279,7 +291,7 @@ def build_doc(tl, ua, recs, county, smr=(), niah=(), census=None):
 
     used = set(cell_area.values())
     areas = {k: v for k, v in areas.items() if k in used}
-    attach_heritage(areas, cell_area, smr, niah, county)
+    attach_heritage(areas, cell_area, smr, niah, county, mtv)
     add_census(areas, census or {})
     doc = {"county": county, "h3Resolution": RES, "builtAt": time.strftime("%Y-%m-%dT%H:%M:%SZ", time.gmtime()),
            "sources": SOURCES, "areas": areas, "cells": cell_area}
@@ -290,8 +302,8 @@ def build(county):
     recs = load_logainm()
     tl = json.loads((CACHE / "boundaries" / f"{county}_townlands.geojson").read_text())["features"]
     ua = json.loads((CACHE / "boundaries" / f"{county}_urban_areas.geojson").read_text())["features"]
-    smr, niah = load_heritage()
-    doc, report = build_doc(tl, ua, recs, county, smr, niah, load_census())
+    smr, niah, mtv = load_heritage()
+    doc, report = build_doc(tl, ua, recs, county, smr, niah, load_census(), mtv)
     OUT.mkdir(parents=True, exist_ok=True)
     (OUT / f"{county}.json").write_text(json.dumps(doc, ensure_ascii=False, separators=(",", ":")))
     (CACHE / f"report_{county}.json").write_text(json.dumps(report, ensure_ascii=False, indent=1))

@@ -1,4 +1,4 @@
-import { EnrichedH3Cell, GeoCoordinate, SourceRef, ThreadOption } from '../types';
+import { EnrichedH3Cell, GeoCoordinate, SourceRef, ThreadImage, ThreadOption } from '../types';
 
 /**
  * Verified area data built offline by pipeline/build_areas.py (Logainm + Tailte Éireann, CC BY 4.0).
@@ -15,6 +15,7 @@ export interface AreaThread {
   detailMarkdown: string;
   sourceIds: string[];
   sources: string[];
+  image?: ThreadImage;
 }
 export interface AreaRecord {
   id: string;
@@ -117,7 +118,8 @@ export function cellFromArea(
         category: t.category,
         hookSnippet: t.hookSnippet,
         spokenNarrative: t.spokenNarrative,
-        detailMarkdown: t.detailMarkdown
+        detailMarkdown: t.detailMarkdown,
+        ...(t.image ? { image: t.image } : {})
       })
     ),
     keyHighlights: [],

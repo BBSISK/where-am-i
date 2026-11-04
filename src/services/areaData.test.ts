@@ -20,6 +20,12 @@ const doc: AreaFile = {
         id: 'smr-KD005-015', category: 'monument', title: 'Castle in Maynooth', hookSnippet: 'National Monument No. 485.',
         spokenNarrative: 'From the National Monuments Service record for this castle: National Monument No. 485.',
         detailMarkdown: 'full record', sourceIds: ['smr:KD005-015----'], sources: ['nms-smr']
+      }, {
+        id: 'niah-11803001', category: 'architecture', title: 'Carton House', hookSnippet: 'A fine house.',
+        spokenNarrative: 'From the National Inventory of Architectural Heritage, on Carton House: A fine house.',
+        detailMarkdown: 'full record', sourceIds: ['niah:11803001'], sources: ['niah'],
+        image: { url: 'https://www.buildingsofireland.ie/x.jpg', alt: 'Photograph of Carton House', credit: 'Photo: NIAH',
+                 licence: 'NIAH terms', sourceUrl: 'https://www.buildingsofireland.ie/niah/x', sourceId: 'niah-images' }
       }]
     },
     'townland:logainm:25266': {
@@ -48,7 +54,10 @@ describe('areaData', () => {
     expect(cell.etymology?.irishName).toBe('Léim an Bhradáin');
     expect(cell.etymology?.rootWords).toEqual([{ root: 'léim', meaning: 'leap' }]);
     expect(cell.sources.map((s) => s.id)).toEqual(['logainm', 'tailte-urban', 'nms-smr']);
-    expect(cell.threads.map((t) => t.id)).toEqual(['smr-KD005-015']);
+    expect(cell.threads.map((t) => t.id)).toEqual(['smr-KD005-015', 'niah-11803001']);
+    expect(cell.threads[0].image).toBeUndefined();
+    expect(cell.threads[1].image?.credit).toBe('Photo: NIAH');
+    expect(cell.threads[1].image?.sourceUrl).toBe('https://www.buildingsofireland.ie/niah/x');
     expect(cell.threads[0].spokenNarrative).toMatch(/^From the National Monuments Service record/);
     expect(cell.sources[0].url).toBe('https://www.logainm.ie/1416490.aspx');
   });

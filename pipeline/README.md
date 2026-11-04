@@ -9,10 +9,14 @@ pip install -r pipeline/requirements.txt
 # put LOGAINM_API_KEY=... in the repo's .env (git-ignored)
 ```
 
-## Steps
-1. `python pipeline/fetch_logainm.py Kildare Dublin`: Logainm townlands and towns per county → `pipeline/cache/logainm/` (git-ignored raw cache, with pull date).
-2. *(next)* fetch Tailte Éireann townland boundaries; map every H3 res-8 cell to an area (town if inside one, else townland).
-3. `compose.py`: turns one Logainm record into teaser sentences, **each carrying the ids of the records it is built from**. Unvalidated Irish names are never spoken. No explanatory notes yet (not in the Logainm API).
+## Steps (run by the "Build area data" GitHub workflow)
+1. `fetch_logainm.py Kildare Dublin`: Logainm townlands and towns per county (needs `LOGAINM_API_KEY`).
+2. `fetch_boundaries.py`: Tailte Éireann townlands and CSO/Tailte urban areas.
+3. `fetch_heritage.py KILDARE DUBLIN`: NMS SMR, NIAH buildings, and NMS Monuments to Visit records.
+4. `fetch_census.py`: CSO Census 2022 town populations.
+5. `build_areas.py`: maps every H3 res-8 cell to one area (town, else townland), composes sourced teasers (`compose.py`) and "Tell me more" threads (`heritage.py`), writes `public/data/areas/{county}.json`.
+
+Rules: every sentence carries the ids of its source records; unvalidated Irish names are never spoken; heritage text is the record's own wording (mechanical edits only); when sources disagree each is spoken separately with its own attribution; at most one image per item, from an exact record join, credited. Non-commercial-only sources sit behind `NON_COMMERCIAL_SOURCES` in `build_areas.py` (see SOURCES.md decision log).
 
 ## Tests
 ```bash

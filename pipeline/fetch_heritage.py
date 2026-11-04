@@ -6,6 +6,9 @@ licensed for re-use under CC BY 4.0.
   SMR  (Archaeological Survey of Ireland): https://www.arcgis.com/home/item.html?id=63841b2807504a24942e44955119c339
   NIAH (National Inventory of Architectural Heritage): https://www.arcgis.com/home/item.html?id=69689ebd654e4a83af76fdb4648f8529
 
+  Monuments to Visit (NMS curated guide, ~100 sites nationally, CC BY 4.0):
+       https://www.arcgis.com/home/item.html?id=1f88b406a2dc44efa1423e000f6ff92c
+
 Usage:  python pipeline/fetch_heritage.py KILDARE DUBLIN
 """
 import json, sys, time
@@ -14,22 +17,24 @@ from http_util import get_json
 
 BASE = "https://services-eu1.arcgis.com/HyjXgkV6KGMSF3jt/arcgis/rest/services/"
 DATASETS = {
-    "smr": {"service": "SMROpenData", "key": "SMRS",
+    "smr": {"service": "SMROpenData", "key": "SMRS", "order": "OBJECTID",
             "item": "https://www.arcgis.com/home/item.html?id=63841b2807504a24942e44955119c339"},
-    "niah": {"service": "NIAHBuildingsOpenData", "key": "REG_NO",
+    "niah": {"service": "NIAHBuildingsOpenData", "key": "REG_NO", "order": "OBJECTID_1",
              "item": "https://www.arcgis.com/home/item.html?id=69689ebd654e4a83af76fdb4648f8529"},
+    "mtv": {"service": "NMSMonumentsToVisit", "key": "SMRS", "order": "OBJECTID",
+            "item": "https://www.arcgis.com/home/item.html?id=1f88b406a2dc44efa1423e000f6ff92c"},
 }
 CACHE = Path(__file__).resolve().parent / "cache" / "heritage"
 
 
-def query(service, where):
+def query(service, where, order):
     url = f"{BASE}{service}/FeatureServer/0/query"
     count = get_json(url, params={"where": where, "returnCountOnly": "true", "f": "json"})["count"]
     rows, offset = [], 0
     while len(rows) < count:
         # pages of 500: large pages were cut off mid-transfer by the server (workflow run, 2026-11-04)
         d = get_json(url, params={"where": where, "outFields": "*", "returnGeometry": "false", "f": "json",
-                                  "orderByFields": "OBJECTID" if service.startswith("SMR") else "OBJECTID_1",
+                                  "orderByFields": order,
                                   "resultOffset": offset, "resultRecordCount": 500})
         batch = [f["attributes"] for f in d.get("features", [])]
         if not batch:
@@ -47,7 +52,7 @@ def main(counties):
     for county in counties:
         county = county.upper()
         for name, ds in DATASETS.items():
-            rows = query(ds["service"], f"COUNTY='{county}'")
+            rows = query(ds["service"], f"COUNTY='{county}'", ds["order"])
             out = CACHE / f"{county.lower()}_{name}.json"
             out.write_text(json.dumps({
                 "source": name, "url": ds["item"], "licence": "CC BY 4.0",

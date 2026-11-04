@@ -70,3 +70,60 @@ def test_spoken_text_is_verbatim_after_cleaning():
     t = select_threads([smr("KD005-015----", "Castle - unclassified", "National Monument No. 485. " + notes)], [])[0]
     assert "The Manor of Maynooth was granted by Strongbow to Maurice Fitzgerald." in t["spokenNarrative"]
     assert "Ball 1906" not in t["spokenNarrative"]
+
+
+# --- Monuments to Visit + conflict rule (2026-11-04) -------------------------------------------------
+SMR_MAYNOOTH = {"SMRS": "KD005-015----", "MONUMENT_CLASS": "Castle - Anglo-Norman masonry castle",
+                "TOWNLAND": "MAYNOOTH", "WEBSITE_LINK": "x",
+                "WEB_NOTES": "National Monument No. 485. The Manor of Maynooth was granted by Strongbow to Maurice "
+                             "Fitzgerald who erected Maynooth castle, probably in the late-1180s. At the beginning of "
+                             "the 14th century, the castle became principal residence of Kildare Geraldines."}
+MTV_MAYNOOTH = {"ENTITY_ID": "KD00113", "SMRS": "KD005-015----", "NAME": "Maynooth Castle, County Kildare",
+                "MONUMENT_CLASS": "Castle - Anglo-Norman masonry castle", "external_link": "https://heritageireland.ie/x",
+                "MonumentsToVisit_INFO": "This great stone castle was founded in the early 13th century and became "
+                    "the principal residence of the Kildare branch of the Geraldines. The original Keep, constructed "
+                    "c. 1203, was one of the largest of its kind in Ireland.  Please note that many of these monuments "
+                    "may be on private land and may not be publicly accessible. When setting out to visit monuments "
+                    "please ensure that you wear appropriate footwear and clothing."}
+
+
+def test_conflicting_sources_are_attributed_separately_never_merged():
+    [t] = select_threads([SMR_MAYNOOTH], [], mtv_records=[MTV_MAYNOOTH])
+    spoken = t["spokenNarrative"]
+    smr_part, _, mtv_part = spoken.partition("The National Monuments Service's Monuments to Visit guide says:")
+    assert smr_part.startswith("From the National Monuments Service record for this castle:")
+    assert "late-1180s" in smr_part and "13th century" not in smr_part
+    assert "early 13th century" in mtv_part and "1180s" not in mtv_part
+    assert t["sourceIds"] == ["smr:KD005-015----", "nms-mtv:KD00113"]
+    assert t["sources"] == ["nms-smr", "nms-mtv"]
+
+
+def test_mtv_access_disclaimer_dropped():
+    [t] = select_threads([SMR_MAYNOOTH], [], mtv_records=[MTV_MAYNOOTH])
+    assert "private land" not in t["spokenNarrative"] and "footwear" not in t["detailMarkdown"]
+
+
+def test_mtv_without_smr_candidate_is_its_own_thread():
+    [t] = select_threads([], [], mtv_records=[MTV_MAYNOOTH])
+    assert t["title"] == "Maynooth Castle"
+    assert t["spokenNarrative"].startswith("From the National Monuments Service's Monuments to Visit guide, on Maynooth Castle:")
+    assert t["sourceIds"] == ["nms-mtv:KD00113"]
+
+
+NIAH_REC = {"REG_NO": 11803001, "NAME": "Carton House", "RATING": "National", "APPRAISAL": "A fine house.",
+            "ORIGINAL_TYPE": "country house", "WEBSITE_LINK": "https://www.buildingsofireland.ie/niah/x",
+            "IMAGE_LINK": "https://www.buildingsofireland.ie/building-images-iiif/niah/images/x.jpg"}
+
+
+def test_niah_image_exact_join_with_credit():
+    [t] = select_threads([], [NIAH_REC])
+    img = t["image"]
+    assert img["url"] == NIAH_REC["IMAGE_LINK"] and img["sourceUrl"] == NIAH_REC["WEBSITE_LINK"]
+    assert img["credit"] and img["licence"] and img["sourceId"] == "niah-images"
+
+
+def test_images_switch_and_untrusted_hosts():
+    [t] = select_threads([], [NIAH_REC], images=False)
+    assert "image" not in t
+    [t] = select_threads([], [dict(NIAH_REC, IMAGE_LINK="https://example.com/x.jpg")])
+    assert "image" not in t

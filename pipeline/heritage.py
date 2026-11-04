@@ -9,7 +9,12 @@ Rigour rules:
       - "c. 1780" -> "circa 1780",
       - compass shorthand ("S bank", "c. 160m to the ENE") -> words,
       - collapse whitespace.
-  * Every thread carries the id of the record it came from (smr:<SMRS>, niah:<REG_NO>).
+  * Every thread carries the id of the record it came from (smr:<SMRS>, niah:<REG_NO>, nms-mtv:<ENTITY_ID>).
+  * CONFLICT RULE: when two sources describe the same thing (e.g. the SMR record and the Monuments to
+    Visit guide for Maynooth Castle, which date the castle differently), each source is spoken as its
+    own passage, introduced by its own attribution. Texts are never merged or reconciled.
+  * Images: at most one per thread, only from an exact record join (NIAH IMAGE_LINK by REG_NO), always
+    with credit, licence note and a link to the record. No image is better than a guessed image.
 """
 import re
 
@@ -70,6 +75,60 @@ def first_sentences(text, max_sentences=3, max_words=90):
         picked.append(s)
         words += n
     return " ".join(picked)
+
+
+MTV_DISCLAIMER = re.compile(r"\s*Please note that many of these monuments may be on private land.*$", re.S)
+NIAH_IMAGE_PREFIX = "https://www.buildingsofireland.ie/"
+
+
+def mtv_clean(text):
+    """Monuments to Visit text, minus the standard access disclaimer appended to every entry."""
+    return clean(MTV_DISCLAIMER.sub("", text or ""))
+
+
+def mtv_passage(r):
+    return "The National Monuments Service's Monuments to Visit guide says: " + first_sentences(
+        mtv_clean(r["MonumentsToVisit_INFO"]), max_sentences=3, max_words=80)
+
+
+def mtv_detail(r):
+    return (f"\n\n**Monuments to Visit** ({r['NAME']}): {mtv_clean(r['MonumentsToVisit_INFO'])}\n\n"
+            f"[Visitor information]({r.get('external_link') or r.get('WEBSITE_LINK')}). Source: Monuments to Visit, "
+            f"National Monuments Service, Department of Housing, Local Government and Heritage (CC BY 4.0).")
+
+
+def add_mtv(thread, r):
+    """Attach a Monuments to Visit passage to an SMR thread. Separate, attributed: never merged (conflict rule)."""
+    t = dict(thread)
+    t["spokenNarrative"] = f"{thread['spokenNarrative']} {mtv_passage(r)}"
+    t["detailMarkdown"] = thread["detailMarkdown"] + mtv_detail(r)
+    t["sourceIds"] = thread["sourceIds"] + [f"nms-mtv:{r['ENTITY_ID']}"]
+    t["sources"] = thread["sources"] + ["nms-mtv"]
+    t["score"] = max(thread.get("score", 0), 95) + 10
+    return t
+
+
+def mtv_thread(r):
+    name = re.sub(r",\s*(County|Co\.)\s+\w+$", "", r["NAME"]).strip()
+    spoken = first_sentences(mtv_clean(r["MonumentsToVisit_INFO"]), max_sentences=3, max_words=80)
+    return {
+        "id": f"mtv-{r['ENTITY_ID']}", "category": "monument", "title": name,
+        "hookSnippet": sentences(spoken)[0] if spoken else name,
+        "spokenNarrative": f"From the National Monuments Service's Monuments to Visit guide, on {name}: {spoken}",
+        "detailMarkdown": f"**{name}** ({r.get('MONUMENT_CLASS')}). Record {r.get('SMRS')}." + mtv_detail(r),
+        "sourceIds": [f"nms-mtv:{r['ENTITY_ID']}"], "sources": ["nms-mtv"], "score": 105,
+        "group": (r.get("SMRS") or r["ENTITY_ID"])[:10],
+    }
+
+
+def niah_image(r):
+    url = r.get("IMAGE_LINK") or ""
+    if not url.startswith(NIAH_IMAGE_PREFIX):
+        return None
+    return {"url": url, "alt": f"Photograph of {r['NAME']} from the National Inventory of Architectural Heritage",
+            "credit": "Photo: National Inventory of Architectural Heritage",
+            "licence": "NIAH terms: non-commercial use with credit",
+            "sourceUrl": r.get("WEBSITE_LINK"), "sourceId": "niah-images"}
 
 
 def smr_score(r):
@@ -140,12 +199,25 @@ def niah_thread(r):
                           f"Local Government and Heritage (CC BY 4.0).",
         "sourceIds": [f"niah:{reg}"], "sources": ["niah"], "score": niah_score(r),
         "group": f"niah-name:{name.lower()}",
+        "image": niah_image(r),
     }
 
 
-def select_threads(smr_records, niah_records, limit=8, per_group=1):
-    """Rank candidate threads; at most `per_group` per SMR complex / NIAH name; drop score 0."""
-    cands = [smr_thread(r) for r in smr_records if smr_score(r) > 0]
+def select_threads(smr_records, niah_records, limit=8, per_group=1, mtv_records=(), images=True):
+    """Rank candidate threads; at most `per_group` per SMR complex / NIAH name; drop score 0.
+    A Monuments to Visit entry joins its SMR record exactly (SMRS) and is added as a separate passage;
+    with no SMR candidate it becomes its own thread. `images=False` strips non-commercial-only images."""
+    mtv_by_smrs = {r["SMRS"]: r for r in mtv_records if r.get("SMRS") and r.get("MonumentsToVisit_INFO")}
+    cands, used_mtv = [], set()
+    for r in smr_records:
+        m = mtv_by_smrs.get(r["SMRS"])
+        if smr_score(r) > 0 or (m and (r.get("WEB_NOTES") or "").strip()):
+            t = smr_thread(r)
+            if m:
+                t = add_mtv(t, m)
+                used_mtv.add(r["SMRS"])
+            cands.append(t)
+    cands += [mtv_thread(m) for k, m in mtv_by_smrs.items() if k not in used_mtv]
     cands += [niah_thread(r) for r in niah_records if niah_score(r) > 0]
     cands.sort(key=lambda t: (-t["score"], t["id"]))
     seen, out = {}, []
@@ -153,7 +225,8 @@ def select_threads(smr_records, niah_records, limit=8, per_group=1):
         if seen.get(t["group"], 0) >= per_group:
             continue
         seen[t["group"]] = seen.get(t["group"], 0) + 1
-        out.append({k: v for k, v in t.items() if k not in ("score", "group")})
+        t = {k: v for k, v in t.items() if k not in ("score", "group") and not (k == "image" and (v is None or not images))}
+        out.append(t)
         if len(out) >= limit:
             break
     return out

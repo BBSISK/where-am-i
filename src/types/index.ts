@@ -215,8 +215,19 @@ export interface ClimateAndSportHeritage {
   };
 }
 
+/** One image per item, only from an exact record join; always credited and linked to its record. */
+export interface ThreadImage {
+  url: string;
+  alt: string;
+  credit: string;
+  licence: string;
+  sourceUrl: string;
+  sourceId: string;
+}
+
 export interface ThreadOption {
   id: string;
+  image?: ThreadImage;
   title: string;
   category: 'folklore' | 'monument' | 'etymology' | 'geology' | 'history' | 'waterways' | 'art' | 'diaspora' | 'demographics' | 'architecture' | 'ecology' | 'military' | 'excavation' | 'literature' | 'music' | 'climate';
   hookSnippet: string;

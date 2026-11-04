@@ -67,3 +67,28 @@ def test_census_sentences_only_for_cso_towns(doc):
         for s in a["sentences"]:
             if any(i.startswith("cso:") for i in s["sourceIds"]):
                 assert a["kind"] == "town" and a.get("urbanAreaGuid") and "cso-census" in a["sources"]
+
+
+def test_multi_source_threads_attribute_each_source(doc):
+    """Conflict rule: a second source is a separate, attributed passage."""
+    for a in doc["areas"].values():
+        for t in a.get("threads", []):
+            if "nms-mtv" in t["sources"]:
+                assert "Monuments to Visit guide" in t["spokenNarrative"], t["id"]
+                assert any(s.startswith("nms-mtv:") for s in t["sourceIds"]), t["id"]
+
+
+def test_images_are_exact_join_credited_and_flagged(doc):
+    repo = Path(__file__).resolve().parent.parent
+    readme = (repo / "SOURCES.md").read_text()
+    for a in doc["areas"].values():
+        for t in a.get("threads", []):
+            img = t.get("image")
+            if not img:
+                continue
+            assert img["url"].startswith("https://www.buildingsofireland.ie/"), t["id"]
+            assert img["credit"] and img["licence"] and img["sourceUrl"], t["id"]
+            reg = doc["sources"][img["sourceId"]]
+            assert img["sourceId"] in a["sources"], t["id"]
+            if reg.get("nonCommercialOnly"):
+                assert img["sourceId"] in readme, f"{img['sourceId']} must be logged in SOURCES.md licensing decisions"
