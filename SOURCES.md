@@ -34,8 +34,16 @@ A crossing is announced only when the straight line between two consecutive GPS 
 ## Removed (November 2026)
 All earlier curated heritage content (folklore, census, archive, art, military and archaeological claims) was removed: much of it could not be traced to primary sources, and some citations and quotations were found to be wrong or invented.
 
-## Editing rules for spoken heritage text
+## Editing rules for spoken heritage text (towns without story files)
 Monument and building threads use the official record's own words. Monuments to Visit text additionally drops the standard access disclaimer appended to every entry ("Please note that many of these monuments may be on private land…"). The only edits (see `pipeline/heritage.py`, all unit-tested) are: removing the "Compiled by / Date of upload" footer; removing parenthetical bibliographic references, record codes and measurements; "c. 1780" → "circa 1780"; compass shorthand → words. Each thread links to its official record.
+
+## Story narration (summaries in our own words), from 2026-11-05
+Towns with a reviewed file in `pipeline/review/stories/` are narrated as stories: a ~30-second teaser and ~1-minute "Tell me more" stories, **written in our own words from the cited source records only**. CC BY 4.0 allows adaptation with attribution; DIB and Dúchas (CC BY-NC 4.0) allow it non-commercially. Logainm explanatory notes are never used, in any form.
+- **References are shown on screen, never spoken**: each story lists "Sources (adapted, not quoted)" with the record ids.
+- **Fact check (build fails the story otherwise):** every number, year, ordinal and proper name in a story must appear in the text of the records it cites (`pipeline/stories.py`, tested).
+- **Freshness:** each story stores a hash of every record it was written from; if a record changes, the story is not spoken until it is re-checked.
+- **Hedges kept:** where a record says "probably" or "according to", the story keeps that uncertainty; where records disagree, the story says so ("records differ…").
+- **Status:** "draft" until Barry signs the town off; the audit page (`/audit.html`) shows each story beside the source text it was written from.
 
 ## When sources disagree (conflict rule)
 Official sources sometimes disagree. Example: the SMR record says Maynooth Castle was erected "probably in the late-1180s"; the Monuments to Visit guide says it was "founded in the early 13th century", with the keep built c. 1203. The app never merges or reconciles such texts: each source is spoken as its own passage, introduced by its own attribution, and both record ids are kept on the thread. Tested in `pipeline/test_heritage.py` and `pipeline/test_area_data.py`.

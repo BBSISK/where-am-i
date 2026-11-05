@@ -24,6 +24,7 @@ from compose import compose, english_name, validated_irish
 from heritage import select_threads
 from features import build_features
 from bridges import bridge_points
+from stories import apply_stories, make_ctx
 
 ROOT = Path(__file__).resolve().parent
 CACHE = ROOT / "cache"
@@ -331,6 +332,9 @@ def build_doc(tl, ua, recs, county, smr=(), niah=(), census=None, mtv=(), npws=N
     areas = {k: v for k, v in areas.items() if k in used}
     attach_heritage(areas, cell_area, smr, niah, county, mtv, rps, gsi, dib, commons)
     add_census(areas, census or {})
+    # Story-style narration for towns that have a reviewed stories file (pipeline/review/stories/)
+    report["stories"] = apply_stories(areas, county, make_ctx(areas, smr, niah, mtv, rps, gsi, dib, census or {},
+                                                             commons, NON_COMMERCIAL_SOURCES))
     features, feature_cells = build_features(npws, set(cell_area), rivers, canals, approved_rivers)
     county_niah = [r for r in niah if (r.get("COUNTY") or "").upper() == county.upper()]
     county_rps = [r for r in rps if (r.get("COUNTY") or "").upper() == county.upper()]

@@ -30,7 +30,7 @@ export function ThreadImageFigure({ image, size = 'normal', subject }: { image: 
           : 'w-full max-h-64 rounded-xl object-cover border border-slate-800'
       )}
       <figcaption className="text-[10px] text-slate-500 font-mono">
-        {subject && <span className="text-slate-300">Pictured: {subject}. </span>}
+        {(image.depicts || subject) && <span className="text-slate-300">Pictured: {image.depicts || subject}. </span>}
         {image.credit} ({image.licence}).{' '}
         <a href={image.sourceUrl} target="_blank" rel="noopener noreferrer" className="underline hover:text-slate-300">
           View the record

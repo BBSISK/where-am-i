@@ -223,6 +223,8 @@ export interface ThreadImage {
   licence: string;
   sourceUrl: string;
   sourceId: string;
+  /** What the photo actually shows (e.g. one building in a story about a whole street). */
+  depicts?: string;
 }
 
 export interface ThreadOption {

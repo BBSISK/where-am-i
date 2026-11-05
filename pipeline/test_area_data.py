@@ -1,5 +1,5 @@
 """Integrity tests on the BUILT area files the app ships (public/data/areas/*.json)."""
-import json
+import json, re
 from pathlib import Path
 import h3
 import pytest
@@ -49,6 +49,13 @@ def test_heritage_threads_are_sourced_and_attributed(doc):
     for a in doc["areas"].values():
         for t in a.get("threads", []):
             assert t["sourceIds"] and all(x.startswith(("smr:", "niah:", "nms-mtv:", "rps:", "gsi:", "dib:", "wikidata:")) for x in t["sourceIds"])
+            if t["id"].startswith("story-"):
+                # summarised stories: references on screen only, never spoken; fact-checked at build time
+                assert t["detailMarkdown"].startswith("Sources (adapted, not quoted)"), t["id"]
+                assert a.get("storyStatus") in ("draft", "approved"), t["id"]
+                assert not re.search(r"\b(From the National|Record of Protected Structures|Geological Survey Ireland)\b",
+                                     t["spokenNarrative"]), t["id"]
+                continue
             assert t["spokenNarrative"].startswith(("From the National", "From Geological Survey Ireland",
                                                     "From the Dictionary of Irish Biography, by ",
                                                     "Kildare County Council's Record",
@@ -80,7 +87,7 @@ def test_multi_source_threads_attribute_each_source(doc):
     """Conflict rule: a second source is a separate, attributed passage."""
     for a in doc["areas"].values():
         for t in a.get("threads", []):
-            if "nms-mtv" in t["sources"]:
+            if "nms-mtv" in t["sources"] and not t["id"].startswith("story-"):
                 assert "Monuments to Visit guide" in t["spokenNarrative"], t["id"]
                 assert any(s.startswith("nms-mtv:") for s in t["sourceIds"]), t["id"]
 

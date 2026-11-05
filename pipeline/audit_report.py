@@ -24,10 +24,41 @@ def licences(doc, keys):
     return ", ".join(sorted({doc["sources"].get(k, {}).get("licence", "?") for k in keys}))
 
 
+def source_ctx():
+    """Source records for showing the original text beside each story (only where caches exist)."""
+    try:
+        import build_areas as b
+        from stories import make_ctx
+        smr, niah, mtv, rps, gsi, dib, _ = b.load_heritage()
+        if not smr:
+            return None
+        areas = {}
+        for c in json.loads((AREAS / "index.json").read_text())["counties"]:
+            areas.update(json.loads((AREAS / f"{c}.json").read_text())["areas"])
+        return make_ctx(areas, smr, niah, mtv, rps, gsi, dib, b.load_census())
+    except Exception:
+        return None
+
+
+CTX = None
+
+
+def source_details(sids):
+    if not CTX:
+        return ""
+    from stories import source_text
+    parts = "".join(f"<p><b>{e(sid)}</b>: {e(source_text(sid, CTX) or '(not found)')}</p>" for sid in sids)
+    return f"<details><summary>Source text the story was written from</summary>{parts}</details>"
+
+
 def area_section(doc, a, review):
     rv = review.get(a["id"])
     status = (f'<span class="ok">Approved {e(rv.get("date"))} by {e(rv.get("by"))}</span>' if rv
               else '<span class="todo">Not yet reviewed</span>')
+    if a.get("storyStatus"):
+        status += f' <span class="todo">Stories: {e(a["storyStatus"])}</span>'
+    for r in a.get("storyReport", []):
+        status += f'<br><span class="bad">Not spoken: {e(r["item"])} ({e(r["reason"])})</span>' 
     rows = []
     for s in a.get("sentences", []):
         rows.append(f"<tr><td>Teaser</td><td>{e(s['text'])}</td><td>{e(', '.join(s['sourceIds']))}</td>"
@@ -37,7 +68,8 @@ def area_section(doc, a, review):
         img_cell = (f'<a href="{e(img["sourceUrl"])}">{e(img["credit"])}</a><br><small>{e(img["licence"])}</small>'
                     if img else "")
         rows.append(f"<tr><td>Tell me more<br><small>{e(t['category'])}</small></td><td><b>{e(t['title'])}</b><br>"
-                    f"{e(t['spokenNarrative'])}</td><td>{e(', '.join(t['sourceIds']))}</td>"
+                    f"{e(t['spokenNarrative'])}{source_details(t['sourceIds']) if t['id'].startswith('story-') else ''}"
+                    f"<br><small>{len(t['spokenNarrative'].split())} words</small></td><td>{e(', '.join(t['sourceIds']))}</td>"
                     f"<td>{e(licences(doc, t['sources']))}</td><td>{img_cell}</td></tr>")
     return (f'<section><h3>{e(a["name"])} <small>({e(a["kind"])}, {e(a["id"])})</small> {status}</h3>'
             f'<table><tr><th>Type</th><th>What the app says</th><th>Source records</th><th>Licence</th>'
@@ -59,6 +91,8 @@ def crossings_section(doc):
 
 
 def main():
+    global CTX
+    CTX = source_ctx()
     review = json.loads(REVIEW.read_text()).get("towns", {}) if REVIEW.exists() else {}
     idx = json.loads((AREAS / "index.json").read_text())
     parts = []
@@ -76,7 +110,7 @@ def main():
 <style>
 body{{font:14px/1.45 system-ui,sans-serif;margin:16px;background:#0f172a;color:#e2e8f0}}
 table{{border-collapse:collapse;width:100%;margin:8px 0 24px}}td,th{{border:1px solid #334155;padding:6px;vertical-align:top;text-align:left}}
-th{{background:#1e293b}}small{{color:#94a3b8}}a{{color:#7dd3fc}}.ok{{color:#4ade80;font-size:12px}}.todo{{color:#fbbf24;font-size:12px}}
+th{{background:#1e293b}}small{{color:#94a3b8}}a{{color:#7dd3fc}}.ok{{color:#4ade80;font-size:12px}}.todo{{color:#fbbf24;font-size:12px}}.bad{{color:#f87171;font-size:12px}}details{{margin-top:6px;color:#94a3b8}}
 .cols{{columns:3 220px}}h2{{border-bottom:1px solid #334155;padding-bottom:4px}}
 @media (max-width:700px){{td,th{{font-size:12px}}}}
 </style></head><body><h1>Spoken lines audit</h1>
