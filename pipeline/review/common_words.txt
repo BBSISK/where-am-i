@@ -1,0 +1,14 @@
+# Ordinary English words that may start a sentence in a story. The fact check treats any other
+# capitalised word as a name that must appear in the cited sources. Add words here deliberately
+# (one per line); never add a proper name.
+want
+exactly
+recycling
+right
+loyalty
+above
+left
+somebody
+presumably
+clearly
+comebacks

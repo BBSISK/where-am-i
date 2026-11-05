@@ -2,10 +2,10 @@
  "areaId": "town:logainm:1416489",
  "county": "kildare",
  "status": "draft",
- "writtenBy": "Claude, 2026-11-05, from the cited source records only (no outside knowledge). Pilot for Barry's review.",
- "style": "Teaser about 30 seconds (~75 words). Each Tell me more about 1 minute (~140-170 words). Warm local-guide voice; no spoken references; hedges kept where the records hedge.",
+ "writtenBy": "Claude, 2026-11-05 (v2), from the cited source records only (no outside knowledge).",
+ "style": "v2 (2026-11-05, after Barry's drive: 'still very robotic, make it interesting and funnier'). Teaser ~30 s, stories ~1 minute. Chatty local-guide voice: short sentences, few dates, wry asides. Humour is framing only - every fact still from the cited records; jokes never add facts.",
  "teaser": {
-  "text": "Welcome to Maynooth – in Irish, Maigh Nuad. The first part, maigh, means a plain. At the 2022 census, 17,259 people lived here. For centuries this was the seat of the FitzGeralds, the Earls of Kildare, whose castle keep was one of the largest of its kind in Ireland. Later came St Patrick's College, with what's been called arguably the finest collegiate chapel in the country, then the Royal Canal and the railway. Say 'tell me more' and I'll start with the castle.",
+  "text": "Welcome to Maynooth – or Maigh Nuad, if you're feeling fluent. Maigh means a plain, and somehow this plain ended up with a castle, a college, a canal and a railway. 17,259 people live here now, going by the 2022 census. But for centuries this was the seat of one very ambitious family: the FitzGeralds, Earls of Kildare, whose castle keep was one of the largest of its kind in Ireland. Want to know how they ran the show from here? Just say 'tell me more'.",
   "sourceIds": [
    "logainm:1416489",
    "logainm-glossary:111",
@@ -23,7 +23,7 @@
    "title": "Maynooth Castle and the FitzGeralds",
    "category": "monument",
    "imageFrom": "smr:KD005-015----",
-   "text": "Maynooth Castle was the stronghold of the FitzGeralds, the Earls of Kildare. Strongbow granted the manor here to Maurice Fitzgerald, and the records differ on when the stone castle went up: probably the late 1180s, or the early 13th century, with the great keep around 1203. Either way, that keep was one of the largest of its kind in Ireland. The family became one of the most powerful in the country. Garret Mór, the Great Earl, governed Ireland in the name of the King of England from 1487 to 1513, and under his son, Garret Óg, the castle became the centre of political power and culture. Then it fell in the Silken Thomas Rebellion and was badly damaged. It was remodelled early in the 17th century, and dismantled at the time of the 1641 rebellion. The State took it over in 1991, restoration began in 2000, and today there's an exhibition in the keep on the castle and the family.",
+   "text": "So: the FitzGeralds. Strongbow – yes, that Strongbow – granted the manor here to Maurice Fitzgerald, and up went a stone castle. Exactly when is a matter of polite disagreement: one official record says probably the late 1180s, another says the early 13th century. Either way, the keep was one of the largest of its kind in Ireland, which tells you something about the family's ambitions. And the ambition paid off. Garret Mór – the 'Great Earl', a nice modest nickname – governed Ireland in the name of the King of England from 1487 to 1513. Under his son, Garret Óg, Maynooth Castle became the centre of political power and culture. Not bad for a plain. Then it all went wrong. The castle fell in the Silken Thomas Rebellion and was badly damaged, and it was dismantled at the time of the 1641 rebellion. Today the State looks after it, and there's an exhibition in the keep. No siege required.",
    "sourceIds": [
     "smr:KD005-015----",
     "nms-mtv:KD00113",
@@ -34,10 +34,11 @@
    "id": "st-marys-church",
    "title": "St Mary's: a church with a castle tower",
    "category": "architecture",
-   "text": "St Mary's, the Church of Ireland church on Parson Street, stands right beside the entrance to St Patrick's College, and parts of it are far older than they look. The church was built in 1859 in the Gothic Revival style, but it takes in fabric from an earlier church dated to 1248. The tower is a story in itself: it was part of the Geraldine castle, from around 1450, and belonged to the manorial church associated with it. It has four late medieval windows and a row of narrow slit openings; the battlements on top are modern. Two blocked round-headed openings in its side were probably doorways from an upper storey of the original church. It is rated of national importance: a building of many periods that blends real medieval fabric into a 19th-century Gothic design, with carving around its doors and windows that is still crisp today.",
+   "text": "Right beside the entrance to St Patrick's College stands St Mary's, the Church of Ireland church – and it's a bit of a magpie. It was built in 1859 in the Gothic Revival style, but the builders kept fabric from an earlier church dated to 1248. Recycling at its finest. The real prize is the tower. It started life around 1450 as part of the Geraldine castle – the FitzGeralds again, they get everywhere – and belonged to the manorial church that went with it. So that tower is really the castle's own church, wearing a 19th-century coat. Up close it has four late medieval windows, a row of narrow slits, and two blocked round-headed openings that were probably doorways to an upper storey of the old church. And the battlements on top? Modern. A little bit of costume jewellery.",
    "sourceIds": [
     "smr:KD005-016----",
-    "niah:11803100"
+    "niah:11803100",
+    "nms-mtv:KD00113"
    ]
   },
   {
@@ -45,7 +46,7 @@
    "title": "St Patrick's College",
    "category": "architecture",
    "imageFrom": "niah:11803113",
-   "text": "The idea of a college in Maynooth is older than you might think: in 1518 the ninth Earl of Kildare asked for a licence to found and endow one. The college you know today came much later. St Patrick's College began in a single classical house, built from 1796. Between 1809 and 1815 it was extended into a great U-shaped range around a courtyard, built to match the original so closely that it's hard to tell old from new. Between 1845 and 1851 came the Quadrangle, designed by Pugin, with a library, kitchens and a chapel. It was meant to be a full quadrangle, but only a U-shaped range was ever built. Then the showpiece: the College Chapel, designed by J.J. McCarthy and built between 1875 and 1891, with its tower and spire, by Hague, added between 1899 and 1902. It has been called arguably the finest collegiate chapel in the country. The college even has its own burial ground, for priests who taught or studied here.",
+   "text": "The idea of a college in Maynooth goes back to 1518, when the ninth Earl of Kildare asked for a licence to found and endow one. It took a while to happen. St Patrick's College began, from 1796, as one classical house. Then it grew. And grew. By 1815 it had sprouted a great U-shaped range around a courtyard, built to match so neatly that it's hard to tell old from new. Next, Pugin designed the Quadrangle, with a library, kitchens and a chapel – except it was meant to be a full quadrangle, and only a U-shaped range was ever built. A quadrangle with a side missing. Then the showstopper: the College Chapel by J.J. McCarthy, built between 1875 and 1891, with its tower and spire added a few years later. It's been called arguably the finest collegiate chapel in the country. The college even has its own burial ground, for priests who taught or studied here. Loyalty, taken to the very end.",
    "sourceIds": [
     "smr:KD005-015----",
     "niah:11803113",
@@ -59,7 +60,7 @@
    "title": "What lay beneath the keep",
    "category": "excavation",
    "imageFrom": "smr:KD005-015----",
-   "text": "When archaeologists excavated the whole interior of the castle keep in 1996, they found seven main phases of life on this one spot. The oldest was part of a rectangular prehistoric building. A stone axe head and an unfinished macehead turned up too, along with flakes of flint. Next came at least two small round houses of post and wattle, each about 5 metres across, probably early medieval; one had a curving wooden stockade. Then the land was farmed, and the regularly spaced furrows eventually ran right over the old houses. The site fell into Norman hands around 1175. From the start of the Norman occupation comes a mound of sod about a metre high, with a wooden building on top and a stout fence around it. An arrowhead, an iron spur and a scabbard chape were found at that level. Only then, probably in the late 1180s, did the stone keep begin to rise. Most likely in the early 15th century, its ground floor was rebuilt with two barrel vaults.",
+   "text": "Castles have a habit of sitting on top of older secrets, and Maynooth's is no exception. In 1996, archaeologists excavated the entire inside of the keep and found seven main phases of life stacked on one spot – a sort of historical lasagne. At the bottom: part of a prehistoric building, plus a stone axe head and an unfinished macehead. Somebody never got around to finishing that job. Above that, at least two small round houses of post and wattle, probably early medieval, one with a curving wooden stockade. Then the land was farmed, and the furrows ran right over the old houses. The site fell into Norman hands around 1175, and from then comes a mound of sod about a metre high, with a wooden building on top and a stout fence around it. Left behind: an arrowhead, an iron spur and a scabbard chape. Only after all that, probably in the late 1180s, did the stone keep start to rise.",
    "sourceIds": [
     "smr:KD005-015001-",
     "smr:KD005-015005-"
@@ -69,7 +70,7 @@
    "id": "planned-town",
    "title": "The planned town",
    "category": "history",
-   "text": "Maynooth's Main Street is a planned street, running towards the entrance to the Carton estate. One house there dates from the earliest phase of building, around 1750, and keeps a cut-stone door surround shared by only a small number of houses on the street. The gate lodge beside the avenue into Carton Demesne, with its tall red-brick chimneys, was built in 1757. The Leinster Arms on Main Street was built in 1777 as a hotel, a reminder of Maynooth's coaching days in the late 18th century. In Court House Square, a limestone sculpture called Axis, put up in 1993, recalls two lost buildings that stood there: first the market house, and later the courthouse. On Pound Lane is something rarer: a former Catholic church built between 1755 and 1777, one of the few pre-Emancipation churches in County Kildare still in any use. And at the corner of Pound Lane and Mill Street, a curved stone wall built in 1821 is a reminder of the old town pound.",
+   "text": "Ever get the feeling Maynooth's Main Street is heading somewhere important? It is. It's a planned street, running towards the entrance to the Carton estate. One house on it goes back to the earliest phase of building, around 1750. The gate lodge for Carton Demesne, with its tall red-brick chimneys, went up in 1757. And the Leinster Arms was built in 1777 as a hotel, back in Maynooth's coaching days. In Court House Square there's a limestone sculpture called Axis, from 1993. Its arches are a nod to two buildings that once stood there and vanished: first the market house, then the courthouse. On Pound Lane there's something rarer still: a Catholic church built between 1755 and 1777, one of the few pre-Emancipation churches in County Kildare still in any use. And at the corner of Pound Lane and Mill Street, a curved stone wall from 1821 is a reminder of the old town pound. Presumably the toughest address in town.",
    "sourceIds": [
     "niah:11803029",
     "niah:11803096",
@@ -83,7 +84,7 @@
    "id": "canal-and-railway",
    "title": "The Royal Canal and the railway",
    "category": "waterways",
-   "text": "This stretch of the Royal Canal was built between 1790 and 1796, to give a route linking the east of Ireland with the west, and for some years it helped bring prosperity to Maynooth. Its bridges are part of the story. Bond Bridge, dated 1795, is a single hump-backed stone arch over the canal, with the towpath running underneath. Mullen Bridge was built the same year; it was bypassed in 1995, and it still carries a weathered Ordnance Survey benchmark. On the Lyreen River, William Bridge, from around 1795, has three arches with triangular cut-waters. Then came the railway. The signal box at Maynooth station was built in 1847 for the Midland and Great Western Railway, with a granite ground floor and a timber-clad upper floor. It fell out of use after 1947, and was brought back into service in 1981.",
+   "text": "Before motorways, there were canals. This stretch of the Royal Canal was built between 1790 and 1796 to link the east of Ireland with the west, and for some years it helped make Maynooth prosperous. Its bridges are little works of art. Bond Bridge, dated 1795, is a proper hump-backed stone arch, with the towpath running underneath. Mullen Bridge went up the same year, was bypassed in 1995, and still carries a weathered Ordnance Survey benchmark – a tiny mapmaker's mark that has outlived plenty of maps. On the Lyreen River, William Bridge has three arches with triangular cut-waters, and it's from around 1795 too. Clearly a busy year for stonemasons. Then the railway arrived. The signal box at Maynooth station was built in 1847 for the Midland and Great Western Railway: granite downstairs, timber upstairs. It went quiet after 1947, and then in 1981 it was brought back into service. Comebacks don't get much better than that.",
    "sourceIds": [
     "niah:11803136",
     "niah:11803133",
@@ -96,7 +97,7 @@
    "id": "laraghbryan",
    "title": "Laraghbryan: the older story",
    "category": "history",
-   "text": "Long before the castle, there was Laraghbryan. This was an early monastic site, associated with St Senan. The death of its abbot, Glaindibur, is recorded in 767, and its oratory was burnt and plundered by the 'men of Meath' in 1036 and again in 1040. Because it sat on a major routeway, it may have served as a rest house for pilgrims and clerics travelling east and west. A medieval church still stands in the old graveyard, near the Lyreen River. It is mentioned in 1173 as belonging to Glendalough, and in 1518 it was united with St Mary's in Maynooth. By 1630 its chancel was described as 'uncovered'. Today it is an ivy-clad nave and chancel with tall pointed windows, probably from the 14th century, and a later three-storied tower. One old record even says the First Earl of Kildare died here, in 1316. And about 130 metres north of the church, a map of 1783 marked a castle residence; there is no longer any visible trace of it.",
+   "text": "Long before the castle, there was Laraghbryan, an early monastic site associated with St Senan. Its history reads like a run of bad luck. The death of its abbot, Glaindibur, is recorded in 767. Then its oratory was burnt and plundered by the 'men of Meath' in 1036 – and, in case the point was missed, again in 1040. It sat on a major routeway, so it may have been a rest house for pilgrims and clerics travelling east and west. A medieval service station, if you like. A medieval church still stands in the old graveyard near the Lyreen River: ivy-clad, with tall pointed windows probably from the 14th century and a later three-storied tower. By 1630 its chancel was described as 'uncovered', which sounds draughty. And one old record even says the First Earl of Kildare died here, in 1316. A quiet spot now, for somewhere with that much drama.",
    "sourceIds": [
     "smr:KD005-009001-",
     "smr:KD005-009002-",

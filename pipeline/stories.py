@@ -40,6 +40,9 @@ NOT_NAMES |= set("""about among along although another anyone because behind bes
 during finally few however instead meanwhile nearly neither nobody none nothing perhaps quite rather really
 several since something somewhere soon then though thus together unlike unless very whether why without yet
 another eventually originally later known""".split())
+_CW = HERE / "review" / "common_words.txt"
+if _CW.exists():
+    NOT_NAMES |= {w.strip().lower() for w in _CW.read_text().splitlines() if w.strip() and not w.startswith("#")}
 
 
 def strip_accents(s):
