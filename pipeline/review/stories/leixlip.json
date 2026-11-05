@@ -1,0 +1,126 @@
+{
+ "areaId": "town:logainm:1416490",
+ "county": "kildare",
+ "status": "draft",
+ "writtenBy": "Claude, 2026-11-05, from the cited source records only (no outside knowledge).",
+ "style": "v2 voice (2026-11-05): teaser ~30 s, stories ~1 minute; chatty local-guide voice, few dates, wry asides. Humour is framing only - every fact from the cited records; jokes never add facts.",
+ "teaser": {
+  "text": "Welcome to Leixlip – Léim an Bhradáin in Irish. Léim means a leap, and historians link the name to a Scandinavian word for salmon leap, which suggests a Viking settlement. These days 16,733 people live here, going by the 2022 census. The old town grew up on a narrow strip between the Liffey and the Rye Water, beside a castle that's been lived in continuously for centuries – and not far away is a building so odd it's called the Wonderful Barn. Curious? Just say 'tell me more'.",
+  "sourceIds": [
+   "logainm:1416490",
+   "logainm-glossary:103",
+   "cso:SAP2022T1T1TOWN22:f235ddef-8e01-4ac3-858c-73daee5f847a",
+   "smr:KD011-004001-",
+   "niah:11804045",
+   "niah:11901102"
+  ]
+ },
+ "stories": [
+  {
+   "id": "leixlip-castle",
+   "title": "Leixlip Castle: one house, many owners",
+   "category": "monument",
+   "imageFrom": "niah:11804045",
+   "text": "Leixlip Castle has had more owners than most of us have had cars. It starts with Adam de Hereford, whose grants mention his castle of 'Hernie' before 1212 – though a date stone in the building is inscribed 1172, so the records don't quite agree. Around 1252 it passed to the Pippard family, and in 1302 Ralph Pippard handed all his manors in Ireland over to the King. Records show money then being spent on a new kitchen and a limekiln – even kings have to do up the house. For more than a century it was probably held by the Hospital of St John of Jerusalem. Then in 1496, Henry VII granted Leixlip to Gearóid Mór, the 8th Earl of Kildare – yes, the FitzGeralds again – until it was forfeited after the Silken Thomas rebellion. Later the White family held it, until the 18th century. Its round tower is three storeys high, and remarkably, the castle has been lived in continuously ever since.",
+   "sourceIds": [
+    "smr:KD011-004002-",
+    "niah:11804045",
+    "nms-mtv:KD00113"
+   ]
+  },
+  {
+   "id": "salmon-leap",
+   "title": "The salmon leap that named a town",
+   "category": "history",
+   "text": "Here's where Leixlip gets its name. There was a salmon leap on the Liffey here, and a fishery to go with it – an artificial obstruction built across the river, a fish weir. In 1207, King John granted Adam de Hereford 'all the salmon fishery of the salmon leap'. The whole lot. In 1562, Queen Elizabeth granted William Vernon 'two fishing places, called the Salmon Leap'. There was a ford here too, and an ancient bridge at the Salmon Leap – until a great flood carried it away shortly before 1646, leaving one arch still standing. And that name? Historians point to the Scandinavian 'Lex-hlaup', meaning salmon leap, and suggest it means there was a Viking settlement here. So Leixlip is, quite literally, named after its fish.",
+   "sourceIds": [
+    "smr:KD011-017001-",
+    "smr:KD011-017----",
+    "smr:KD011-004001-"
+   ]
+  },
+  {
+   "id": "st-marys-leixlip",
+   "title": "St Mary's and its stone faces",
+   "category": "architecture",
+   "imageFrom": "niah:11804017",
+   "text": "St Mary's Church, just off Main Street, has been a church for a very long time, and it shows. The church here was granted to the Abbey of St Thomas in Dublin before 1212. In 1317 Edward Bruce's army looted it, by 1630 it was described as ruinous, and a major restoration began in 1675. Today's Church of Ireland church dates from around 1800, built on the site of the medieval church and probably incorporating it, with a 15th-century tower. Inside there's something rare: an L-plan gallery. But the real characters are carved in stone. The church has three carved heads: one small and worn, with a fleur-de-lys crown; one with bulging eyes and a moustache; and one with a fringe of hair, almond-shaped eyes and an upturned slit for a mouth. And set into the chancel wall is a 17th-century graveslab with a skull and crossed bones. Not exactly subtle.",
+   "sourceIds": [
+    "smr:KD011-004003-",
+    "niah:11804017",
+    "smr:KD011-004012-",
+    "smr:KD011-004010-",
+    "smr:KD011-004001-"
+   ]
+  },
+  {
+   "id": "old-town",
+   "title": "The old town and the Black Castle",
+   "category": "history",
+   "text": "Medieval Leixlip was squeezed into a narrow strip of land: the Liffey on the south, a high ridge on the north and the Rye Water on the west, with Main Street running along the middle. In the late 12th century Adam de Hereford set up a castle and a borough here. The town was looted and burnt by Edward Bruce's army in 1317, but otherwise it seems to have been left fairly undisturbed. In 1659 a census recorded a population of 100. At the east end of town is the Black Castle, a tall, narrow tower house of four storeys. It was granted to William Vernon in 1562 and to Nicholas White in 1570. By the early 20th century it had been modernised so much that it was described as indistinguishable 'except to one well acquainted with the locality'. A castle in disguise. And the corner building at Main Street and Captain's Hill has walls thick enough to mark it out as a pre-Georgian building, with a café downstairs.",
+   "sourceIds": [
+    "smr:KD011-004001-",
+    "smr:KD011-004005-",
+    "smr:KD011-004015-"
+   ]
+  },
+  {
+   "id": "wonderful-barn",
+   "title": "The Wonderful Barn",
+   "category": "architecture",
+   "imageFrom": "niah:11901102",
+   "text": "Yes, it really is called the Wonderful Barn. It's a grain store dated 1743, and it looks like nothing else around: a cross-shaped base rising into a cone, with loop-like openings and a parapet on top. That top doubled as a crow's nest, with panoramic views back to Castletown and the Conolly Obelisk. To get up there, you climb ninety-four cut-limestone steps. Leg day, eighteenth-century style. It even carries the words 'executed by John Glinn'. The story goes that Katherine Conolly had it built as a relief scheme during the so-called 'Black Spring' – though that's an 'allegedly', not a 'definitely'. Beside it are dovecotes, and inside there are limewashed, domed chambers. After a long period of neglect, its form survives intact, along with much of its original fabric. A barn that lives up to its name.",
+   "sourceIds": [
+    "niah:11901102"
+   ]
+  },
+  {
+   "id": "water-cures",
+   "title": "Springs, wells and cures",
+   "category": "geology",
+   "text": "Leixlip has a long relationship with water that's supposed to be good for you. Near Louisa Bridge there's a warm spring that was once used as a spa, and a cold spring beside it, with a low flow that can stop altogether for long periods in summer. On the west bank of the Royal Canal there's a holy well that isn't linked to any particular saint, but is believed locally to be near the site of a monastery. It was said to cure sore eyes, and was traditionally visited in August, when rags were sometimes left on the bushes beside it. Another holy well, at Newtown, was also visited in August, for a cure for sore eyes and faces, and visitors tied a scapular medal to a nearby tree. Sadly, that well was later flooded, and people stopped coming. And the canal bridge nearby has a lovely name: Louisa's Bridge.",
+   "sourceIds": [
+    "gsi:KE017",
+    "gsi:KE016",
+    "smr:KD011-007----",
+    "smr:KD011-003----",
+    "rps:kcc:B11-127"
+   ]
+  },
+  {
+   "id": "confey",
+   "title": "Confey: a church in three chapters",
+   "category": "history",
+   "text": "Up at Confey, a ruined church tells its story in three chapters. According to one study, it began in the 11th century as a simple single-cell church. In the 12th century, when it belonged to the diocese of Glendalough, a chancel and a chancel arch were added to the east end. Then, probably in the 15th century, the nave was extended to the west. Today it's ivy-clad and fairly poorly preserved – the west end of the nave has collapsed – but a doorway with a segmented arch, narrow windows and the round-headed chancel arch all survive. The graveyard around it has headstones from the 18th century on, and it has been extended more than once. And just across a small stream, about 160 metres away, stands Confey Castle. Medieval neighbours, with a brook between them.",
+   "sourceIds": [
+    "smr:KD006-003----",
+    "smr:KD006-003001-"
+   ]
+  }
+ ],
+ "sourceHashes": {
+  "cso:SAP2022T1T1TOWN22:f235ddef-8e01-4ac3-858c-73daee5f847a": "260733361c75a50f",
+  "gsi:KE016": "7da6ca35a0377d78",
+  "gsi:KE017": "a3106c337352a11a",
+  "logainm-glossary:103": "dfd422e035c6d4e7",
+  "logainm:1416490": "a8e1772950650923",
+  "niah:11804017": "5294b4b43302ea17",
+  "niah:11804045": "35bbdb1897c6db77",
+  "niah:11901102": "377f746db7e72d77",
+  "nms-mtv:KD00113": "f7517ecc40d66ed9",
+  "rps:kcc:B11-127": "0f0e8900d49fa2fa",
+  "smr:KD006-003----": "da6ae586c47b1522",
+  "smr:KD006-003001-": "02cb39b725f9a399",
+  "smr:KD011-003----": "5bef4ef9008f43f2",
+  "smr:KD011-004001-": "86e9540d799665ef",
+  "smr:KD011-004002-": "98485c0f6c36be96",
+  "smr:KD011-004003-": "2130c6ffb22cfb0d",
+  "smr:KD011-004005-": "a79f30dc6c4dd20f",
+  "smr:KD011-004010-": "08e533585ab2d293",
+  "smr:KD011-004012-": "f461769890f5331c",
+  "smr:KD011-004015-": "03d371024233344b",
+  "smr:KD011-007----": "7d2a1a7fd5cdaeef",
+  "smr:KD011-017----": "0ef6d90983f8772e",
+  "smr:KD011-017001-": "b58afeed8e4c5790"
+ }
+}

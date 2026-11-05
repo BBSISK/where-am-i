@@ -1,0 +1,110 @@
+{
+ "areaId": "town:logainm:17131",
+ "county": "dublin",
+ "status": "draft",
+ "writtenBy": "Claude, 2026-11-05, from the cited source records only (no outside knowledge).",
+ "style": "v2 voice (2026-11-05): teaser ~30 s, stories ~1 minute; chatty local-guide voice, few dates, wry asides. Humour is framing only - every fact from the cited records; jokes never add facts.",
+ "teaser": {
+  "text": "Welcome to Lucan – Leamhcán in Irish, a name explained as 'marshy place'. Lucan was a Norman manor from around 1185, a medieval borough on the Liffey, and later the home of the Sarsfields. Then, in 1758, a sulphur spa was discovered here, and for a while Lucan was a fashionable health resort – full of people drinking water that, according to one writer, tasted of a boiled egg. Fancy hearing more? Just say 'tell me more'.",
+  "sourceIds": [
+   "logainm:17131",
+   "smr:DU017-019002-",
+   "smr:DU017-019----",
+   "smr:DU017-020001-"
+  ]
+ },
+ "stories": [
+  {
+   "id": "lucan-spa",
+   "title": "The spa that tasted of eggs",
+   "category": "history",
+   "imageFrom": "niah:11201020",
+   "text": "In 1758, a sulphur spa was discovered on the estate of Agmondisham Vesey – a name that deserves a story of its own – and Lucan became a health resort. The well was almost 7 feet long and 2 feet wide, right on the brink of the Liffey, so floods kept getting into it until Mr Vesey built a wall. The claims were impressive: skin complaints, rheumatism, paralysed limbs, itch and ringworm. One man with loose teeth and sore gums washed his mouth with the water, drank some, and declared himself completely cured. The taste was another matter. One writer, Rutty, said it tasted of a boiled egg – and when strongest, of a putrid one – and smelt of sulphur. Still, the spa stayed popular until about 1845, when fashion moved on. Spas weren't quite finished in Lucan, though: the Spa Hotel was built in 1891 to a design by W.M. Mitchell, with an annexe for spa treatment rooms.",
+   "sourceIds": [
+    "smr:DU017-020001-",
+    "smr:DU017-019----",
+    "niah:11201020"
+   ]
+  },
+  {
+   "id": "lucan-bridges",
+   "title": "Three bridges and a cheeky poem",
+   "category": "history",
+   "imageFrom": "niah:11201090",
+   "text": "Lucan has had three bridges over the Liffey, and each one has a tale. The medieval bridge stood near Lucan House. In 1456 a statute ordered a tower with a gate on the bridge, to keep 'Irish enemies and English rebels' out of Fingal by night. Only a single pointed arch of it survives. Then came an 18th-century bridge. The old road by the river was so dangerous that several people had lost their lives and many cattle had drowned, and in 1731 an act allowed a new bridge. Dean Swift wrote a couplet about it: 'Agmondisham Vesey out of great bounty, built the bridge at the expense of the county.' Ouch. That bridge was swept away in the floods of 1784 or 1786. The bridge there today was built in 1814: a single arch of about 110 feet. It's been described as the longest span masonry arch ever built in Ireland – and back in 1859, as far more expensive than the occasion called for. It cost over £9,000. Worth every penny.",
+   "sourceIds": [
+    "smr:DU017-016----",
+    "smr:DU017-019007-",
+    "smr:DU017-019006-",
+    "niah:11201090"
+   ]
+  },
+  {
+   "id": "sarsfields",
+   "title": "Pass the manor: the Sarsfields and Lucan House",
+   "category": "history",
+   "imageFrom": "niah:11201148",
+   "text": "Lucan's history is a long game of pass-the-manor. Around 1185 it went to Alard FitzWilliam, and by 1204 to the Peche family, who held it for much of the 13th century. In the later middle ages it belonged to the FitzGerald earls of Kildare, who turn up everywhere around here. After their fall, following the Silken Thomas rebellion, Sir William Sarsfield bought it, and the Sarsfields kept it until the middle of the 17th century. Cromwell dispossessed them, and a Parliamentarian colonel, Theophilus Jones, took over. But the Sarsfields were restored just in time for Patrick Sarsfield to be made Earl of Lucan. Lucan House was built around 1775, partly designed by William Chambers, with plasterwork by Michael Stapleton, and the medieval castle is thought to have stood beside it. Today it's the residence of the Italian Ambassador. Quite a step up from pass-the-manor.",
+   "sourceIds": [
+    "smr:DU017-019----",
+    "smr:DU017-019008-",
+    "smr:DU017-019012-",
+    "niah:11201148"
+   ]
+  },
+  {
+   "id": "singing-jars",
+   "title": "St Mary's and the singing jars",
+   "category": "architecture",
+   "text": "Beside Lucan House is the ruin of St Mary's, the old parish church, and it hides something very special in its north wall: pottery jars, set into small round holes. They're acoustic jars, believed to have been used to improve the sound of singing in medieval churches, and the survival of the jars themselves here may be unique in Ireland. At Youghal the holes survive, but the jars don't. The church also has a tower on one corner that virtually all earlier writers mistook for Lucan's medieval castle. Around 1302 to 1307, Lucan church was valued at £20 a year. And in the graveyard, a medieval window mullion from the church has been reused as a grave marker. Recycling, medieval-style.",
+   "sourceIds": [
+    "smr:DU017-019002-",
+    "smr:DU017-019001-",
+    "smr:DU017-019003-"
+   ]
+  },
+  {
+   "id": "st-catherines",
+   "title": "St Catherine's wells and the water that wouldn't heat",
+   "category": "folklore",
+   "imageFrom": "smr:DU017-002001-",
+   "text": "Between Lucan and Leixlip, in St Catherine's Park, there are two holy wells side by side under arched coverings. Tradition says the water of the bigger well was for drinking, and the smaller one for bathing sore eyes. A carved stone head once sat over the higher well, but by 1958 it had been stolen more than once, and it's long gone now. A story collected in 1937 at the Presentation Convent in Lucan tells of a man who wanted to pipe the well's water to his house. The priest told him not to: if he did, he would never get the water hot. He went ahead anyway – and no matter how much fuel he put on the fire, the water never got warm. Nearby, on the north bank of the Liffey, is a little church built with older medieval fragments and a Tudor-style doorway. A 2011 survey called it a good example of the damage uncontrolled vegetation can do. Nature always wins in the end.",
+   "sourceIds": [
+    "smr:DU017-002001-",
+    "smr:DU017-003----"
+   ]
+  },
+  {
+   "id": "fish-and-ice",
+   "title": "A fishing feud, and a gift from the ice",
+   "category": "geology",
+   "text": "Here's a tale of fish and ice. The fish first. In medieval times the fishing on the Liffey between Lucan and the Salmon Leap was worth going to court over. In 1295 Hugh de la Felde and his wife Alianora were dispossessed of their third of the fishery. In 1306 another couple, John de Hausteyd and Roesia, had the King's writ sent on their behalf, saying they'd been blocked from their half of the catch. The local jurors' answer? The fish were never shared at all: each lord simply fished out to the middle of the river, on his own side. Fair enough. Now the ice. The Lucan Esker is a large accumulation of sands and gravels, laid down mainly under the ice sheet, and a good example of a deglacial, meltwater-deposited feature. And beside the N4 underpass junction for Lucan, a roadside cutting shows off Dublin's 'Calp' limestone.",
+   "sourceIds": [
+    "smr:DU017-019005-",
+    "gsi:SD008",
+    "gsi:SD009"
+   ]
+  }
+ ],
+ "sourceHashes": {
+  "gsi:SD008": "882bffcc2be52692",
+  "gsi:SD009": "384bcad7bd9c6b98",
+  "logainm:17131": "eeae361e9310e987",
+  "niah:11201020": "aa008a99ede9f917",
+  "niah:11201090": "3401b9446fc9e8d5",
+  "niah:11201148": "dfb78cec35de0263",
+  "smr:DU017-002001-": "abf9aadca1676e19",
+  "smr:DU017-003----": "180585a93048a967",
+  "smr:DU017-016----": "dbf990bec0c7a0c3",
+  "smr:DU017-019----": "d4b8809310bb412b",
+  "smr:DU017-019001-": "b1cb3b4e8cdccc67",
+  "smr:DU017-019002-": "781008df9cb47cf1",
+  "smr:DU017-019003-": "298c05cd23d3fe6e",
+  "smr:DU017-019005-": "87ec86da04ac6d56",
+  "smr:DU017-019006-": "a66a2b7b89b22dca",
+  "smr:DU017-019007-": "c78e544bd17cfd0c",
+  "smr:DU017-019008-": "79a1abbdf406af18",
+  "smr:DU017-019012-": "7058916b4e5bb637",
+  "smr:DU017-020001-": "86318857cdfe3194"
+ }
+}

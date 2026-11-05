@@ -56,6 +56,9 @@ def norm(text):
     # abbreviated year ranges: 1845-51 -> 1845-1851, 1796-9 -> 1796-1799
     t = re.sub(r"\b(1\d)(\d\d)-(\d\d)\b", r"\1\2-\1\3", t)
     t = re.sub(r"\b(1\d\d)(\d)-(\d)\b", r"\1\2-\1\3", t)
+    tens = {"twenty": 20, "thirty": 30, "forty": 40, "fifty": 50, "sixty": 60, "seventy": 70, "eighty": 80, "ninety": 90}
+    t = re.sub(r"\b(%s)(?:[- ](one|two|three|four|five|six|seven|eight|nine))?\b" % "|".join(tens),
+               lambda m: str(tens[m.group(1)] + (NUMBER_WORDS[m.group(2)] if m.group(2) else 0)), t)
     t = re.sub(r"\b(\w+)\b", lambda m: str(NUMBER_WORDS.get(m.group(1), m.group(1))), t)
     t = re.sub(r"(\d)c\b", r"\1th", t)                     # "14thC" style
     return t
